@@ -20,7 +20,7 @@
 | PLANE-006 | Arrival does not explore | INV | `TestObserver_OutboundArrivalDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | successful OUTBOUND leaves Plane exploration unchanged |
 | PLANE-007 | Research completion does not explore | INV | `TestObserver_ResearchCompletionDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | WAITING_RETURN retains Plane location but not exploration |
 | PLANE-008 | Successful return explores | BEH | `TestObserver_SuccessfulReturnExploresPlane`, `TestObserver_SuccessfulReturnSetsExploredAtToArrival` | `ResolveObserverLifecycle` | GREEN | explored at semantic return deadline |
-| PLANE-009 | Re-return idempotent | INV | `TestObserver_ReturnToAlreadyExploredPlanePreservesOriginalExploredAt` | `ResolveObserverLifecycle` | PARTIAL | Plane-state idempotence (`Explored`/`ExploredAt`) доказана; progress aggregation — later stage |
+| PLANE-009 | Re-return idempotent | INV | `TestObserver_ReturnToAlreadyExploredPlanePreservesOriginalExploredAt`, `TestObservers_MultipleObserversMayExploreSamePlaneConcurrently` | `ResolveObserverLifecycle` | PARTIAL | Plane-state idempotence (`Explored`/`ExploredAt`) доказана; progress aggregation — later stage |
 
 ## PORTAL
 
@@ -138,7 +138,7 @@
 | OBSERVER-011 | Return → AVAILABLE | BEH | `TestObserver_StartReturningFromWaitingReturn`, `TestObserver_ReturningBeforeDeadlineRemainsReturning`, `TestObserver_ReturningAtDeadlineBecomesAvailable`, `TestObserver_ReturnUsesDeadlineAsTransitionTime`, `TestObserver_ReturnClearsCurrentPlaneAndActivePortal`, `TestObserver_ReturningSucceedsWhenPortalClosesExactlyAtTransitEnd`, `TestObserver_PortalClosingAfterReturnEndDoesNotRetroactivelyLoseObserver` | `Observer.StartReturning`, `ResolveObserverLifecycle` | GREEN | current Plane retained in transit; exact close tie/later close succeed; canonical AVAILABLE restored |
 | OBSERVER-012 | CLOSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalClosesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalClosesBeforeTransitEnd`, `TestObserver_LossUsesPortalClosedAtAsTransitionTime`, `TestObserver_LossClearsActiveState` | `ResolveObserverLifecycle` | GREEN | strict-before failure; LOST fields canonicalized and timestamped at `ClosedAt` |
 | OBSERVER-013 | COLLAPSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_LossDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | same loss semantics for ENERGY_DEPLETED/INSTABILITY collapse |
-| OBSERVER-014 | Multiple per Plane | BEH | — | — | PLANNED | |
+| OBSERVER-014 | Multiple per Plane | BEH | `TestObservers_MultipleObserversMayExploreSamePlaneConcurrently` | lifecycle primitives + `ResolveObserverLifecycle` | GREEN | no uniqueness-by-Plane guard; Stage 4 separately owns per-Portal transit admission |
 | OBSERVER-015 | Send to explored allowed | BEH | — | — | PLANNED | |
 | OBSERVER-016 | Recall longest-waiting | BEH | — | — | PLANNED | |
 
