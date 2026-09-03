@@ -159,7 +159,7 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | EXTRACTION-001 | Cost 30 | BAL | — | — | PLANNED | |
-| EXTRACTION-002 | Requires waiting observer | BEH | — | — | PLANNED | |
+| EXTRACTION-002 | Requires waiting observer | BEH | `TestExtractionPlaneEligible_ReturnsTrueForWaitingObserver`, `TestExtractionPlaneEligible_FiltersBySelectedPlane`, `TestExtractionPlaneEligible_RejectsDuplicateObserverIDs` | `ExtractionPlaneEligible`, `validateObserverRoster` | GREEN | eligibility uses current canonical WAITING_RETURN state in the selected Plane |
 | EXTRACTION-003 | Requires free slot | BEH | — | — | PLANNED | |
 | EXTRACTION-004 | Stable/INBOUND/creatures0 | BEH | `TestNewExtractionPortal_IsStableWithoutHiddenCollapse`, `TestNewExtractionPortal_StartsInbound`, `TestNewExtractionPortal_HasNoCreatures` | `NewExtractionPortal` | GREEN | canonical Extraction creation state |
 | EXTRACTION-005 | Energy 60..100 | BAL | `TestNewExtractionPortal_AcceptsMinimumEnergy`, `TestNewExtractionPortal_AcceptsMaximumEnergy` | `NewExtractionPortal` | GREEN | inclusive configured factory draw |

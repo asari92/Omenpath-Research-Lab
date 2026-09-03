@@ -44,3 +44,13 @@ func NewExtractionPortal(seq, planeID int64, slot int, now time.Time, cfg config
 		UpdatedAt: now,
 	}
 }
+
+// ExtractionPlaneEligible reports whether planeID currently contains at
+// least one canonical WAITING_RETURN Observer.
+func ExtractionPlaneEligible(observers []Observer, planeID int64, now time.Time) (bool, error) {
+	if err := validateObserverRoster(observers, now); err != nil {
+		return false, err
+	}
+	_, ok, err := LongestWaitingObserverIndex(observers, planeID)
+	return ok, err
+}

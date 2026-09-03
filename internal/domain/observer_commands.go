@@ -190,7 +190,10 @@ func validateObserverCommandAggregate(portal *Portal, plane *Plane, observers []
 	if portal == nil || plane == nil || plane.ID != portal.DestinationPlaneID {
 		return ErrObserverInvariant
 	}
+	return validateObserverRoster(observers, now)
+}
 
+func validateObserverRoster(observers []Observer, now time.Time) error {
 	ids := make(map[int64]struct{}, len(observers))
 	for i := range observers {
 		observer := &observers[i]
