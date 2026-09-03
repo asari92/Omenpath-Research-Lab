@@ -157,3 +157,213 @@ func TestRecallObserver_LeavesOtherWaitingObserversUnchanged(t *testing.T) {
 
 	require.Equal(t, otherBefore, observers[1])
 }
+
+func TestRecallObserver_RejectsClosedPortal(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusClosed
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+}
+
+func TestRecallObserver_RejectsCollapsedPortal(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusCollapsed
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+}
+
+func TestRecallObserver_RejectsCriticalRisk(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(10 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalCriticalRisk)
+}
+
+func TestRecallObserver_RejectsOutboundFlow(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowOutbound
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+}
+
+func TestRecallObserver_RejectsCreaturesInside(t *testing.T) {
+	portal := stage4Portal()
+	portal.CreaturesInitial = 1
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalCreaturesPresent)
+}
+
+func TestRecallObserver_RejectsBusyPortal(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	busy := outboundObserver(testutil.BaseTime, testutil.BaseTime.Add(10*time.Second))
+	waiting := waitingObserver(testutil.BaseTime.Add(-time.Minute))
+	waiting.ID = 2
+	observers := []domain.Observer{busy, waiting}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalBusy)
+}
+
+func TestRecallObserver_RejectsWhenDestinationHasNoWaitingObserver(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrNoWaitingObserver)
+}
+
+func TestRecallObserver_DoesNotUseWaitingObserverFromOtherPlane(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	otherPlaneID := int64(99)
+	observer := waitingObserver(testutil.BaseTime.Add(-time.Minute))
+	observer.CurrentPlaneID = &otherPlaneID
+	observers := []domain.Observer{observer}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrNoWaitingObserver)
+	require.Equal(t, domain.ObserverWaitingReturn, observers[0].Status)
+}
+
+func TestRecallObserver_UnstableRequiresConfirmation(t *testing.T) {
+	portal := stage4Portal()
+	portal.Stability = domain.PortalUnstable
+	hidden := testutil.BaseTime.Add(time.Minute)
+	portal.InstabilityCollapseAt = &hidden
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+	portalBefore := portal
+	observersBefore := append([]domain.Observer(nil), observers...)
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrConfirmationRequired)
+	require.Equal(t, portalBefore, portal)
+	require.Equal(t, observersBefore, observers)
+}
+
+func TestRecallObserver_UnstableConfirmedStartsTransit(t *testing.T) {
+	portal := stage4Portal()
+	portal.Stability = domain.PortalUnstable
+	hidden := testutil.BaseTime.Add(time.Minute)
+	portal.InstabilityCollapseAt = &hidden
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	id, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, true, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1), id)
+	require.Equal(t, domain.ObserverReturning, observers[0].Status)
+}
+
+func TestRecallObserver_HighRiskStablePortalNeedsNoConfirmation(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(14 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestRecallObserver_LowEnergyDoesNotCreateSeparateWarning(t *testing.T) {
+	portal := stage4Portal()
+	portal.EnergyBase = 5
+	portal.EnergyDecayRate = 0.1
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestRecallObserver_LowRemainingTimeDoesNotCreateSeparateWarning(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(14 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestRecallObserver_RejectionIsAtomic(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowOutbound
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+	portalBefore := portal
+	planeBefore := plane
+	observersBefore := append([]domain.Observer(nil), observers...)
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+	require.Equal(t, portalBefore, portal)
+	require.Equal(t, planeBefore, plane)
+	require.Equal(t, observersBefore, observers)
+}
+
+func TestRecallObserver_RejectionDoesNotConsumeRandom(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowOutbound
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+	rnd := testutil.NewFakeRandom().QueueInt(13, 14)
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, rnd, config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+	require.Equal(t, 13, rnd.IntInclusive(5, 15))
+}
+
+func TestRecallObserver_UsesDocumentedErrorPrecedence(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusClosed
+	portal.ObserverFlow = domain.PortalFlowOutbound
+	portal.CreaturesInitial = 1
+	portal.Stability = domain.PortalUnstable
+	plane := stage4Plane()
+	busy := outboundObserver(testutil.BaseTime, testutil.BaseTime.Add(10*time.Second))
+	waiting := waitingObserver(testutil.BaseTime.Add(-time.Minute))
+	waiting.ID = 2
+	observers := []domain.Observer{busy, waiting}
+
+	_, err := domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+
+	portal.Status = domain.PortalStatusOpen
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(10 * time.Second)
+	_, err = domain.RecallObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+	require.ErrorIs(t, err, domain.ErrPortalCriticalRisk)
+}
