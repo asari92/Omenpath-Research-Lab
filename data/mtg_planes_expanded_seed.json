@@ -1,0 +1,646 @@
+{
+  "metadata": {
+    "title": "Magic: The Gathering planes — expanded seed dataset",
+    "record_count": 85,
+    "core_count": 54,
+    "expanded_count": 31,
+    "retrieved": "2026-09-01",
+    "scope": "Named mainline Magic planes suitable as portal destinations",
+    "excluded": [
+      "Blind Eternities (space between planes, not a destination plane)",
+      "Universes Beyond worlds",
+      "Un-iverse / joke non-canon planes",
+      "unnamed planes"
+    ],
+    "normalization": [
+      "Kaladesh is stored as an alias of Avishkar.",
+      "Mirrodin and Argentum are stored as historical aliases of New Phyrexia.",
+      "Lorwyn and Shadowmoor are stored as aliases/forms of one plane.",
+      "Mutable game state such as exploration can later be moved from this seed file into SQLite."
+    ],
+    "sources": [
+      {
+        "name": "MTG Wiki — Plane/Storyline",
+        "url": "https://mtg.fandom.com/wiki/Plane/Storyline"
+      },
+      {
+        "name": "The Magic Multiverse Project — Planes of the Multiverse",
+        "url": "https://www.mtg-multiverse.com/planes"
+      },
+      {
+        "name": "Wizards of the Coast — The Known Multiverse",
+        "url": "https://magic.wizards.com/en/news/feature/known-mutliverse-2008-03-19"
+      }
+    ]
+  },
+  "planes": [
+    {
+      "id": 1,
+      "name": "The Abyss",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 2,
+      "name": "Alara",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 3,
+      "name": "Alacria",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 4,
+      "name": "Alkabah",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 5,
+      "name": "Amonkhet",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 6,
+      "name": "Antausia",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 7,
+      "name": "Aranzhur",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 8,
+      "name": "Arcavios",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 9,
+      "name": "Arkhos",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 10,
+      "name": "Avishkar",
+      "aliases": [
+        "Kaladesh"
+      ],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 11,
+      "name": "Azgol",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 12,
+      "name": "Azoria",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 13,
+      "name": "Belenon",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 14,
+      "name": "Bloomburrow",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 15,
+      "name": "Cabralin",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 16,
+      "name": "Capenna",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 17,
+      "name": "Celesta",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 18,
+      "name": "Cridhe",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 19,
+      "name": "Diraden",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 20,
+      "name": "Dominaria",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 21,
+      "name": "Duskmourn",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 22,
+      "name": "Echoir",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 23,
+      "name": "The Edge",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 24,
+      "name": "Eldraine",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 25,
+      "name": "Equilor",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 26,
+      "name": "Ergamon",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 27,
+      "name": "Fabacin",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 28,
+      "name": "Fiora",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 29,
+      "name": "Gargantikar",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 30,
+      "name": "Gastal",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 31,
+      "name": "Gobakhan",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 32,
+      "name": "Hell",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 33,
+      "name": "Ikoria",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 34,
+      "name": "Ilcae",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 35,
+      "name": "Innistrad",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 36,
+      "name": "Iquatana",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 37,
+      "name": "Ir",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 38,
+      "name": "Ixalan",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 39,
+      "name": "Kaldheim",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 40,
+      "name": "Kamigawa",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 41,
+      "name": "Karsus",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 42,
+      "name": "Kephalai",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 43,
+      "name": "Kinshala",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 44,
+      "name": "Kodisha",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 45,
+      "name": "Kolbahan",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 46,
+      "name": "Kylem",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 47,
+      "name": "Kyneth",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 48,
+      "name": "Lorwyn–Shadowmoor",
+      "aliases": [
+        "Lorwyn",
+        "Shadowmoor"
+      ],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 49,
+      "name": "Luvion",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 50,
+      "name": "Meditation Plane",
+      "aliases": [
+        "Bolas's Meditation Realm",
+        "Meditation Realm"
+      ],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 51,
+      "name": "Mercadia",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 52,
+      "name": "Metal Island",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 53,
+      "name": "Mirrankkar",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 54,
+      "name": "Moag",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 55,
+      "name": "Mongseng",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 56,
+      "name": "Muraganda",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 57,
+      "name": "Nether Void",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 58,
+      "name": "New Phyrexia",
+      "aliases": [
+        "Mirrodin",
+        "Argentum"
+      ],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 59,
+      "name": "Obsidias",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 60,
+      "name": "Phyrexia",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 61,
+      "name": "Pyrulea",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 62,
+      "name": "Rabiah",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 63,
+      "name": "Rath",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 64,
+      "name": "Ravnica",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 65,
+      "name": "Regatha",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 66,
+      "name": "Segovia",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 67,
+      "name": "Serra's Realm",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 68,
+      "name": "Seven planes of Parnash",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 69,
+      "name": "Shandalar",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 70,
+      "name": "Shenmeng",
+      "aliases": [
+        "Plane of Mountains and Seas"
+      ],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 71,
+      "name": "Skalla",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 72,
+      "name": "Tarkir",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 73,
+      "name": "Tavelia",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 74,
+      "name": "Theros",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 75,
+      "name": "Thunder Junction",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 76,
+      "name": "Tolvada",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 77,
+      "name": "Torwynn",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 78,
+      "name": "Ulgrotha",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 79,
+      "name": "Valla",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 80,
+      "name": "Vatraquaz",
+      "aliases": [],
+      "catalog_tier": "expanded",
+      "explored": false
+    },
+    {
+      "id": 81,
+      "name": "Vryn",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 82,
+      "name": "Wildfire",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 83,
+      "name": "Xerex",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 84,
+      "name": "Zendikar",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    },
+    {
+      "id": 85,
+      "name": "Zhalfir",
+      "aliases": [],
+      "catalog_tier": "core",
+      "explored": false
+    }
+  ]
+}
