@@ -503,3 +503,59 @@ Checkpoint F deliberately did not manufacture a RED failure: all permanent-flow 
 - Scope scan новых Stage 4 domain-файлов не нашёл wall-clock calls, Lab Energy, Leyline, Extraction, database/HTTP или mutex dependencies.
 
 Stage 5 не начат.
+
+## Stage 5 — Laboratory Energy via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Точное число токенов окружение не предоставляет — не фиксирую.
+- Реализация выполнена строго по `07_STAGE_05_LABORATORY_ENERGY_TDD.md` поверх завершённых Stage 2 Portal Core и Stage 4 Portal Observer Flow.
+- Перед началом рабочее дерево было чистым, `main` указывал на `d538e97`; baseline `go test -count=1 ./...` прошёл полностью.
+- Блокирующих противоречий с Final Spec §§14/21/22/37 не найдено: integer Energy, производная регенерация и цены 0/0/5/20/30 совпадают.
+- Реализован только Stage 5 domain scope. Collapse/Leyline Override, Extraction Portal, Events, persistence, HTTP/WebSocket, simulation и LabManager не начинались.
+
+### Что реализовано
+
+- `NewLabState` валидирует inclusive baseline `0..cfg.LabEnergyMax`; `NewTutorialLabState` создаёт maximum-energy baseline в переданном `now` без override.
+- `LabState.CurrentEnergy` чисто вычисляет целочисленную энергию по завершённым целым секундам, использует `cfg.LabRegenPerSec`, ограничивает результат максимумом и не записывает derived state.
+- `LabState.CanAfford` и `SpendEnergy` используют derived balance; положительный debit ставит новый baseline в `now`, нулевая стоимость является настоящим no-op, malformed state/negative cost/backward mutation time отклоняются атомарно.
+- Добавлены стабильные `ErrLabEnergyInvariant` и `ErrInsufficientLabEnergy`.
+- `SendObserverWithLabEnergy` и `RecallObserverWithLabEnergy` валидируют LabState, но имеют цену 0 и не сдвигают baseline; существующие Stage 4 selection/flow/confirmation/error/random semantics делегируются без изменений.
+- `ClosePortalWithLabEnergy` preflight-проверяет `cfg.CloseCost` (default 5), делегирует `ClosePortalWithObservers` и списывает один раз только после успеха.
+- `StabilizePortalWithLabEnergy` аналогично применяет `cfg.StabilizeCost` (default 20) вокруг `Portal.Stabilize`; Lab Energy и Portal Energy остаются независимыми ресурсами.
+- Цена Extraction 30 покрыта только через общий `SpendEnergy`: ни Extraction command, ни Portal creation/synchronization не добавлены.
+- Добавлено 86 top-level Stage 5 tests в восьми специализированных файлах; все обязательные test names checkpoints A–H присутствуют.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — construction/derived energy | `c79ee53` — undefined constructors, `CurrentEnergy` и invariant error | `b674075` |
+| B — spend/affordability | `22549f6` — undefined `SpendEnergy`, `CanAfford`, insufficient error | `46bd5b4` |
+| C — zero-cost SEND | `14baa2d` — undefined `SendObserverWithLabEnergy` | `7ee249c` |
+| D — zero-cost RECALL | `4e2d9fa` — undefined `RecallObserverWithLabEnergy` | `4e7977d` |
+| E — paid Close | `8ee2f66` — undefined `ClosePortalWithLabEnergy` | `a8c86c9` |
+| F — paid Stabilize | `4defe33` — undefined `StabilizePortalWithLabEnergy` | `0c9e018` |
+| G — Extraction cost contract | already GREEN characterization over config + checkpoint B primitive | `07a2a27` |
+| H — transaction regressions | already GREEN characterization over checkpoints A–F | `dffe4d0` |
+
+Checkpoints G/H намеренно не получили искусственный RED. Transaction characterizations не обнаружили нового production gap: insufficient preflight, domain/confirmation failures, zero-cost baseline preservation, error identity и random consumption уже были корректны.
+
+### Решения и наблюдения
+
+- Integer `+1/sec` реализован через floor до завершённых целых секунд: на `T+999ms` прироста нет, на `T+1s` есть.
+- Pure read до `EnergyBaseAt` возвращает baseline без регенерации; mutation до baseline отвергается, чтобы время baseline не двигалось назад.
+- Порядок платной команды: validate/derive → insufficient check → existing domain command → один synchronous debit. Поэтому отказ не требует rollback и не меняет Lab/Portal/Plane/Observers.
+- Cost 0 не ребейзит даже полностью восстановленную энергию; SEND/RECALL сохраняют исходные `EnergyBase` и `EnergyBaseAt`.
+- `LeylineOverrideUntil` production-код Stage 5 не читает и не изменяет. Обычные цены Close/Stabilize не содержат Stage 6 exception.
+- Product semantics и signatures завершённых Stage 2–4 не менялись; новый слой состоит из тонких wrappers.
+
+### Traceability и verification
+
+- `LAB-001`, `LAB-003..008` переведены в GREEN; `LAB-002` честно PARTIAL до Tutorial bootstrap Stage 14; `LAB-009` PARTIAL до реальной Extraction Stage 7; `LAB-010` PARTIAL до override/Extraction paths Stages 6–7.
+- `PORTAL-006`, `STABILITY-005`, `ENERGY-006..008`, `OBSERVER-012/016`, `FLOW-002..006` дополнены evidence energy-aware wrappers и сохраняют GREEN.
+- `EMERGENCY-*` и `EXTRACTION-*` остаются PLANNED; `docs/requirements.md` семантически не менялся.
+- После каждого meaningful GREEN выполнены `gofmt -l .`, `go vet ./...`, `go build ./...`, `go test -count=1 ./...`, `go test -race -count=1 ./...`; все завершились с exit 0.
+- Scope scan `internal/domain/lab*.go` не нашёл wall-clock/ticker/sleep, database/HTTP/mutex, `OpenExtraction`, events или lifecycle resolution dependencies.
+
+Stage 6 не начат.
