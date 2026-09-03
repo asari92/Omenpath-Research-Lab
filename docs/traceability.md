@@ -85,7 +85,7 @@
 | CREATURE-004 | Max formula | BEH | `TestMaxCreaturesForTTL` | `MaxCreaturesForTTL` | GREEN | |
 | CREATURE-005 | TTL10 → max 4 | BEH | `TestMaxCreaturesForTTL/TTL_10s_allows_four` | `MaxCreaturesForTTL` | GREEN | |
 | CREATURE-006 | Current count derived | BEH | `TestPortal_CreaturesInsideDecreasesEveryTwoSeconds` | `Portal.CreaturesInside` | GREEN | таблица из плана §15 |
-| CREATURE-007 | Creatures block SEND/RECALL | BEH | — | — | PLANNED | действия Observer — Stage 3/4 |
+| CREATURE-007 | Creatures block SEND/RECALL | BEH | `TestSendObserver_RejectsCreaturesInside` | `SendObserver` | PARTIAL | SEND covered; RECALL remains Stage 4 checkpoint E |
 | CREATURE-008 | Close requires confirmation | UI | `TestPortal_ManualCloseRequiresConfirmationWithCreatures`, `TestPortal_ManualCloseWithConfirmationClosesDespiteCreatures` | `Portal.Close` | GREEN | domain-часть; modal — фронтенд |
 
 ## RISK
@@ -103,7 +103,7 @@
 | RISK-009 | >75..100 CRITICAL | BEH | `TestPortal_RiskLevelBoundaries`, `TestPortal_RiskAgreedExamples` | `Portal.RiskLevel` | GREEN | agreed 14s HIGH / 10s CRITICAL |
 | RISK-010 | Hidden timer not used | INV | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | `Portal.RiskScore` | GREEN | одинаковый Risk при разных hidden |
 | RISK-011 | UI gets level, not score | UI | — | — | PLANNED | |
-| RISK-012 | CRITICAL blocks SEND | BEH | — | — | PLANNED | |
+| RISK-012 | CRITICAL blocks SEND | BEH | `TestSendObserver_RejectsCriticalRisk`, `TestSendObserver_UsesDocumentedErrorPrecedence` | `SendObserver` | GREEN | current derived risk checked before direction/creatures/busy/eligibility/warning |
 | RISK-013 | CRITICAL blocks RECALL | BEH | — | — | PLANNED | |
 
 ## LAB
@@ -150,8 +150,8 @@
 | FLOW-002 | First SEND → OUTBOUND | BEH | `TestSendObserver_FirstUseSetsOutboundFlow`, `TestSendObserver_ExistingOutboundFlowRemainsOutbound`, `TestSendObserver_UpdatesPortalOnlyWhenFlowFirstChanges` | `SendObserver` | GREEN | first successful SEND fixes flow after Observer transit starts |
 | FLOW-003 | First RECALL → INBOUND | BEH | — | — | PLANNED | |
 | FLOW-004 | OUTBOUND rejects RECALL | BEH | — | — | PLANNED | |
-| FLOW-005 | INBOUND rejects SEND | BEH | — | — | PLANNED | |
-| FLOW-006 | One transit at a time | INV | `TestActiveTransitObserverIndex_FindsOutbound`, `TestActiveTransitObserverIndex_FindsReturning`, `TestActiveTransitObserverIndex_IgnoresOtherPortals`, `TestActiveTransitObserverIndex_ReturnsNoneWhenIdle`, `TestActiveTransitObserverIndex_RejectsMultipleTransitsForSamePortal`, `TestActiveTransitObserverIndex_RejectsStaleTransitAtDeadline` | `ActiveTransitObserverIndex` | PARTIAL | deterministic busy/invariant helper covered; SEND/RECALL admission remains Stage 4 checkpoints C/E |
+| FLOW-005 | INBOUND rejects SEND | BEH | `TestSendObserver_RejectsInboundFlow`, `TestSendObserver_RejectionIsAtomic`, `TestSendObserver_RejectionDoesNotConsumeRandom` | `SendObserver` | GREEN | direction rejection precedes later admission checks and never mutates |
+| FLOW-006 | One transit at a time | INV | `TestActiveTransitObserverIndex_FindsOutbound`, `TestActiveTransitObserverIndex_FindsReturning`, `TestActiveTransitObserverIndex_IgnoresOtherPortals`, `TestActiveTransitObserverIndex_ReturnsNoneWhenIdle`, `TestActiveTransitObserverIndex_RejectsMultipleTransitsForSamePortal`, `TestActiveTransitObserverIndex_RejectsStaleTransitAtDeadline`, `TestSendObserver_RejectsBusyPortal` | `ActiveTransitObserverIndex`, `SendObserver` | PARTIAL | SEND busy admission covered; RECALL remains Stage 4 checkpoint E |
 | FLOW-007 | Same direction after transit | BEH | — | — | PLANNED | |
 
 ## EXTRACTION

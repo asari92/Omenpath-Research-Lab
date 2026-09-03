@@ -89,13 +89,36 @@ func SendObserver(
 	cfg config.Config,
 ) (observerID int64, err error) {
 	_ = plane
-	_ = confirmUnstable
+
+	if portal.Status != PortalStatusOpen {
+		return 0, ErrPortalNotOpen
+	}
+	risk, _ := portal.RiskLevel(now, cfg)
+	if risk == RiskCritical {
+		return 0, ErrPortalCriticalRisk
+	}
+	if portal.ObserverFlow == PortalFlowInbound {
+		return 0, ErrPortalDirectionConflict
+	}
+	if portal.CreaturesInside(now, cfg) > 0 {
+		return 0, ErrPortalCreaturesPresent
+	}
+	_, busy, err := ActiveTransitObserverIndex(observers, portal.ID, now)
+	if err != nil {
+		return 0, err
+	}
+	if busy {
+		return 0, ErrPortalBusy
+	}
 
 	index, ok := AvailableObserverIndex(observers)
 	if !ok {
-		return 0, ErrObserverNotAvailable
+		return 0, ErrNoAvailableObserver
 	}
-	if err := observers[index].StartOutbound(now, portal.ID, rnd, cfg); err != nil {
+	if portal.Stability == PortalUnstable && !confirmUnstable {
+		return 0, ErrConfirmationRequired
+	}
+	if err = observers[index].StartOutbound(now, portal.ID, rnd, cfg); err != nil {
 		return 0, err
 	}
 	if portal.ObserverFlow == PortalFlowNone {
