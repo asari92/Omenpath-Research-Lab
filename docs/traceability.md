@@ -178,7 +178,7 @@
 | EMERGENCY-003 | Close/Stabilize free in override | BEH | — | — | PLANNED | |
 | EMERGENCY-004 | Extraction stays 30 | INV | — | — | PLANNED | |
 | EMERGENCY-005 | Regen continues | BEH | — | — | PLANNED | |
-| EMERGENCY-006 | New collapse resets | BEH | — | — | PLANNED | |
+| EMERGENCY-006 | New collapse resets | BEH | `TestLabState_SecondCollapseResetsRegeneratedEnergyToZero`, `TestLabState_SecondCollapseRebasesAtSecondCollapse`, `TestLabState_SecondCollapseReplacesDeadline`, `TestLabState_SecondCollapseDoesNotExtendFromOldDeadline`, `TestResolvePortalLifecycleWithLabEmergency_SecondCollapseMayUseDifferentCause`, `TestLabState_OutOfOrderCollapseRejectsWithoutMutation`, `TestResolvePortalLifecycleWithLabEmergency_TwoPortalsResetTwice`, `TestResolvePortalLifecycleWithLabEmergency_ReplayOfSecondPortalIsIdempotent` | `LabState.ActivateLeylineOverride`, `ResolvePortalLifecycleWithLabEmergency` | GREEN | each chronologically new Collapse re-baselines to zero and replaces deadline; terminal replay is idempotent |
 
 ## EVENT
 
