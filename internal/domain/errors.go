@@ -12,4 +12,5 @@ var (
 	ErrNoFreePortalSlot     = errors.New("no free portal slot")
 	ErrObserverNotAvailable = errors.New("observer is not available")
 	ErrObserverLost         = errors.New("observer is lost")
+	ErrObserverInvariant    = errors.New("observer lifecycle invariant violated")
 )

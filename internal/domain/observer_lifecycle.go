@@ -34,3 +34,39 @@ func (o *Observer) StartOutbound(now time.Time, portalID int64, rnd random.Rando
 	o.UpdatedAt = now
 	return nil
 }
+
+// ResolveObserverLifecycle advances deterministic Observer phases to the
+// state effective at now. Later checkpoints extend this resolver with
+// research completion, return, transit failure, and multi-phase catch-up.
+func ResolveObserverLifecycle(o *Observer, plane *Plane, portal *Portal, now time.Time, cfg config.Config) error {
+	switch o.Status {
+	case ObserverAvailable, ObserverWaitingReturn, ObserverLost:
+		return nil
+	case ObserverOutbound:
+		return resolveObserverOutbound(o, plane, portal, now, cfg)
+	default:
+		return ErrObserverInvariant
+	}
+}
+
+func resolveObserverOutbound(o *Observer, plane *Plane, portal *Portal, now time.Time, cfg config.Config) error {
+	if o.ActivePortalID == nil || o.PhaseStartedAt == nil || o.PhaseEndsAt == nil ||
+		plane == nil || portal == nil || *o.ActivePortalID != portal.ID ||
+		plane.ID != portal.DestinationPlaneID {
+		return ErrObserverInvariant
+	}
+	if now.Before(*o.PhaseEndsAt) {
+		return nil
+	}
+
+	arrivedAt := *o.PhaseEndsAt
+	planeID := plane.ID
+	researchEndsAt := arrivedAt.Add(cfg.ResearchDuration)
+	o.Status = ObserverExploring
+	o.CurrentPlaneID = &planeID
+	o.ActivePortalID = nil
+	o.PhaseStartedAt = &arrivedAt
+	o.PhaseEndsAt = &researchEndsAt
+	o.UpdatedAt = arrivedAt
+	return nil
+}
