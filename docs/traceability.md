@@ -173,8 +173,8 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| EMERGENCY-001 | Collapse → energy 0 | BEH | — | — | PLANNED | |
-| EMERGENCY-002 | Override 20 sec | BEH | — | — | PLANNED | |
+| EMERGENCY-001 | Collapse → energy 0 | BEH | `TestLabState_ActivateLeylineOverrideResetsEnergyToZero`, `TestLabState_ActivateLeylineOverrideUsesCollapseTimestampAsBaseline` | `LabState.ActivateLeylineOverride` | PARTIAL | atomic Lab primitive proven; Portal Collapse orchestration follows in Stage 6 checkpoints B/C |
+| EMERGENCY-002 | Override 20 sec | BEH | `TestLabState_ActivateLeylineOverrideSetsConfiguredDeadline`, `TestLabState_LeylineOverrideActiveAtStart`, `TestLabState_LeylineOverrideActiveBeforeDeadline`, `TestLabState_LeylineOverrideInactiveAtDeadline`, `TestLabState_LeylineOverrideInactiveAfterDeadline`, `TestLabState_LeylineOverrideActiveDoesNotMutateState` | `LabState.ActivateLeylineOverride`, `LabState.LeylineOverrideActive`, `cfg.EmergencyDuration` | GREEN | half-open `[collapseAt, deadline)` window; expiry is derived and does not write state |
 | EMERGENCY-003 | Close/Stabilize free in override | BEH | — | — | PLANNED | |
 | EMERGENCY-004 | Extraction stays 30 | INV | — | — | PLANNED | |
 | EMERGENCY-005 | Regen continues | BEH | — | — | PLANNED | |
