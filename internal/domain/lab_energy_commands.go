@@ -42,3 +42,25 @@ func RecallObserverWithLabEnergy(
 	}
 	return RecallObserver(portal, plane, observers, now, confirmUnstable, rnd, cfg)
 }
+
+// ClosePortalWithLabEnergy preflights the configured ordinary Close cost,
+// delegates Observer-aware closure, and commits one debit only on success.
+func ClosePortalWithLabEnergy(
+	lab *LabState,
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	confirm bool,
+	cfg config.Config,
+) error {
+	remaining, err := prepareLabEnergySpend(lab, now, cfg.CloseCost, cfg)
+	if err != nil {
+		return err
+	}
+	if err := ClosePortalWithObservers(portal, plane, observers, now, confirm, cfg); err != nil {
+		return err
+	}
+	commitLabEnergySpend(lab, now, cfg.CloseCost, remaining)
+	return nil
+}
