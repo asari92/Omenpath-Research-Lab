@@ -28,7 +28,7 @@
 |---|---|---|---|---|---|---|
 | PORTAL-001 | Unique instance per opening | INV | — | — | PLANNED | |
 | PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | PARTIAL | формат имени из seq покрыт; сквозная нумерация экземпляров — оркестрация Stage 8/11 |
-| PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `PortalKind` enum + factory | GREEN | создание EXTRACTION-портала — Stage 7 |
+| PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec`, `TestNewExtractionPortal_SetsExtractionKind` | `PortalKind` enum, `NewNaturalPortal`, `NewExtractionPortal` | GREEN | both kinds have concrete pure factories |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | `TestPortal_ScheduledRemainingIsZeroWhenTerminal`, `TestPortal_EnergyFreezesAtManualClose`, `TestPortal_EnergyFreezesAtCollapse`, `TestPortal_CreaturesFreezeAtCollapse` | `PortalStatus` enum + terminal derived state freeze | GREEN | все три статуса и разные outcomes (CLOSED vs COLLAPSED, разные termination reasons) покрыты прямо; повышено с PLANNED в corrective-пасе |
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | `TestPortal_ManualCloseWithoutCreatures`, `TestPortal_ManualCloseRejectsTerminalPortal`, `TestPortal_ManuallyClosedPortalIsTerminalForLifecycle`, `TestClosePortalWithObservers_ActiveOutboundRequiresConfirmation`, `TestClosePortalWithObservers_ActiveReturningRequiresConfirmation`, `TestClosePortalWithObservers_ConfirmedOutboundBecomesLost`, `TestClosePortalWithObservers_ConfirmedReturningBecomesLost`, `TestClosePortalWithObservers_CreaturesAndTransitUseSingleConfirmation`, `TestClosePortalWithObservers_NoTransitDelegatesToPortalClose`, `TestClosePortalWithLabEnergy_ChargesFive`, `TestClosePortalWithLabEnergy_ConfirmedTransitClosesAndLosesObserver` | `Portal.Close`, `ClosePortalWithObservers`, `ClosePortalWithLabEnergy` | GREEN | active transit and creatures share confirmation retry; successful ordinary Close now has atomic Lab Energy orchestration |
@@ -161,9 +161,9 @@
 | EXTRACTION-001 | Cost 30 | BAL | — | — | PLANNED | |
 | EXTRACTION-002 | Requires waiting observer | BEH | — | — | PLANNED | |
 | EXTRACTION-003 | Requires free slot | BEH | — | — | PLANNED | |
-| EXTRACTION-004 | Stable/INBOUND/creatures0 | BEH | — | — | PLANNED | |
-| EXTRACTION-005 | Energy 60..100 | BAL | — | — | PLANNED | |
-| EXTRACTION-006 | TTL 30..60 | BAL | — | — | PLANNED | |
+| EXTRACTION-004 | Stable/INBOUND/creatures0 | BEH | `TestNewExtractionPortal_IsStableWithoutHiddenCollapse`, `TestNewExtractionPortal_StartsInbound`, `TestNewExtractionPortal_HasNoCreatures` | `NewExtractionPortal` | GREEN | canonical Extraction creation state |
+| EXTRACTION-005 | Energy 60..100 | BAL | `TestNewExtractionPortal_AcceptsMinimumEnergy`, `TestNewExtractionPortal_AcceptsMaximumEnergy` | `NewExtractionPortal` | GREEN | inclusive configured factory draw |
+| EXTRACTION-006 | TTL 30..60 | BAL | `TestNewExtractionPortal_AcceptsMinimumTTL`, `TestNewExtractionPortal_AcceptsMaximumTTL` | `NewExtractionPortal` | GREEN | inclusive configured whole-second TTL draw |
 | EXTRACTION-007 | Sync 5 sec | BEH | — | — | PLANNED | |
 | EXTRACTION-008 | First auto-return | BEH | — | — | PLANNED | |
 | EXTRACTION-009 | Only one automatic | BEH | — | — | PLANNED | |

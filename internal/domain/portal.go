@@ -80,6 +80,10 @@ type Portal struct {
 
 	ObserverFlow PortalFlow
 
+	// ExtractionSynchronizedAt records the one completed synchronization
+	// attempt for an EXTRACTION portal. Natural portals keep it nil.
+	ExtractionSynchronizedAt *time.Time
+
 	Status            PortalStatus
 	TerminationReason TerminationReason
 	ClosedAt          *time.Time
