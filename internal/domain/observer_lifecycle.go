@@ -40,10 +40,17 @@ func (o *Observer) StartOutbound(now time.Time, portalID int64, rnd random.Rando
 // research completion, return, transit failure, and multi-phase catch-up.
 func ResolveObserverLifecycle(o *Observer, plane *Plane, portal *Portal, now time.Time, cfg config.Config) error {
 	switch o.Status {
-	case ObserverAvailable, ObserverWaitingReturn, ObserverLost:
+	case ObserverAvailable, ObserverLost:
 		return nil
 	case ObserverOutbound:
 		return resolveObserverOutbound(o, plane, portal, now, cfg)
+	case ObserverExploring:
+		return resolveObserverResearch(o, plane, now)
+	case ObserverWaitingReturn:
+		if o.CurrentPlaneID == nil {
+			return ErrObserverInvariant
+		}
+		return nil
 	default:
 		return ErrObserverInvariant
 	}
@@ -68,5 +75,23 @@ func resolveObserverOutbound(o *Observer, plane *Plane, portal *Portal, now time
 	o.PhaseStartedAt = &arrivedAt
 	o.PhaseEndsAt = &researchEndsAt
 	o.UpdatedAt = arrivedAt
+	return nil
+}
+
+func resolveObserverResearch(o *Observer, plane *Plane, now time.Time) error {
+	if o.CurrentPlaneID == nil || o.PhaseStartedAt == nil || o.PhaseEndsAt == nil ||
+		plane == nil || *o.CurrentPlaneID != plane.ID {
+		return ErrObserverInvariant
+	}
+	if now.Before(*o.PhaseEndsAt) {
+		return nil
+	}
+
+	completedAt := *o.PhaseEndsAt
+	o.Status = ObserverWaitingReturn
+	o.ActivePortalID = nil
+	o.PhaseStartedAt = &completedAt
+	o.PhaseEndsAt = nil
+	o.UpdatedAt = completedAt
 	return nil
 }

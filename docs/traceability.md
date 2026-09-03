@@ -18,7 +18,7 @@
 | PLANE-004 | Seed 85, default UNEXPLORED | BEH | — | — | PLANNED | |
 | PLANE-005 | SEND does not explore | INV | `TestObserver_StartOutboundDoesNotExplorePlane` | `Observer.StartOutbound` | PARTIAL | lifecycle primitive does not explore; real SEND command — Stage 4 |
 | PLANE-006 | Arrival does not explore | INV | `TestObserver_OutboundArrivalDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | successful OUTBOUND leaves Plane exploration unchanged |
-| PLANE-007 | Research completion does not explore | INV | — | — | PLANNED | |
+| PLANE-007 | Research completion does not explore | INV | `TestObserver_ResearchCompletionDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | WAITING_RETURN retains Plane location but not exploration |
 | PLANE-008 | Successful return explores | BEH | — | — | PLANNED | |
 | PLANE-009 | Re-return idempotent | INV | — | — | PLANNED | |
 
@@ -128,13 +128,13 @@
 | OBSERVER-001 | Exactly 10 | INV | `TestNewObserverRoster_CreatesConfiguredCount`, `TestNewObserverRoster_DefaultConfigCreatesTen` | `NewObserverRoster` + `cfg.ObserverCount` | PARTIAL | roster/count=10 доказан; permanence/persistence bootstrap — Stage 10/11 |
 | OBSERVER-002 | Initial AVAILABLE | BEH | `TestNewObserver_StartsAvailableInLaboratory` | `NewObserver` | GREEN | |
 | OBSERVER-003 | AVAILABLE = Lab | INV | `TestObserver_AvailableCanonicalFields` | `NewObserver` | GREEN | location/transit/phase fields canonical nil |
-| OBSERVER-004 | Main lifecycle | BEH | `TestNewObserver_StartsAvailableInLaboratory`, `TestObserver_StartOutboundTransitionsFromAvailable`, `TestObserver_OutboundAtDeadlineBecomesExploring` | `NewObserver`, `Observer.StartOutbound`, `ResolveObserverLifecycle` | PARTIAL | AVAILABLE→OUTBOUND→EXPLORING реализован; остальные переходы — следующие checkpoints Stage 3 |
+| OBSERVER-004 | Main lifecycle | BEH | `TestNewObserver_StartsAvailableInLaboratory`, `TestObserver_StartOutboundTransitionsFromAvailable`, `TestObserver_OutboundAtDeadlineBecomesExploring`, `TestObserver_ResearchCompletionBecomesWaitingReturn` | `NewObserver`, `Observer.StartOutbound`, `ResolveObserverLifecycle` | PARTIAL | lifecycle through WAITING_RETURN реализован; return path — checkpoint E |
 | OBSERVER-005 | LOST terminal | INV | `TestObserver_LostIsTerminal` | `Observer.IsTerminal` | PARTIAL | терминальный маркер доказан; запрет переходов/resolve — checkpoint F |
 | OBSERVER-006 | Transit 5..15 | BAL | `TestObserver_StartOutboundTransitMinimumFiveSeconds`, `TestObserver_StartOutboundTransitMaximumFifteenSeconds` | `Observer.StartOutbound` | PARTIAL | OUTBOUND диапазон доказан; RETURNING — checkpoint E |
 | OBSERVER-007 | Duration fixed once | BEH | `TestObserver_StartOutboundDrawsTransitDurationExactlyOnce` | `Observer.StartOutbound` | PARTIAL | OUTBOUND draw-once доказан; RETURNING — checkpoint E |
 | OBSERVER-008 | Outbound → EXPLORING | BEH | `TestObserver_OutboundBeforeDeadlineRemainsOutbound`, `TestObserver_OutboundAtDeadlineBecomesExploring`, `TestObserver_OutboundArrivalUsesDeadlineAsTransitionTime`, `TestObserver_OutboundArrivalSetsCurrentPlane`, `TestObserver_OutboundArrivalClearsActivePortal`, `TestObserver_OutboundResolveDoesNotConsumeRandom` | `ResolveObserverLifecycle` | GREEN | destination/phase invariants reject atomically |
-| OBSERVER-009 | Research 20 sec | BAL | `TestObserver_OutboundArrivalStartsTwentySecondResearch` | `ResolveObserverLifecycle` | PARTIAL | exact research deadline created; completion boundary — checkpoint D |
-| OBSERVER-010 | Research → WAITING_RETURN | BEH | — | — | PLANNED | |
+| OBSERVER-009 | Research 20 sec | BAL | `TestObserver_OutboundArrivalStartsTwentySecondResearch`, `TestObserver_ExploringBeforeDeadlineRemainsExploring`, `TestObserver_ResearchCompletesAtDeadline` | `ResolveObserverLifecycle` | GREEN | exact 20s deadline and boundary covered |
+| OBSERVER-010 | Research → WAITING_RETURN | BEH | `TestObserver_ResearchCompletionUsesDeadlineAsTransitionTime`, `TestObserver_ResearchCompletionBecomesWaitingReturn`, `TestObserver_WaitingReturnStartsAtResearchCompletion`, `TestObserver_WaitingReturnHasNoAutomaticEnd` | `ResolveObserverLifecycle` | GREEN | waiting timestamp retained for future longest-waiting selection |
 | OBSERVER-011 | Return → AVAILABLE | BEH | — | — | PLANNED | |
 | OBSERVER-012 | CLOSED in transit → LOST | BEH | — | — | PLANNED | |
 | OBSERVER-013 | COLLAPSED in transit → LOST | BEH | — | — | PLANNED | |
