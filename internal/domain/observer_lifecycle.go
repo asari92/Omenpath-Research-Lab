@@ -65,9 +65,22 @@ func (o *Observer) StartReturning(now time.Time, portalID int64, rnd random.Rand
 }
 
 // ResolveObserverLifecycle advances deterministic Observer phases to the
-// state effective at now. Later checkpoints extend this resolver with
-// research completion, return, transit failure, and multi-phase catch-up.
+// state effective at now. A single call may cross OUTBOUND arrival and
+// research completion after a large time jump; semantic phase deadlines,
+// never scheduler time, timestamp every transition.
 func ResolveObserverLifecycle(o *Observer, plane *Plane, portal *Portal, now time.Time, cfg config.Config) error {
+	for {
+		before := o.Status
+		if err := resolveObserverLifecycleOnce(o, plane, portal, now, cfg); err != nil {
+			return err
+		}
+		if o.Status == before {
+			return nil
+		}
+	}
+}
+
+func resolveObserverLifecycleOnce(o *Observer, plane *Plane, portal *Portal, now time.Time, cfg config.Config) error {
 	switch o.Status {
 	case ObserverAvailable, ObserverLost:
 		return nil
