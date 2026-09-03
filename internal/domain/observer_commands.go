@@ -127,3 +127,34 @@ func SendObserver(
 	}
 	return observers[index].ID, nil
 }
+
+// RecallObserver starts an admitted Plane-to-Lab transit and permanently
+// fixes an unused Portal to the INBOUND direction.
+func RecallObserver(
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	confirmUnstable bool,
+	rnd random.Random,
+	cfg config.Config,
+) (observerID int64, err error) {
+	_ = plane
+	_ = confirmUnstable
+
+	index, ok, err := LongestWaitingObserverIndex(observers, portal.DestinationPlaneID)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, ErrNoWaitingObserver
+	}
+	if err = observers[index].StartReturning(now, portal.ID, rnd, cfg); err != nil {
+		return 0, err
+	}
+	if portal.ObserverFlow == PortalFlowNone {
+		portal.ObserverFlow = PortalFlowInbound
+		portal.UpdatedAt = now
+	}
+	return observers[index].ID, nil
+}

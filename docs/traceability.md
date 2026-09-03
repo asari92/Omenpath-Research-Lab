@@ -140,7 +140,7 @@
 | OBSERVER-013 | COLLAPSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_LossDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | same loss semantics for ENERGY_DEPLETED/INSTABILITY collapse |
 | OBSERVER-014 | Multiple per Plane | BEH | `TestObservers_MultipleObserversMayExploreSamePlaneConcurrently` | lifecycle primitives + `ResolveObserverLifecycle` | GREEN | no uniqueness-by-Plane guard; Stage 4 separately owns per-Portal transit admission |
 | OBSERVER-015 | Send to explored allowed | BEH | `TestSendObserver_AllowsAlreadyExploredPlane` | `SendObserver` | GREEN | explored destination is not an admission restriction |
-| OBSERVER-016 | Recall longest-waiting | BEH | `TestLongestWaitingObserverIndex_SelectsEarliestWaitingTimestamp`, `TestLongestWaitingObserverIndex_FiltersByDestinationPlane`, `TestLongestWaitingObserverIndex_BreaksExactTieByLowestID`, `TestLongestWaitingObserverIndex_RejectsMissingWaitingTimestamp` | `LongestWaitingObserverIndex` | PARTIAL | deterministic selector covered; RECALL command consumption remains Stage 4 checkpoint D |
+| OBSERVER-016 | Recall longest-waiting | BEH | `TestLongestWaitingObserverIndex_SelectsEarliestWaitingTimestamp`, `TestLongestWaitingObserverIndex_FiltersByDestinationPlane`, `TestLongestWaitingObserverIndex_BreaksExactTieByLowestID`, `TestLongestWaitingObserverIndex_RejectsMissingWaitingTimestamp`, `TestRecallObserver_SelectsLongestWaitingInDestination`, `TestRecallObserver_BreaksWaitingTieByLowestID`, `TestRecallObserver_IgnoresWaitingObserversInOtherPlanes` | `LongestWaitingObserverIndex`, `RecallObserver` | GREEN | earliest waiting timestamp in destination wins; exact tie uses lowest ID |
 
 ## FLOW
 
@@ -148,7 +148,7 @@
 |---|---|---|---|---|---|---|
 | FLOW-001 | Natural starts NONE | BEH | — | — | PLANNED | |
 | FLOW-002 | First SEND → OUTBOUND | BEH | `TestSendObserver_FirstUseSetsOutboundFlow`, `TestSendObserver_ExistingOutboundFlowRemainsOutbound`, `TestSendObserver_UpdatesPortalOnlyWhenFlowFirstChanges` | `SendObserver` | GREEN | first successful SEND fixes flow after Observer transit starts |
-| FLOW-003 | First RECALL → INBOUND | BEH | — | — | PLANNED | |
+| FLOW-003 | First RECALL → INBOUND | BEH | `TestRecallObserver_FirstUseSetsInboundFlow`, `TestRecallObserver_ExistingInboundFlowRemainsInbound` | `RecallObserver` | GREEN | first successful RECALL fixes flow after Observer transit starts |
 | FLOW-004 | OUTBOUND rejects RECALL | BEH | — | — | PLANNED | |
 | FLOW-005 | INBOUND rejects SEND | BEH | `TestSendObserver_RejectsInboundFlow`, `TestSendObserver_RejectionIsAtomic`, `TestSendObserver_RejectionDoesNotConsumeRandom` | `SendObserver` | GREEN | direction rejection precedes later admission checks and never mutates |
 | FLOW-006 | One transit at a time | INV | `TestActiveTransitObserverIndex_FindsOutbound`, `TestActiveTransitObserverIndex_FindsReturning`, `TestActiveTransitObserverIndex_IgnoresOtherPortals`, `TestActiveTransitObserverIndex_ReturnsNoneWhenIdle`, `TestActiveTransitObserverIndex_RejectsMultipleTransitsForSamePortal`, `TestActiveTransitObserverIndex_RejectsStaleTransitAtDeadline`, `TestSendObserver_RejectsBusyPortal` | `ActiveTransitObserverIndex`, `SendObserver` | PARTIAL | SEND busy admission covered; RECALL remains Stage 4 checkpoint E |
