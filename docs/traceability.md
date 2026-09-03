@@ -27,8 +27,8 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | PORTAL-001 | Unique instance per opening | INV | — | — | PLANNED | |
-| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | — | — | PLANNED | |
-| PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | — | — | PLANNED | |
+| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | GREEN | формат имени из seq; сквозная нумерация — оркестрация Stage 8/11 |
+| PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `PortalKind` enum + factory | GREEN | создание EXTRACTION-портала — Stage 7 |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | — | — | PLANNED | |
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | `TestPortal_ManualCloseWithoutCreatures`, `TestPortal_ManualCloseRejectsTerminalPortal`, `TestPortal_ManuallyClosedPortalIsTerminalForLifecycle` | `Portal.Close` | GREEN | cost 5 — оркестрация (LAB-007); observer-transit подтверждение — Stage 3/4 |
@@ -40,20 +40,20 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| SLOT-001 | Exactly 7 slots | INV | — | — | PLANNED | |
-| SLOT-002 | OPEN Portal occupies a slot | BEH | — | — | PLANNED | |
-| SLOT-003 | First free slot | BEH | — | — | PLANNED | |
-| SLOT-004 | Portal keeps slot for lifecycle | INV | — | — | PLANNED | |
-| SLOT-005 | Terminal releases slot | BEH | — | — | PLANNED | |
-| SLOT-006 | 7/7 blocks natural spawn | BEH | — | — | PLANNED | |
-| SLOT-007 | Extraction uses regular slot | BEH | — | — | PLANNED | |
+| SLOT-001 | Exactly 7 slots | INV | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` + `cfg.MaxActivePortals` | GREEN | |
+| SLOT-002 | OPEN Portal occupies a slot | BEH | `TestFirstFreeSlot_ReturnsNextAfterOccupiedPrefix` | `FirstFreeSlot` | GREEN | |
+| SLOT-003 | First free slot | BEH | `TestFirstFreeSlot_FillsGap` | `FirstFreeSlot` | GREEN | |
+| SLOT-004 | Portal keeps slot for lifecycle | INV | `TestFirstFreeSlot_DoesNotMutateInput` | pure helper | GREEN | без пересортировки; полный тест — LabManager Stage 11 |
+| SLOT-005 | Terminal releases slot | BEH | `TestFirstFreeSlot_TerminalPortalsDoNotOccupy` | `FirstFreeSlot` | GREEN | |
+| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` | GREEN | генератор-оркестрация — Stage 8 |
+| SLOT-007 | Extraction uses regular slot | BEH | — | — | PLANNED | Extraction-создание — Stage 7; helper kind-agnostic |
 
 ## ENERGY
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| ENERGY-001 | Initial natural 10..100 | BAL | — | — | PLANNED | |
-| ENERGY-002 | Decay 0.1..1.0/sec hidden | BAL | — | — | PLANNED | |
+| ENERGY-001 | Initial natural 10..100 | BAL | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | GREEN | draw из cfg-диапазона |
+| ENERGY-002 | Decay 0.1..1.0/sec hidden | BAL | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | GREEN | скрытость от UI — Stage 12/13 |
 | ENERGY-003 | Current derived from baseline/time | BEH | `TestPortal_CurrentEnergy`, `TestPortal_EnergyDepletionAt` | `Portal.CurrentEnergy`, `Portal.EnergyDepletionAt` | GREEN | |
 | ENERGY-004 | Clamp ≥ 0 | INV | `TestPortal_CurrentEnergy/clamped_at_zero` | `Portal.CurrentEnergy` | GREEN | |
 | ENERGY-005 | 0 before close → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.energyDepletionAt` | GREEN | Stage 0–1 first RED cycle |
@@ -67,9 +67,9 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| STABILITY-001 | STABLE/UNSTABLE only | INV | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_StabilizeConvertsUnstableToStable` | `PortalStability` enum | GREEN | генерация обеих стабильностей — factory (чекпоинт F) |
-| STABILITY-002 | Stable has no hidden timer | INV | `TestPortalBuilder_Defaults` | builder / `Stabilize` | GREEN | factory-проверка — чекпоинт F |
-| STABILITY-003 | Unstable gets hidden timer | BEH | `TestPortal_UnstableCollapsesAtHiddenTime` | lifetime fixtures | GREEN | диапазон генерации random(opened+5s, close−1s) — factory-тесты чекпоинта F |
+| STABILITY-001 | STABLE/UNSTABLE only | INV | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestNewNaturalPortal_GeneratesUnstableWithinSpec`, `TestNewNaturalPortal_StableHasNoHiddenTimestamp` | `PortalStability` enum | GREEN | обе стабильности генерируются factory |
+| STABILITY-002 | Stable has no hidden timer | INV | `TestNewNaturalPortal_StableHasNoHiddenTimestamp`, `TestPortalBuilder_Defaults` | factory / builder / `Stabilize` | GREEN | |
+| STABILITY-003 | Unstable gets hidden timer | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec`, `TestNewNaturalPortal_HiddenCollapseWithinWindow` | `NewNaturalPortal` | GREEN | random(opened+5s, close−1s) |
 | STABILITY-004 | Hidden timer not exposed / not in risk | UI | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | `Portal.RiskScore` | GREEN | domain-часть: hidden не участвует в Risk; отсутствие в API/UI — Stage 12/13 |
 | STABILITY-005 | Stabilize unstable→stable | BEH | `TestPortal_StabilizeConvertsUnstableToStable` | `Portal.Stabilize` | GREEN | |
 | STABILITY-006 | Stabilize clears hidden timer | BEH | `TestPortal_StabilizeConvertsUnstableToStable`, `TestPortal_StabilizedPortalLosesInstabilityCandidate` | `Portal.Stabilize` | GREEN | |
@@ -79,7 +79,7 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| CREATURE-001 | Natural 0..10 | BAL | `TestNewNaturalPortal_CreaturesRespectMaxForTTL` | `NewNaturalPortal` + `MaxCreaturesForTTL` | GREEN | draw IntInclusive(0, max≤10); тест — чекпоинт F |
+| CREATURE-001 | Natural 0..10 | BAL | `TestNewNaturalPortal_CreaturesRespectMaxForTTL` | `NewNaturalPortal` + `MaxCreaturesForTTL` | GREEN | draw IntInclusive(0, max≤10) |
 | CREATURE-002 | Passage 2 sec | BAL | `TestPortal_CreaturesInsideDecreasesEveryTwoSeconds` | `Portal.CreaturesInside` | GREEN | из cfg.CreatureTransit |
 | CREATURE-003 | Margin 2 sec | BAL | `TestMaxCreaturesForTTL` | `MaxCreaturesForTTL` | GREEN | из cfg.CreatureClearanceMargin |
 | CREATURE-004 | Max formula | BEH | `TestMaxCreaturesForTTL` | `MaxCreaturesForTTL` | GREEN | |

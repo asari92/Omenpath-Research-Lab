@@ -88,6 +88,12 @@ func (b *PortalBuilder) Creatures(n int) *PortalBuilder {
 	return b
 }
 
+// Slot sets the fixed slot index (1-based, Final Spec §5).
+func (b *PortalBuilder) Slot(n int) *PortalBuilder {
+	b.portal.SlotIndex = n
+	return b
+}
+
 // Build returns a copy of the fixture.
 func (b *PortalBuilder) Build() domain.Portal {
 	return b.portal
