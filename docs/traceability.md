@@ -31,7 +31,7 @@
 | PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | — | — | PLANNED | |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | — | — | PLANNED | |
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
-| PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | — | — | PLANNED | Stage 2 substage 2.8 |
+| PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | `TestPortal_ManualCloseWithoutCreatures`, `TestPortal_ManualCloseRejectsTerminalPortal`, `TestPortal_ManuallyClosedPortalIsTerminalForLifecycle` | `Portal.Close` | GREEN | cost 5 — оркестрация (LAB-007); observer-transit подтверждение — Stage 3/4 |
 | PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose`, `TestPortal_NaturalCloseWinsEnergyTie`, `TestPortal_NaturalCloseBeforeEnergyDepletion` | `Portal.ResolveLifecycle` | GREEN | tie → NATURAL_CLOSE (Stage 2 plan Rule B) |
 | PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_NaturalCloseWinsBeforeHiddenCollapse`, `TestPortal_NaturalCloseTiesHiddenCollapse` | `Portal.ResolveLifecycle` | GREEN | Rule C: tie → NATURAL_CLOSE |
 | PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen` | `Portal.IsTerminal` + `ResolveLifecycle` guard | GREEN | snapshot-equality проверяет полное отсутствие мутаций |
@@ -79,14 +79,14 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| CREATURE-001 | Natural 0..10 | BAL | — | — | PLANNED | |
-| CREATURE-002 | Passage 2 sec | BAL | — | — | PLANNED | |
-| CREATURE-003 | Margin 2 sec | BAL | — | — | PLANNED | |
-| CREATURE-004 | Max formula | BEH | — | — | PLANNED | |
-| CREATURE-005 | TTL10 → max 4 | BEH | — | — | PLANNED | |
-| CREATURE-006 | Current count derived | BEH | — | — | PLANNED | |
-| CREATURE-007 | Creatures block SEND/RECALL | BEH | — | — | PLANNED | |
-| CREATURE-008 | Close requires confirmation | UI | — | — | PLANNED | |
+| CREATURE-001 | Natural 0..10 | BAL | `TestNewNaturalPortal_CreaturesRespectMaxForTTL` | `NewNaturalPortal` + `MaxCreaturesForTTL` | GREEN | draw IntInclusive(0, max≤10); тест — чекпоинт F |
+| CREATURE-002 | Passage 2 sec | BAL | `TestPortal_CreaturesInsideDecreasesEveryTwoSeconds` | `Portal.CreaturesInside` | GREEN | из cfg.CreatureTransit |
+| CREATURE-003 | Margin 2 sec | BAL | `TestMaxCreaturesForTTL` | `MaxCreaturesForTTL` | GREEN | из cfg.CreatureClearanceMargin |
+| CREATURE-004 | Max formula | BEH | `TestMaxCreaturesForTTL` | `MaxCreaturesForTTL` | GREEN | |
+| CREATURE-005 | TTL10 → max 4 | BEH | `TestMaxCreaturesForTTL/TTL_10s_allows_four` | `MaxCreaturesForTTL` | GREEN | |
+| CREATURE-006 | Current count derived | BEH | `TestPortal_CreaturesInsideDecreasesEveryTwoSeconds` | `Portal.CreaturesInside` | GREEN | таблица из плана §15 |
+| CREATURE-007 | Creatures block SEND/RECALL | BEH | — | — | PLANNED | действия Observer — Stage 3/4 |
+| CREATURE-008 | Close requires confirmation | UI | `TestPortal_ManualCloseRequiresConfirmationWithCreatures`, `TestPortal_ManualCloseWithConfirmationClosesDespiteCreatures` | `Portal.Close` | GREEN | domain-часть; modal — фронтенд |
 
 ## RISK
 

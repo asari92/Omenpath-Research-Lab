@@ -209,3 +209,26 @@ func (p *Portal) Stabilize(now time.Time, cfg config.Config) error {
 	p.UpdatedAt = now
 	return nil
 }
+
+// Close is the manual-close primitive (Final Spec §21): portal-level state
+// transition plus creature-confirmation semantics.
+//
+// Laboratory Energy cost (5, or 0 during Leyline Override) and the
+// observer-in-transit confirmation are orchestrated in later stages —
+// Stage 2 must not couple Portal to LabState or Observers (plan §3).
+// For a manual action the semantic event time is `now` itself.
+func (p *Portal) Close(now time.Time, confirmCreatureInterrupt bool, cfg config.Config) error {
+	if p.IsTerminal() {
+		return ErrPortalNotOpen
+	}
+	if p.CreaturesInside(now, cfg) > 0 && !confirmCreatureInterrupt {
+		return ErrConfirmationRequired
+	}
+
+	p.Status = PortalStatusClosed
+	p.TerminationReason = TerminationManualClose
+	closedAt := now
+	p.ClosedAt = &closedAt
+	p.UpdatedAt = now
+	return nil
+}
