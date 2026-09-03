@@ -275,9 +275,9 @@ AI предложил Clock/Random abstractions:
 - сортировка Portals вместо fixed slots;
 - overcomplicated Observer persistence.
 
-## Реализация ещё не зафиксирована
+## Будущие разделы Worklog
 
-Этот Worklog пока описывает analysis/architecture/planning.
+Analysis/architecture описаны выше. Ниже — фактическая запись Stage 0–1.
 
 По мере кода добавить реальные разделы:
 - Backend;
@@ -291,3 +291,43 @@ AI предложил Clock/Random abstractions:
 - Final QA.
 
 Не придумывать задним числом ошибки AI или ручные исправления — записывать реальные.
+
+## Stage 0–1 — реализация (2026-09-03)
+
+### Что сделано
+
+- `docs/requirements.md` — requirement catalog: 18 семейств ID (PLANE..TUTORIAL + API/WS/UI/PERSIST), типы INV/BEH/BAL/UI, ссылки на разделы Final Spec.
+- `docs/traceability.md` — матрица `ID | Rule | Type | Test | Implementation | Status | Notes`; статусы PLANNED → RED → GREEN.
+- `internal/config` — все balance-значения Final Spec §37 в `Config.Default()`; тест сверяет их со спецификацией (исполняемая часть Stage 0).
+- Go-скелет: `cmd/server`, `internal/{domain,engine,clock,random,config}`, `testutil`.
+- `clock.Clock` + `RealClock`; `testutil.FakeClock` (thread-safe, `Advance`, детерминированный `BaseTime` 2030-01-01 UTC).
+- `random.Random` + `RealRandom` (math/rand/v2 + crypto seed, mutex); `testutil.FakeRandom` (queue, fail-loud panic при исчерпании).
+- `testutil.PortalBuilder` — фикстуры (не production-конструктор); Unstable() требует явный hidden timestamp.
+- Первый RED-цикл: PORTAL-005, ENERGY-005 (+PORTAL-007), PORTAL-009 — тесты написаны и закоммичены ДО реализации (RED: `ResolveLifecycle undefined`), затем минимальная реализация → GREEN.
+- `go vet ./...`, `go test ./...`, `go test -race ./...` — все зелёные; `gofmt` чисто.
+
+### Инструменты
+
+- Реализация: Claude Code (агент в pi harness) по планам Stage 0–1.
+- Часы/рандом тесты, каталог требований, скелет, минимальный Portal lifecycle.
+- Точное потребление токенов из окружения недоступно — не фиксирую (не выдумываю).
+- Время: одна сессия 2026-09-03.
+
+### TDD-процесс
+
+- RED зафиксирован отдельным коммитом `test(stage1): RED — first portal lifecycle tests...` — тесты не компилировались (метода не существовало).
+- GREEN — следующим коммитом; только natural close + energy depletion + terminal immutability.
+- Умышленно НЕ реализовано (Stage 2): instability collapse, Stabilize, Close primitive, creatures, risk, slots, фабрики порталов.
+
+### Решения и наблюдения
+
+- Go-модуль размещён в корне репозитория, а не во вложенном `omenpath-lab/` (дерево пакетов из плана сохранено): проще `go test ./...`, Makefile и README в будущем.
+- `ResolveLifecycle(now) (changed bool, err error)` и семантическое время `ClosedAt` (момент события, а не ленивого тика) выбраны сразу по Stage 2 plan §9 design rule — чтобы не переделывать API на следующей стадии.
+- Tie «energy depletion == natural close» решён в пользу NATURAL_CLOSE (Stage 2 plan Rule B) уже в минимальной версии; отдельный тест — Stage 2 substage 2.4.
+- FakeRandom возвращает значения как есть (без clamp) и паникует при исчерпании очереди — фикстуры fail-loud, скрытой нормализации нет.
+- FakeClock/FakeRandom покрыты конкурентными тестами под `-race` заранее — это фундамент для LabManager (Stage 11).
+
+### Ошибки AI / ручные правки на этом этапе
+
+- `gofmt` нашёл неверное выравнивание комментариев в `internal/domain/portal.go` после первого коммита скелета — исправлено без изменения кода (единственная правка).
+- Других ошибок/переделок не было; новых design-споров с AI на этом этапе не возникло.

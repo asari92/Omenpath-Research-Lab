@@ -30,11 +30,11 @@
 | PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | — | — | PLANNED | |
 | PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | — | — | PLANNED | |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | — | — | PLANNED | |
-| PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | — | — | PLANNED | |
+| PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires` | `Portal.ResolveLifecycle` | GREEN | Stage 0–1 first RED cycle; semantic ClosedAt |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | — | — | PLANNED | Stage 2 substage 2.8 |
-| PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | — | — | PLANNED | |
+| PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.ResolveLifecycle` | GREEN | покрыт первым RED-циклом; полная проработка — Stage 2 substage 2.4 |
 | PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | — | — | PLANNED | Stage 2 substage 2.5 |
-| PORTAL-009 | Terminal cannot return OPEN | INV | — | — | PLANNED | |
+| PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen` | `Portal.IsTerminal` + `ResolveLifecycle` guard | GREEN | snapshot-equality проверяет полное отсутствие мутаций |
 
 ## SLOT
 
@@ -56,7 +56,7 @@
 | ENERGY-002 | Decay 0.1..1.0/sec hidden | BAL | — | — | PLANNED | |
 | ENERGY-003 | Current derived from baseline/time | BEH | — | — | PLANNED | |
 | ENERGY-004 | Clamp ≥ 0 | INV | — | — | PLANNED | |
-| ENERGY-005 | 0 before close → COLLAPSED/ENERGY_DEPLETED | BEH | — | — | PLANNED | |
+| ENERGY-005 | 0 before close → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.energyDepletionAt` | GREEN | Stage 0–1 first RED cycle |
 | ENERGY-006 | Stabilize +15 | BEH | — | — | PLANNED | |
 | ENERGY-007 | Stabilize re-baselines | BEH | — | — | PLANNED | |
 | ENERGY-008 | Decay unchanged after Stabilize | INV | — | — | PLANNED | |
@@ -218,9 +218,9 @@
 
 | Area | Test | Status | Notes |
 |---|---|---|---|
-| Balance config = Final Spec §37 | `TestDefault_MatchesFinalSpecBalance` (`internal/config`) | PLANNED | исполняемая часть Stage 0 |
-| RealClock | `TestRealClock_ReturnsCurrentTime` (`internal/clock`) | PLANNED | |
-| FakeClock | `testutil` clock tests | PLANNED | incl. concurrent Advance/Now (race) |
-| RealRandom | `internal/random` tests | PLANNED | bounds, degenerate range, panic, concurrency |
-| FakeRandom | `testutil` random tests | PLANNED | queue order, exhaustion panic |
-| PortalBuilder | `testutil` builders tests | PLANNED | defaults + fluent overrides |
+| Balance config = Final Spec §37 | `TestDefault_MatchesFinalSpecBalance` (`internal/config`) | GREEN | исполняемая часть Stage 0 |
+| RealClock | `TestRealClock_ReturnsCurrentTime` (`internal/clock`) | GREEN | |
+| FakeClock | `testutil` clock tests | GREEN | incl. concurrent Advance/Now (race) |
+| RealRandom | `internal/random` tests | GREEN | bounds, degenerate range, panic, concurrency |
+| FakeRandom | `testutil` random tests | GREEN | queue order, passthrough, exhaustion panic |
+| PortalBuilder | `testutil` builders tests | GREEN | defaults + fluent overrides + unstable fixture |

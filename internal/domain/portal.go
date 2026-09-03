@@ -82,3 +82,58 @@ type Portal struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+// IsTerminal reports whether the portal has reached a terminal status.
+// CLOSED and COLLAPSED never return to OPEN (PORTAL-009).
+func (p Portal) IsTerminal() bool {
+	return p.Status != PortalStatusOpen
+}
+
+// energyDepletionAt returns the semantic moment the energy baseline
+// reaches zero: EnergyBaseAt + EnergyBase/DecayRate (Final Spec §9).
+// ok is false when the energy can never deplete (no positive decay).
+func (p Portal) energyDepletionAt() (at time.Time, ok bool) {
+	if p.EnergyDecayRate <= 0 {
+		return time.Time{}, false
+	}
+	seconds := p.EnergyBase / p.EnergyDecayRate
+	return p.EnergyBaseAt.Add(time.Duration(seconds * float64(time.Second))), true
+}
+
+// ResolveLifecycle advances an OPEN portal to its terminal state when a
+// scheduled termination moment has passed (Final Spec §8 natural close,
+// §9 energy collapse).
+//
+// The earliest applicable moment wins; an exact tie between natural close
+// and energy depletion resolves to NATURAL_CLOSE so behavior never depends
+// on tick ordering. ClosedAt stores the semantic event time, not the time
+// the resolution happened to run.
+//
+// Terminal portals are left untouched (PORTAL-009). The hidden instability
+// collapse (§10) is intentionally not handled yet — Stage 2, substage 2.5.
+func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
+	if p.IsTerminal() {
+		return false, nil
+	}
+
+	deadline := p.ScheduledCloseAt
+	reason := TerminationNaturalClose
+	status := PortalStatusClosed
+
+	if depletion, ok := p.energyDepletionAt(); ok && depletion.Before(deadline) {
+		deadline = depletion
+		reason = TerminationEnergyDepleted
+		status = PortalStatusCollapsed
+	}
+
+	if now.Before(deadline) {
+		return false, nil
+	}
+
+	p.Status = status
+	p.TerminationReason = reason
+	closedAt := deadline
+	p.ClosedAt = &closedAt
+	p.UpdatedAt = now
+	return true, nil
+}
