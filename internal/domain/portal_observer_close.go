@@ -16,6 +16,9 @@ func ClosePortalWithObservers(
 	confirm bool,
 	cfg config.Config,
 ) error {
+	if err := validateObserverCommandAggregate(portal, plane, observers, now); err != nil {
+		return err
+	}
 	if portal.Status != PortalStatusOpen {
 		return ErrPortalNotOpen
 	}

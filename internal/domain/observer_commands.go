@@ -88,7 +88,9 @@ func SendObserver(
 	rnd random.Random,
 	cfg config.Config,
 ) (observerID int64, err error) {
-	_ = plane
+	if err := validateObserverCommandAggregate(portal, plane, observers, now); err != nil {
+		return 0, err
+	}
 
 	if portal.Status != PortalStatusOpen {
 		return 0, ErrPortalNotOpen
@@ -139,7 +141,9 @@ func RecallObserver(
 	rnd random.Random,
 	cfg config.Config,
 ) (observerID int64, err error) {
-	_ = plane
+	if err := validateObserverCommandAggregate(portal, plane, observers, now); err != nil {
+		return 0, err
+	}
 
 	if portal.Status != PortalStatusOpen {
 		return 0, ErrPortalNotOpen
@@ -180,4 +184,54 @@ func RecallObserver(
 		portal.UpdatedAt = now
 	}
 	return observers[index].ID, nil
+}
+
+func validateObserverCommandAggregate(portal *Portal, plane *Plane, observers []Observer, now time.Time) error {
+	if portal == nil || plane == nil || plane.ID != portal.DestinationPlaneID {
+		return ErrObserverInvariant
+	}
+
+	ids := make(map[int64]struct{}, len(observers))
+	for i := range observers {
+		observer := &observers[i]
+		if _, exists := ids[observer.ID]; exists {
+			return ErrObserverInvariant
+		}
+		ids[observer.ID] = struct{}{}
+
+		switch observer.Status {
+		case ObserverAvailable, ObserverLost:
+			if observer.CurrentPlaneID != nil || observer.ActivePortalID != nil ||
+				observer.PhaseStartedAt != nil || observer.PhaseEndsAt != nil {
+				return ErrObserverInvariant
+			}
+		case ObserverOutbound:
+			if observer.CurrentPlaneID != nil || !validActiveTransit(observer, now) {
+				return ErrObserverInvariant
+			}
+		case ObserverExploring:
+			if observer.CurrentPlaneID == nil || observer.ActivePortalID != nil ||
+				observer.PhaseStartedAt == nil || observer.PhaseEndsAt == nil ||
+				observer.PhaseEndsAt.Before(*observer.PhaseStartedAt) {
+				return ErrObserverInvariant
+			}
+		case ObserverWaitingReturn:
+			if observer.CurrentPlaneID == nil || observer.ActivePortalID != nil ||
+				observer.PhaseStartedAt == nil || observer.PhaseEndsAt != nil {
+				return ErrObserverInvariant
+			}
+		case ObserverReturning:
+			if observer.CurrentPlaneID == nil || !validActiveTransit(observer, now) {
+				return ErrObserverInvariant
+			}
+		default:
+			return ErrObserverInvariant
+		}
+	}
+	return nil
+}
+
+func validActiveTransit(observer *Observer, now time.Time) bool {
+	return observer.ActivePortalID != nil && observer.PhaseStartedAt != nil && observer.PhaseEndsAt != nil &&
+		observer.PhaseStartedAt.Before(*observer.PhaseEndsAt) && now.Before(*observer.PhaseEndsAt)
 }
