@@ -140,7 +140,7 @@
 | OBSERVER-013 | COLLAPSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_LossDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | same loss semantics for ENERGY_DEPLETED/INSTABILITY collapse |
 | OBSERVER-014 | Multiple per Plane | BEH | `TestObservers_MultipleObserversMayExploreSamePlaneConcurrently` | lifecycle primitives + `ResolveObserverLifecycle` | GREEN | no uniqueness-by-Plane guard; Stage 4 separately owns per-Portal transit admission |
 | OBSERVER-015 | Send to explored allowed | BEH | — | — | PLANNED | |
-| OBSERVER-016 | Recall longest-waiting | BEH | — | — | PLANNED | |
+| OBSERVER-016 | Recall longest-waiting | BEH | `TestLongestWaitingObserverIndex_SelectsEarliestWaitingTimestamp`, `TestLongestWaitingObserverIndex_FiltersByDestinationPlane`, `TestLongestWaitingObserverIndex_BreaksExactTieByLowestID`, `TestLongestWaitingObserverIndex_RejectsMissingWaitingTimestamp` | `LongestWaitingObserverIndex` | PARTIAL | deterministic selector covered; RECALL command consumption remains Stage 4 checkpoint D |
 
 ## FLOW
 
@@ -151,7 +151,7 @@
 | FLOW-003 | First RECALL → INBOUND | BEH | — | — | PLANNED | |
 | FLOW-004 | OUTBOUND rejects RECALL | BEH | — | — | PLANNED | |
 | FLOW-005 | INBOUND rejects SEND | BEH | — | — | PLANNED | |
-| FLOW-006 | One transit at a time | INV | — | — | PLANNED | |
+| FLOW-006 | One transit at a time | INV | `TestActiveTransitObserverIndex_FindsOutbound`, `TestActiveTransitObserverIndex_FindsReturning`, `TestActiveTransitObserverIndex_IgnoresOtherPortals`, `TestActiveTransitObserverIndex_ReturnsNoneWhenIdle`, `TestActiveTransitObserverIndex_RejectsMultipleTransitsForSamePortal`, `TestActiveTransitObserverIndex_RejectsStaleTransitAtDeadline` | `ActiveTransitObserverIndex` | PARTIAL | deterministic busy/invariant helper covered; SEND/RECALL admission remains Stage 4 checkpoints C/E |
 | FLOW-007 | Same direction after transit | BEH | — | — | PLANNED | |
 
 ## EXTRACTION
