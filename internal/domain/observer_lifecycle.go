@@ -35,6 +35,35 @@ func (o *Observer) StartOutbound(now time.Time, portalID int64, rnd random.Rando
 	return nil
 }
 
+// StartReturning starts an already-authorized Plane-to-Lab transit. It keeps
+// the Plane association until the return succeeds and draws a fresh duration.
+func (o *Observer) StartReturning(now time.Time, portalID int64, rnd random.Random, cfg config.Config) error {
+	if o.Status == ObserverLost {
+		return ErrObserverLost
+	}
+	if o.Status != ObserverWaitingReturn {
+		return ErrObserverNotWaitingReturn
+	}
+	if o.CurrentPlaneID == nil {
+		return ErrObserverInvariant
+	}
+
+	durationSeconds := rnd.IntInclusive(
+		int(cfg.ObserverTransitMin/time.Second),
+		int(cfg.ObserverTransitMax/time.Second),
+	)
+	startedAt := now
+	endsAt := now.Add(time.Duration(durationSeconds) * time.Second)
+	activePortalID := portalID
+
+	o.Status = ObserverReturning
+	o.ActivePortalID = &activePortalID
+	o.PhaseStartedAt = &startedAt
+	o.PhaseEndsAt = &endsAt
+	o.UpdatedAt = now
+	return nil
+}
+
 // ResolveObserverLifecycle advances deterministic Observer phases to the
 // state effective at now. Later checkpoints extend this resolver with
 // research completion, return, transit failure, and multi-phase catch-up.
@@ -51,6 +80,8 @@ func ResolveObserverLifecycle(o *Observer, plane *Plane, portal *Portal, now tim
 			return ErrObserverInvariant
 		}
 		return nil
+	case ObserverReturning:
+		return resolveObserverReturning(o, plane, portal, now)
 	default:
 		return ErrObserverInvariant
 	}
@@ -93,5 +124,31 @@ func resolveObserverResearch(o *Observer, plane *Plane, now time.Time) error {
 	o.PhaseStartedAt = &completedAt
 	o.PhaseEndsAt = nil
 	o.UpdatedAt = completedAt
+	return nil
+}
+
+func resolveObserverReturning(o *Observer, plane *Plane, portal *Portal, now time.Time) error {
+	if o.CurrentPlaneID == nil || o.ActivePortalID == nil || o.PhaseStartedAt == nil ||
+		o.PhaseEndsAt == nil || plane == nil || portal == nil ||
+		*o.CurrentPlaneID != plane.ID || *o.ActivePortalID != portal.ID ||
+		plane.ID != portal.DestinationPlaneID {
+		return ErrObserverInvariant
+	}
+	if now.Before(*o.PhaseEndsAt) {
+		return nil
+	}
+
+	returnedAt := *o.PhaseEndsAt
+	o.Status = ObserverAvailable
+	o.CurrentPlaneID = nil
+	o.ActivePortalID = nil
+	o.PhaseStartedAt = nil
+	o.PhaseEndsAt = nil
+	o.UpdatedAt = returnedAt
+
+	if !plane.Explored {
+		plane.Explored = true
+		plane.ExploredAt = &returnedAt
+	}
 	return nil
 }
