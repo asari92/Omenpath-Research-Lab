@@ -331,3 +331,41 @@ Analysis/architecture описаны выше. Ниже — фактическа
 
 - `gofmt` нашёл неверное выравнивание комментариев в `internal/domain/portal.go` после первого коммита скелета — исправлено без изменения кода (единственная правка).
 - Других ошибок/переделок не было; новых design-споров с AI на этом этапе не возникло.
+
+## Stage 2 — Portal Core via TDD (2026-09-03)
+
+### Что сделано (чекпоинты A–F из 04_STAGE_02_PORTAL_CORE_TDD.md)
+
+- **A+B**: `ScheduledRemaining`, `CurrentEnergy`, `EnergyDepletionAt`; позднее разрешение сохраняет семантическое время; tie energy/natural → NATURAL_CLOSE (Rule B).
+- **C**: hidden instability collapse в `ResolveLifecycle` (Rule C/D); примитив `Stabilize` (UNSTABLE→STABLE, hidden=null, current+15 → новый baseline, decay не трогается; граница 85 включительно).
+- **D**: `MaxCreaturesForTTL`, `CreaturesInside`; примитив `Close` (confirmation при существах, MANUAL_CLOSE, terminal rejection).
+- **E**: `EnergyLifetime`, `EffectiveLifetime`, `RiskScore`, `RiskLevel` (для terminal — `("", false)`); точные границы 25/50/75; agreed-примеры 14s→HIGH, 10s→CRITICAL; +20 UNSTABLE; cap 100; hidden не влияет на Risk.
+- **F**: `FirstFreeSlot` (только OPEN занимают, первый свободный, чистая функция); фабрика `NewNaturalPortal` (TTL/energy/decay/stability/hidden/creatures по cfg+Random; без выбора plane/slot и побочных эффектов).
+
+Каждый чекпоинт: тесты писались до реализации, RED наблюдался (compile-ошибки/фейлы), затем минимальная реализация → GREEN; после каждого — `go test ./...` и `go test -race ./...`; traceability обновлён в том же коммите.
+
+### Реальные ошибки AI на этой стадии (честно)
+
+- Фикстура `TestPortal_StabilizedPortalLosesInstabilityCandidate` изначально с `Energy(100)` — нарушала предусловие Stabilize (current > 85); домен корректно отклонил вызов, тест упал. Исправлена фикстура (Energy 50), не реализация — то самое поведение «нельзя подгонять тест под код наоборот».
+- Сломанный doc-комментарий в `risk.go` (формулы без префикса `//` с юникод-минусом) — compile error.
+- Условие внутри struct-литерала в `factory.go` (невалидный Go) — вынесено в переменную до литерала.
+- Разорванная цепочка вызовов в `factory_test.go` (`QueueInt(0)` на отдельной строке) — цепочка восстановлена.
+- Дважды мелкие gofmt-выравнивания после записи файлов.
+
+Все ошибки пойманы компилятором/тестами немедленно, до коммита; в историю не попали.
+
+### Решения и наблюдения
+
+- Tie energy-depletion == hidden-instability (оба раньше natural close) в плане не специфицирован; зафиксирован детерминированно: ENERGY_DEPLETED выигрывает (StrictBefore-семантика кандидатов, NATURAL_CLOSE выигрывает точные тай с обоими по Rules B/C). Из валидной фабрики такой тай вообще не возникает (hidden строго внутри окна).
+- `MaxCreaturesForTTL`: деление Duration усекается к нулю, поэтому TTL<2s даёт 0 и без явного max(0,…) — guard оставлен как документация формулы; кейс TTL=1s покрыт тестом.
+- `EnergyLifetime` при decay≤0 возвращает `math.MaxInt64` ns (~292 года) — безопасно внутри `min`; валидная фабрика такой decay не создаёт.
+- Порядок draw в фабрике зафиксирован и задокументирован (TTL → energy → decay → roll → [hidden] → creatures) — детерминированные фикстуры FakeRandom.
+- Stabilize проверяет именно derived current (тест: baseline 90, current 80 — разрешено; baseline 86 — отказ).
+- Граница stage соблюдена: Portal не связан с LabState/Observer/Event; costs/подтверждения транзита — оркестрация позже.
+
+### Верификация
+
+- `gofmt -l` — пусто; `go vet ./...` — чисто; `go build ./...` — ок.
+- `go test -count=1 ./...` и `go test -race -count=1 ./...` — все зелёные (46 тестов/подтестов в domain, 67 суммарно).
+- В domain-тестах нет `time.Sleep`, реального рандома, БД, HTTP — только FakeClock/FakeRandom/builder.
+- Traceability: все требования семей PORTAL/ENERGY/STABILITY/CREATURE/RISK/SLOT в скоупе Stage 2 — GREEN; осознанно PLANNED остались зависящие от будущих стадий (CREATURE-007, RISK-011..013, SLOT-007, PORTAL-001).
