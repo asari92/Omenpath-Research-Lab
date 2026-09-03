@@ -61,9 +61,9 @@ type Portal struct {
 	Kind               PortalKind
 	DestinationPlaneID int64
 
-	EnergyBase      float64    // %, baseline at EnergyBaseAt
-	EnergyBaseAt    time.Time  // when the baseline was set
-	EnergyDecayRate float64    // %/sec, hidden from the user
+	EnergyBase      float64   // %, baseline at EnergyBaseAt
+	EnergyBaseAt    time.Time // when the baseline was set
+	EnergyDecayRate float64   // %/sec, hidden from the user
 
 	Stability             PortalStability
 	InstabilityCollapseAt *time.Time // hidden; only for UNSTABLE (§10)
