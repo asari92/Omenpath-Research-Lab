@@ -392,3 +392,58 @@ Observer lifecycle, Lab Energy orchestration, Events, REST, WebSocket, SQLite, S
 ### Верификация
 
 `gofmt -l .` — пусто; `go vet ./...` — чисто; `go build ./...` — ок; `go test -count=1 ./...` и `go test -race -count=1 ./...` — все зелёные.
+
+## Stage 3 — Observer Lifecycle via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Использованы repository inspection, shell/Go toolchain, Git и patch-based editing. Точное число токенов окружение не предоставляет — не фиксирую.
+- До реализации перечитаны Final Spec, текущий Worklog, roadmap, планы Stage 0–2/Stage 3, requirements и traceability; просмотрены Go-код, тесты, `git log`, ключевые corrective commits и `git status`.
+- Stage 0–2 и corrective/documentation passes подтверждены; baseline `gofmt`/vet/build/test/race был зелёным. `05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` действительно находился в `8a9dcd7`; Stage 3 кода до этой работы не было.
+- Блокирующих противоречий Stage 3 plan с Final Spec не найдено. LOST field clearing сохранён как явно обозначенная Stage 3 canonicalization, а не выдан за прямое требование Final Spec.
+- Создан короткий корневой `AGENTS.md` (`b10caa8`) с иерархией source of truth, stage/TDD guards и quality commands.
+
+### Что реализовано
+
+- `NewObserver` и `NewObserverRoster`: AVAILABLE в Laboratory, стабильные one-based IDs; default config даёт roster из 10.
+- `Observer.StartOutbound` и `Observer.StartReturning`: строгие state-preconditions, атомарные отказы, отдельный единственный random draw `5..15 sec` на каждый transit.
+- `ResolveObserverLifecycle`: OUTBOUND arrival, 20-sec EXPLORING, WAITING_RETURN с сохранённым waiting timestamp, RETURNING success, LOST и multi-phase catch-up за один вызов.
+- Все transition timestamps берутся из effective deadlines, не из времени позднего resolver call.
+- Только успешный RETURNING→AVAILABLE исследует Plane; повторный return сохраняет первый `ExploredAt`.
+- CLOSED/COLLAPSED строго раньше transit deadline делает Observer LOST в `Portal.ClosedAt`; exact tie `ClosedAt == PhaseEndsAt` успешен; более позднее закрытие не действует ретроактивно.
+- LOST canonicalization очищает `CurrentPlaneID`, `ActivePortalID`, `PhaseStartedAt`, `PhaseEndsAt`; LOST не реанимируется и не может начать новый transit.
+- Два Observers могут одновременно находиться в одном Plane; characterization не вводит global uniqueness или Stage 4 Portal-busy policy.
+
+Добавлено 66 top-level Observer tests в семи checkpoint-файлах плюс construction tests; все обязательные test names из Stage 3 plan присутствуют.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — construction/invariants | `71562a0` — undefined `NewObserver`, `NewObserverRoster`, `IsTerminal` | `8174a5e` |
+| B — Start OUTBOUND | `be0d52f` — undefined `StartOutbound` / errors | `336b9f6` |
+| C — OUTBOUND resolution | `6fce895` — undefined `ResolveObserverLifecycle` / invariant error | `bfc1619` |
+| D — research | `4393c9e` — EXPLORING returned invariant error; invalid WAITING state was silently accepted | `1dff235` |
+| E — return | `2f59bc4` — undefined `StartReturning` / return error | `7632806` |
+| F — LOST | `5b9828b` — terminal Portal incorrectly produced EXPLORING/AVAILABLE and explored Plane | `c099eed` |
+| G — ordering/catch-up | `fe6ca70` — one call stopped at EXPLORING; repeated resolve still changed state | `5e1391f` |
+| H — multiple Observers | already GREEN characterization (no new production behavior required) | `b20cb9e` |
+
+Checkpoint G's exact-tie and non-retroactive-close cases were already compatible with the checkpoint F strict-before implementation; the genuine RED was the missing multi-phase catch-up/idempotence behavior. Checkpoint H was intentionally recorded as a GREEN characterization rather than faking a failure.
+
+### Реальные ошибки/операционные замечания
+
+- Первый новый compile after RED не мог записать Go build cache из sandbox; тот же targeted command был повторён с разрешённым `go test` и показал ожидаемые undefined-symbol compile failures. Это ограничение окружения, не defect проекта.
+- Один широкий patch не применился из-за gofmt-выравнивания контекста в `errors.go`; patch был разбит и применён без частичной мутации.
+- Первый combined `gofmt && go test` для checkpoint H снова попал в sandbox cache restriction; standalone approved `go test` подтвердил GREEN.
+- После GREEN self-review не потребовал изменения product semantics.
+
+### Traceability и verification
+
+- `OBSERVER-002..014` переведены в GREEN; `OBSERVER-001` честно оставлен PARTIAL до permanence/persistence bootstrap.
+- `PLANE-006..008` переведены в GREEN; `PLANE-005` оставлен PARTIAL до реального SEND command Stage 4, `PLANE-009` — PARTIAL до progress aggregation.
+- `OBSERVER-015..016`, `FLOW-*` и весь Stage 4+ scope остались PLANNED.
+- После checkpoints и перед этим worklog update выполнены: `gofmt -l .` (пусто), `go vet ./...`, `go build ./...`, `go test -count=1 ./...`, `go test -race -count=1 ./...` — exit 0.
+- Scope checks: в `internal/domain/observer*.go` нет `time.Now`/Sleep/ticker/after; lifecycle не зависит от Portal Flow, Risk, creatures, Lab Energy, Extraction или Event system.
+
+Stage 4 не начат.
