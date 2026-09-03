@@ -93,6 +93,10 @@ func resolveObserverOutbound(o *Observer, plane *Plane, portal *Portal, now time
 		plane.ID != portal.DestinationPlaneID {
 		return ErrObserverInvariant
 	}
+	failed, err := resolveObserverTransitFailure(o, portal, now)
+	if err != nil || failed {
+		return err
+	}
 	if now.Before(*o.PhaseEndsAt) {
 		return nil
 	}
@@ -134,6 +138,10 @@ func resolveObserverReturning(o *Observer, plane *Plane, portal *Portal, now tim
 		plane.ID != portal.DestinationPlaneID {
 		return ErrObserverInvariant
 	}
+	failed, err := resolveObserverTransitFailure(o, portal, now)
+	if err != nil || failed {
+		return err
+	}
 	if now.Before(*o.PhaseEndsAt) {
 		return nil
 	}
@@ -151,4 +159,25 @@ func resolveObserverReturning(o *Observer, plane *Plane, portal *Portal, now tim
 		plane.ExploredAt = &returnedAt
 	}
 	return nil
+}
+
+func resolveObserverTransitFailure(o *Observer, portal *Portal, now time.Time) (bool, error) {
+	if portal.Status == PortalStatusOpen {
+		return false, nil
+	}
+	if portal.ClosedAt == nil || o.PhaseEndsAt == nil {
+		return false, ErrObserverInvariant
+	}
+	if !portal.ClosedAt.Before(*o.PhaseEndsAt) || now.Before(*portal.ClosedAt) {
+		return false, nil
+	}
+
+	lostAt := *portal.ClosedAt
+	o.Status = ObserverLost
+	o.CurrentPlaneID = nil
+	o.ActivePortalID = nil
+	o.PhaseStartedAt = nil
+	o.PhaseEndsAt = nil
+	o.UpdatedAt = lostAt
+	return true, nil
 }
