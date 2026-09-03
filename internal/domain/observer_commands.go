@@ -140,7 +140,27 @@ func RecallObserver(
 	cfg config.Config,
 ) (observerID int64, err error) {
 	_ = plane
-	_ = confirmUnstable
+
+	if portal.Status != PortalStatusOpen {
+		return 0, ErrPortalNotOpen
+	}
+	risk, _ := portal.RiskLevel(now, cfg)
+	if risk == RiskCritical {
+		return 0, ErrPortalCriticalRisk
+	}
+	if portal.ObserverFlow == PortalFlowOutbound {
+		return 0, ErrPortalDirectionConflict
+	}
+	if portal.CreaturesInside(now, cfg) > 0 {
+		return 0, ErrPortalCreaturesPresent
+	}
+	_, busy, err := ActiveTransitObserverIndex(observers, portal.ID, now)
+	if err != nil {
+		return 0, err
+	}
+	if busy {
+		return 0, ErrPortalBusy
+	}
 
 	index, ok, err := LongestWaitingObserverIndex(observers, portal.DestinationPlaneID)
 	if err != nil {
@@ -148,6 +168,9 @@ func RecallObserver(
 	}
 	if !ok {
 		return 0, ErrNoWaitingObserver
+	}
+	if portal.Stability == PortalUnstable && !confirmUnstable {
+		return 0, ErrConfirmationRequired
 	}
 	if err = observers[index].StartReturning(now, portal.ID, rnd, cfg); err != nil {
 		return 0, err
