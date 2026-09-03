@@ -559,3 +559,78 @@ Checkpoints G/H намеренно не получили искусственн�
 - Scope scan `internal/domain/lab*.go` не нашёл wall-clock/ticker/sleep, database/HTTP/mutex, `OpenExtraction`, events или lifecycle resolution dependencies.
 
 Stage 6 не начат.
+
+## Stage 6 — Emergency / Leyline Override via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Реализация выполнена строго по
+  `08_STAGE_06_EMERGENCY_LEYLINE_OVERRIDE_TDD.md` поверх завершённого Stage 5.
+- Перед реализацией рабочее дерево было чистым, `main` указывал на `1f45d3d`;
+  baseline `gofmt`/vet/build/test/race был зелёным.
+- Блокирующих противоречий с Final Spec §§14/20/21/22/29/37 не найдено.
+  Override использует полузакрытое окно `[collapseAt, collapseAt+duration)`, а
+  позднее разрешение Collapse сохраняет семантический момент `Portal.ClosedAt`.
+- Реализован только Stage 6 domain scope. Extraction Portal, Events,
+  persistence, HTTP/WebSocket, simulation и LabManager не начинались.
+
+### Что реализовано
+
+- `LabState.ActivateLeylineOverride` атомарно обнуляет Laboratory Energy,
+  ребейзит её в момент Collapse и заменяет deadline на настроенную длительность.
+- `LabState.LeylineOverrideActive` является чистым derived query; начало окна
+  выводится из deadline и `cfg.EmergencyDuration`, поэтому последующий обычный
+  energy debit не сдвигает emergency window.
+- `ResolvePortalLifecycleWithLabEmergency` использует copy-then-commit:
+  запускает Override только при новом переходе в COLLAPSED, сохраняет причину и
+  `ClosedAt` Portal, не реагирует на CLOSED и идемпотентен для terminal replay.
+- Каждый новый хронологически допустимый Collapse снова обнуляет накопленную
+  энергию и заменяет deadline; out-of-order/invalid состояние отклоняется без
+  частичной мутации Lab или Portal.
+- `ClosePortalWithLabEnergy` и `StabilizePortalWithLabEnergy` выбирают цену 0
+  только внутри активного Override. Все creature/transit confirmations,
+  stability/overcharge/terminal restrictions и atomic failure semantics
+  сохранены. На точном deadline снова действуют обычные цены 5/20.
+- Регенерация `+1/sec` продолжается во время Override и не прерывается
+  бесплатными действиями. Extraction cost остаётся 30, но покрыт только как
+  generic `SpendEnergy` contract; Stage 7 command/Portal не добавлены.
+- Добавлено 88 top-level Stage 6 tests в восьми checkpoint-файлах.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — activation/window | `d7340f8` — undefined `ActivateLeylineOverride` / `LeylineOverrideActive` | `b37883b` |
+| B — energy Collapse orchestration | `0696e80` — undefined lifecycle wrapper | `b3bde94` |
+| C — instability Collapse | already GREEN characterization over checkpoint B wrapper | `660a2b9` |
+| D — repeated Collapse reset | already GREEN characterization over checkpoints A–C | `8c8787b` |
+| E — free Close | `45e1f1d` — Stage 5 wrapper charged/rebased energy and rejected zero balance | `eb15243` |
+| F — free Stabilize | `8b2112c` — Stage 5 wrapper rejected zero balance | `cb4a3ca` |
+| G — regeneration/Extraction invariant | already GREEN characterization over implemented primitives | `c5140ae` |
+| H — emergency regressions | already GREEN after correction of a test fixture; no production defect | `a15231e` |
+
+Checkpoints C/D/G/H намеренно не получили искусственный RED. Checkpoint H
+сначала использовал одно существо и `now=+5s`, когда corridor уже был пуст по
+правилу `CreatureTransit=2s`; тест ошибочно ожидал confirmation. Минимальная
+коррекция фикстуры на `now=+1s` воспроизвела требуемый failure path, после чего
+targeted и полный suite прошли без изменения production-кода.
+
+### Traceability и verification
+
+- `EMERGENCY-001..003` и `EMERGENCY-005..006` переведены в GREEN;
+  `EMERGENCY-004` честно оставлен PARTIAL до настоящего Extraction Stage 7.
+- `PORTAL-007/008`, `LAB-003/007/008`, `STABILITY-005`, `ENERGY-006..008` и
+  `OBSERVER-012` дополнены emergency evidence и остаются GREEN.
+- `LAB-009` остаётся PARTIAL. `LAB-010` остаётся PARTIAL, но теперь явно
+  фиксирует, что Override Close/Stabilize paths завершены и отсутствует только
+  реальный Extraction insufficient-energy path Stage 7.
+- `EXTRACTION-*` остаются PLANNED; `docs/requirements.md` семантически не
+  менялся.
+- После Checkpoint H выполнены `gofmt -l .` (пусто), `go vet ./...`,
+  `go build ./...`, `go test -count=1 ./...` и
+  `go test -race -count=1 ./...`; все завершились с exit 0.
+- Scope scan production-файлов Stage 6 не нашёл wall-clock/ticker/sleep,
+  database/HTTP/mutex, Extraction behavior symbols, Observer lifecycle,
+  slot-selection или natural-portal generation dependencies.
+
+Stage 7 не начат.
