@@ -81,13 +81,21 @@ func StabilizePortalWithLabEnergy(
 	now time.Time,
 	cfg config.Config,
 ) error {
-	remaining, err := prepareLabEnergySpend(lab, now, cfg.StabilizeCost, cfg)
+	cost := effectiveStabilizeCost(lab, now, cfg)
+	remaining, err := prepareLabEnergySpend(lab, now, cost, cfg)
 	if err != nil {
 		return err
 	}
 	if err := portal.Stabilize(now, cfg); err != nil {
 		return err
 	}
-	commitLabEnergySpend(lab, now, cfg.StabilizeCost, remaining)
+	commitLabEnergySpend(lab, now, cost, remaining)
 	return nil
+}
+
+func effectiveStabilizeCost(lab *LabState, now time.Time, cfg config.Config) int {
+	if lab != nil && lab.LeylineOverrideActive(now, cfg) {
+		return 0
+	}
+	return cfg.StabilizeCost
 }
