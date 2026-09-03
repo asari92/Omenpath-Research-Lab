@@ -96,7 +96,13 @@ func (p Portal) IsTerminal() bool {
 
 // ScheduledRemaining returns the time left until natural close,
 // clamped at zero (Final Spec §8). It is derived, never stored.
+// Terminal portals have no countdown left: they report 0 even when the
+// scheduled close lies in the future at query time (PORTAL-009 extended
+// to derived state).
 func (p Portal) ScheduledRemaining(now time.Time) time.Duration {
+	if p.IsTerminal() {
+		return 0
+	}
 	remaining := p.ScheduledCloseAt.Sub(now)
 	if remaining < 0 {
 		return 0
@@ -107,7 +113,14 @@ func (p Portal) ScheduledRemaining(now time.Time) time.Duration {
 // CurrentEnergy returns the derived realtime energy
 // max(0, energy_base − elapsed × decay) (Final Spec §9).
 // No per-second storage happens anywhere: callers compute on demand.
+// Terminal portals stop behaving like active ones: the energy freezes at
+// the ClosedAt moment and never decays further (PORTAL-009 extended to
+// derived state). Valid transitions always set ClosedAt; a terminal portal
+// without it (hand-built fixture) falls back to live derivation.
 func (p Portal) CurrentEnergy(now time.Time) float64 {
+	if p.IsTerminal() && p.ClosedAt != nil {
+		now = *p.ClosedAt
+	}
 	elapsed := now.Sub(p.EnergyBaseAt)
 	if elapsed < 0 {
 		elapsed = 0
@@ -166,9 +179,10 @@ func (p Portal) EffectiveLifetime(now time.Time) time.Duration {
 // Candidates are considered by earliest semantic moment (Stage 2 plan
 // Rule D) with Natural Close winning exact ties (Rules B and C). An exact
 // tie between energy depletion and the hidden instability moment keeps
-// ENERGY_DEPLETED — an arbitrary but fixed choice that cannot arise from
-// the valid factory (which schedules the hidden moment strictly inside
-// the TTL window).
+// ENERGY_DEPLETED — a fixed, documented choice: such a tie is reachable
+// from the valid factory (both moments may lie strictly inside the TTL
+// window), so the ordering must stay deterministic; the regression is
+// locked by TestPortal_EnergyDepletionWinsInstabilityTie.
 func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
 	if p.IsTerminal() {
 		return false, nil

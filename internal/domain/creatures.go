@@ -27,7 +27,14 @@ func MaxCreaturesForTTL(ttl time.Duration, cfg config.Config) int {
 // CreaturesInside returns the derived current count (Final Spec §12):
 // creatures pass one per CreatureTransit seconds, clamped at zero.
 // There are no creature death statistics — the corridor simply empties.
+// Terminal portals stop behaving like active ones: the count freezes at
+// the ClosedAt moment (PORTAL-009 extended to derived state). Valid
+// transitions always set ClosedAt; a terminal portal without it
+// (hand-built fixture) falls back to live derivation.
 func (p Portal) CreaturesInside(now time.Time, cfg config.Config) int {
+	if p.IsTerminal() && p.ClosedAt != nil {
+		now = *p.ClosedAt
+	}
 	elapsed := now.Sub(p.OpenedAt)
 	if elapsed < 0 {
 		elapsed = 0
