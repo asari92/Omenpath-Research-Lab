@@ -320,6 +320,40 @@ with Natural Close winning exact ties.
 
 This should be implemented/tested as deterministic domain semantics rather than accidental Tick ordering.
 
+## Rule E — terminal derived state freezes (added by the Stage 0–2 audit corrective pass)
+
+After CLOSED/COLLAPSED the portal must stop behaving like an active one:
+
+```text
+ScheduledRemaining(terminal)      = 0
+CurrentEnergy(terminal, any now)  = value at ClosedAt (frozen)
+CreaturesInside(terminal, any now)= value at ClosedAt (frozen)
+RiskLevel(terminal)               = absent (unchanged, decision S2-D2)
+```
+
+Covered by:
+
+```go
+TestPortal_ScheduledRemainingIsZeroWhenTerminal
+TestPortal_EnergyFreezesAtManualClose
+TestPortal_EnergyFreezesAtCollapse
+TestPortal_CreaturesFreezeAtManualClose
+TestPortal_CreaturesFreezeAtCollapse
+```
+
+Tie note (Rule D, exact tie `energy_depletion_at == instability_collapse_at`, both strictly before natural close): such a tie IS reachable from the valid factory — the depletion moment `opened_at + energy/decay` can lie strictly inside the hidden-collapse window `(opened_at+5s, scheduled_close_at−1s)` and coincide with it exactly. The fixed deterministic choice is:
+
+```text
+ENERGY_DEPLETED wins the exact tie with INSTABILITY
+```
+
+Locked by `TestPortal_EnergyDepletionWinsInstabilityTie`.
+
+Related LabManager orchestration invariant (resolve-first under the same
+lock before any time-sensitive command) is fixed in the roadmap, Stage 11 —
+deliberately NOT embedded into `Portal.Close`/`Portal.Stabilize` so that
+lifecycle Events (Stage 9) can be emitted from a single orchestration point.
+
 ---
 
 # 8. Substage 2.1 — Basic Portal state

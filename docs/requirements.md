@@ -12,7 +12,8 @@
 | **BAL** | Balance Config — тюнимый параметр (живёт в `internal/config`, Final Spec §37) |
 | **UI** | UI Contract — shape/visibility authoritative state для фронтенда |
 
-Statuses отслеживаются в [`docs/traceability.md`](traceability.md): `PLANNED → RED → GREEN → REFACTORED`.
+Statuses отслеживаются в [`docs/traceability.md`](traceability.md): `PLANNED → RED → GREEN → REFACTORED`; `PARTIAL` — правило покрыто частично
+(чистый helper / подмножество поведения), полная оркестрация — на будущей стадии.
 
 Балансовые значения (BAL) централизованы в `internal/config/config.go` (`Config.Default()`); тест
 `internal/config/config_test.go` сверяет их с Final Spec §37 (исполняемая часть Stage 0).

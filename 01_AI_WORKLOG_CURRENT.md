@@ -308,7 +308,7 @@ Analysis/architecture описаны выше. Ниже — фактическа
 
 ### Инструменты
 
-- Реализация: Claude Code (агент в pi harness) по планам Stage 0–1.
+- Реализация: GLM (модель) через pi harness, по планам Stage 0–1.
 - Часы/рандом тесты, каталог требований, скелет, минимальный Portal lifecycle.
 - Точное потребление токенов из окружения недоступно — не фиксирую (не выдумываю).
 - Время: одна сессия 2026-09-03.
@@ -325,7 +325,7 @@ Analysis/architecture описаны выше. Ниже — фактическа
 - `ResolveLifecycle(now) (changed bool, err error)` и семантическое время `ClosedAt` (момент события, а не ленивого тика) выбраны сразу по Stage 2 plan §9 design rule — чтобы не переделывать API на следующей стадии.
 - Tie «energy depletion == natural close» решён в пользу NATURAL_CLOSE (Stage 2 plan Rule B) уже в минимальной версии; отдельный тест — Stage 2 substage 2.4.
 - FakeRandom возвращает значения как есть (без clamp) и паникует при исчерпании очереди — фикстуры fail-loud, скрытой нормализации нет.
-- FakeClock/FakeRandom покрыты конкурентными тестами под `-race` заранее — это фундамент для LabManager (Stage 11).
+- FakeClock и RealRandom покрыты конкурентными тестами под `-race` заранее — это фундамент для LabManager (Stage 11). Уточнение после аудита: у FakeRandom конкурентного теста нет (и не планировался — фикстура однопоточная); покрытие FakeRandom: порядок очереди, passthrough, panic при исчерпании.
 
 ### Ошибки AI / ручные правки на этом этапе
 
@@ -356,7 +356,7 @@ Analysis/architecture описаны выше. Ниже — фактическа
 
 ### Решения и наблюдения
 
-- Tie energy-depletion == hidden-instability (оба раньше natural close) в плане не специфицирован; зафиксирован детерминированно: ENERGY_DEPLETED выигрывает (StrictBefore-семантика кандидатов, NATURAL_CLOSE выигрывает точные тай с обоими по Rules B/C). Из валидной фабрики такой тай вообще не возникает (hidden строго внутри окна).
+- Tie energy-depletion == hidden-instability (оба раньше natural close) в плане не специфицирован; зафиксирован детерминированно: ENERGY_DEPLETED выигрывает (StrictBefore-семантика кандидатов, NATURAL_CLOSE выигрывает точные тай с обоими по Rules B/C). Исправление после аудита: ранее здесь утверждалось, что из валидной фабрики такой тай «вообще не возникает» — это неверно: момент depletion (`opened_at + energy/decay`) может лежать строго внутри окна hidden `(opened+5s, close−1s)` и совпасть с ним точно. Тай возможен, семантика зафиксирована (ENERGY_DEPLETED выигрывает exact tie) и заперта regression-тестом `TestPortal_EnergyDepletionWinsInstabilityTie`.
 - `MaxCreaturesForTTL`: деление Duration усекается к нулю, поэтому TTL<2s даёт 0 и без явного max(0,…) — guard оставлен как документация формулы; кейс TTL=1s покрыт тестом.
 - `EnergyLifetime` при decay≤0 возвращает `math.MaxInt64` ns (~292 года) — безопасно внутри `min`; валидная фабрика такой decay не создаёт.
 - Порядок draw в фабрике зафиксирован и задокументирован (TTL → energy → decay → roll → [hidden] → creatures) — детерминированные фикстуры FakeRandom.
@@ -369,3 +369,26 @@ Analysis/architecture описаны выше. Ниже — фактическа
 - `go test -count=1 ./...` и `go test -race -count=1 ./...` — все зелёные (46 тестов/подтестов в domain, 67 суммарно).
 - В domain-тестах нет `time.Sleep`, реального рандома, БД, HTTP — только FakeClock/FakeRandom/builder.
 - Traceability: все требования семей PORTAL/ENERGY/STABILITY/CREATURE/RISK/SLOT в скоупе Stage 2 — GREEN; осознанно PLANNED остались зависящие от будущих стадий (CREATURE-007, RISK-011..013, SLOT-007, PORTAL-001).
+
+## Corrective pass после независимого аудита Stage 0–2 (2026-09-03)
+
+### Что найдено и исправлено
+
+1. **Terminal derived state (PORTAL-009 расширен на derived-значения).** После CLOSED/COLLAPSED портал продолжал «жить» как активный: `ScheduledRemaining` тикал, `CurrentEnergy` продолжала убывать, `CreaturesInside` дорастали до нуля. Исправлено TDD (сначала RED — 5 тестов упали, затем минимальная реализация → GREEN):
+   - `ScheduledRemaining` для terminal = 0 (даже если `scheduled_close_at` в будущем);
+   - `CurrentEnergy` замораживается на значении в `ClosedAt`;
+   - `CreaturesInside` замораживается на значении в `ClosedAt`;
+   - `RiskLevel` для terminal по-прежнему отсутствует (без изменений, S2-D2).
+   Новые тесты: `TestPortal_ScheduledRemainingIsZeroWhenTerminal`, `TestPortal_EnergyFreezesAtManualClose`, `TestPortal_EnergyFreezesAtCollapse`, `TestPortal_CreaturesFreezeAtManualClose`, `TestPortal_CreaturesFreezeAtCollapse`.
+2. **Tie ENERGY_DEPLETED == INSTABILITY.** Утверждение worklog/комментариев «тай невозможен из валидной фабрики» было неверным (depletion-момент может лежать внутри hidden-окна). Семантика не менялась — ENERGY_DEPLETED выигрывает exact tie; добавлен regression-тест `TestPortal_EnergyDepletionWinsInstabilityTie` (сразу GREEN — фиксация семантики, а не фикс бага), решение задокументировано в Stage 2 plan (Rule E note) и комментарии `ResolveLifecycle`.
+3. **Недостоверные утверждения этого worklog** (см. правки выше): инструмент — GLM через pi, а не Claude Code; конкурентные тесты есть у FakeClock/RealRandom, но не у FakeRandom; утверждение о невозможности tie — неверно.
+4. **Traceability введён статус PARTIAL** — «покрыт чистый helper/подмножество, полная оркестрация позже». Понижены с GREEN: SLOT-004, SLOT-006, PORTAL-002 (helper не доказывает инвариант целиком). PORTAL-004 повышен с PLANNED до GREEN — все три статуса и разные outcomes теперь прямо покрыты freeze-тестами.
+5. **Orchestration invariant для LabManager зафиксирован** в roadmap (Stage 11): перед любой time-sensitive command — сначала `ResolveLifecycle(portal, now)` под тем же lock; стал terminal → action не выполняется. Намеренно НЕ встроено в `Portal.Close`/`Portal.Stabilize`, чтобы не усложнить будущие lifecycle Events (Stage 9).
+
+### Чего НЕ делалось (осознанно)
+
+Observer lifecycle, Lab Energy orchestration, Events, REST, WebSocket, SQLite, Stage 3 — вне скоупа corrective pass.
+
+### Верификация
+
+`gofmt -l .` — пусто; `go vet ./...` — чисто; `go build ./...` — ок; `go test -count=1 ./...` и `go test -race -count=1 ./...` — все зелёные.

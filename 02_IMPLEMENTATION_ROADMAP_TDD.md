@@ -101,6 +101,29 @@ Requirement → Test → RED → Minimal Implementation → GREEN → Refactor
 - No duplicate events.
 - Race detector.
 
+Orchestration invariant (fixed after the Stage 0–2 audit, before any
+time-sensitive command is implemented):
+
+```text
+Before executing ANY time-sensitive command (Close, Stabilize, Send,
+Recall, Extraction, reads of derived state) on a portal, LabManager MUST
+first call ResolveLifecycle(portal, now) under the same lock.
+If the portal became terminal during that resolution, the requested
+action MUST NOT be executed (it fails with the domain "not open" error);
+the terminal transition itself is processed as the winning transition.
+```
+
+Rationale:
+
+- exactly one valid transition wins (Final Spec §32): either the user
+  command or the scheduled lifecycle event, never both;
+- commands never operate on a portal that is already semantically
+  terminal but not yet resolved by a tick (late resolution);
+- this rule lives in LabManager orchestration, NOT inside
+  `Portal.Close` / `Portal.Stabilize` — keeping the portal primitives
+  pure simplifies emitting lifecycle Events from a single place later
+  (Stage 9) and avoids double-resolution logic.
+
 ### Stage 12 — REST API
 - Reads.
 - Portal actions.

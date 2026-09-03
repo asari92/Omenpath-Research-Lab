@@ -4,7 +4,7 @@
 >
 > Columns: **ID | Rule | Type | Test | Implementation | Status | Notes**
 >
-> Status: `PLANNED → RED → GREEN → REFACTORED`.
+> Status: `PLANNED → RED → GREEN → REFACTORED`; `PARTIAL` — правило покрыто частично (чистый helper / подмножество поведения), полная оркестрация или остаток поведения — на будущей стадии (введён corrective-пасом после аудита Stage 0–2).
 >
 > Infrastructure (clock / random / builders / config) не имеет ID; покрытие см. внизу.
 
@@ -27,14 +27,14 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | PORTAL-001 | Unique instance per opening | INV | — | — | PLANNED | |
-| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | GREEN | формат имени из seq; сквозная нумерация — оркестрация Stage 8/11 |
+| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | PARTIAL | формат имени из seq покрыт; сквозная нумерация экземпляров — оркестрация Stage 8/11 |
 | PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `PortalKind` enum + factory | GREEN | создание EXTRACTION-портала — Stage 7 |
-| PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | — | — | PLANNED | |
+| PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | `TestPortal_ScheduledRemainingIsZeroWhenTerminal`, `TestPortal_EnergyFreezesAtManualClose`, `TestPortal_EnergyFreezesAtCollapse`, `TestPortal_CreaturesFreezeAtCollapse` | `PortalStatus` enum + terminal derived state freeze | GREEN | все три статуса и разные outcomes (CLOSED vs COLLAPSED, разные termination reasons) покрыты прямо; повышено с PLANNED в corrective-пасе |
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | `TestPortal_ManualCloseWithoutCreatures`, `TestPortal_ManualCloseRejectsTerminalPortal`, `TestPortal_ManuallyClosedPortalIsTerminalForLifecycle` | `Portal.Close` | GREEN | cost 5 — оркестрация (LAB-007); observer-transit подтверждение — Stage 3/4 |
 | PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose`, `TestPortal_NaturalCloseWinsEnergyTie`, `TestPortal_NaturalCloseBeforeEnergyDepletion` | `Portal.ResolveLifecycle` | GREEN | tie → NATURAL_CLOSE (Stage 2 plan Rule B) |
-| PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_NaturalCloseWinsBeforeHiddenCollapse`, `TestPortal_NaturalCloseTiesHiddenCollapse` | `Portal.ResolveLifecycle` | GREEN | Rule C: tie → NATURAL_CLOSE |
-| PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen` | `Portal.IsTerminal` + `ResolveLifecycle` guard | GREEN | snapshot-equality проверяет полное отсутствие мутаций |
+| PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_NaturalCloseWinsBeforeHiddenCollapse`, `TestPortal_NaturalCloseTiesHiddenCollapse`, `TestPortal_EnergyDepletionWinsInstabilityTie` | `Portal.ResolveLifecycle` | GREEN | Rule C: tie с NATURAL_CLOSE → NATURAL_CLOSE; exact tie с ENERGY_DEPLETED (обоя раньше close) → ENERGY_DEPLETED (Rule D, regression) |
+| PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen`, `TestPortal_ScheduledRemainingIsZeroWhenTerminal`, `TestPortal_EnergyFreezesAtManualClose`, `TestPortal_EnergyFreezesAtCollapse`, `TestPortal_CreaturesFreezeAtManualClose`, `TestPortal_CreaturesFreezeAtCollapse` | `Portal.IsTerminal` + `ResolveLifecycle` guard + derived state freeze | GREEN | snapshot-equality — нет мутаций; расширен аудитом: derived state замораживается на ClosedAt (ScheduledRemaining=0, Energy/Creatures frozen), risk отсутствует |
 
 ## SLOT
 
@@ -43,9 +43,9 @@
 | SLOT-001 | Exactly 7 slots | INV | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` + `cfg.MaxActivePortals` | GREEN | |
 | SLOT-002 | OPEN Portal occupies a slot | BEH | `TestFirstFreeSlot_ReturnsNextAfterOccupiedPrefix` | `FirstFreeSlot` | GREEN | |
 | SLOT-003 | First free slot | BEH | `TestFirstFreeSlot_FillsGap` | `FirstFreeSlot` | GREEN | |
-| SLOT-004 | Portal keeps slot for lifecycle | INV | `TestFirstFreeSlot_DoesNotMutateInput` | pure helper | GREEN | без пересортировки; полный тест — LabManager Stage 11 |
+| SLOT-004 | Portal keeps slot for lifecycle | INV | `TestFirstFreeSlot_DoesNotMutateInput` | pure helper | PARTIAL | helper не мутирует вход / не пересортирует; инвариант целиком (хранение slot_index у живого портала) — LabManager Stage 11 |
 | SLOT-005 | Terminal releases slot | BEH | `TestFirstFreeSlot_TerminalPortalsDoNotOccupy` | `FirstFreeSlot` | GREEN | |
-| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` | GREEN | генератор-оркестрация — Stage 8 |
+| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` | PARTIAL | helper детектирует 7/7 (нет слота); поведение генератора «ждёт и возобновляется» — Stage 8 |
 | SLOT-007 | Extraction uses regular slot | BEH | — | — | PLANNED | Extraction-создание — Stage 7; helper kind-agnostic |
 
 ## ENERGY
