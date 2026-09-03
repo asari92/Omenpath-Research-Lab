@@ -26,3 +26,29 @@ type Observer struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
+
+// NewObserver creates an Observer in the canonical AVAILABLE state in the
+// Laboratory (Final Spec §15).
+func NewObserver(id int64, now time.Time) Observer {
+	return Observer{
+		ID:        id,
+		Status:    ObserverAvailable,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+// NewObserverRoster creates count permanent Observer records with stable,
+// one-based IDs. The configured production count is supplied by the caller.
+func NewObserverRoster(count int, now time.Time) []Observer {
+	roster := make([]Observer, count)
+	for i := range roster {
+		roster[i] = NewObserver(int64(i+1), now)
+	}
+	return roster
+}
+
+// IsTerminal reports whether the Observer is permanently LOST.
+func (o Observer) IsTerminal() bool {
+	return o.Status == ObserverLost
+}

@@ -125,11 +125,11 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| OBSERVER-001 | Exactly 10 | INV | — | — | PLANNED | |
-| OBSERVER-002 | Initial AVAILABLE | BEH | — | — | PLANNED | |
-| OBSERVER-003 | AVAILABLE = Lab | INV | — | — | PLANNED | |
-| OBSERVER-004 | Main lifecycle | BEH | — | — | PLANNED | |
-| OBSERVER-005 | LOST terminal | INV | — | — | PLANNED | |
+| OBSERVER-001 | Exactly 10 | INV | `TestNewObserverRoster_CreatesConfiguredCount`, `TestNewObserverRoster_DefaultConfigCreatesTen` | `NewObserverRoster` + `cfg.ObserverCount` | PARTIAL | roster/count=10 доказан; permanence/persistence bootstrap — Stage 10/11 |
+| OBSERVER-002 | Initial AVAILABLE | BEH | `TestNewObserver_StartsAvailableInLaboratory` | `NewObserver` | GREEN | |
+| OBSERVER-003 | AVAILABLE = Lab | INV | `TestObserver_AvailableCanonicalFields` | `NewObserver` | GREEN | location/transit/phase fields canonical nil |
+| OBSERVER-004 | Main lifecycle | BEH | `TestNewObserver_StartsAvailableInLaboratory` | `NewObserver` | PARTIAL | начальное состояние реализовано; переходы — следующие checkpoints Stage 3 |
+| OBSERVER-005 | LOST terminal | INV | `TestObserver_LostIsTerminal` | `Observer.IsTerminal` | PARTIAL | терминальный маркер доказан; запрет переходов/resolve — checkpoint F |
 | OBSERVER-006 | Transit 5..15 | BAL | — | — | PLANNED | |
 | OBSERVER-007 | Duration fixed once | BEH | — | — | PLANNED | |
 | OBSERVER-008 | Outbound → EXPLORING | BEH | — | — | PLANNED | |
