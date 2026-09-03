@@ -110,10 +110,10 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| LAB-001 | Integer 0..100 | INV | — | — | PLANNED | |
-| LAB-002 | Tutorial starts 100 | BEH | — | — | PLANNED | |
-| LAB-003 | Regen +1/sec | BEH | — | — | PLANNED | |
-| LAB-004 | Cap 100 | BEH | — | — | PLANNED | |
+| LAB-001 | Integer 0..100 | INV | `TestNewLabState_AcceptsZero`, `TestNewLabState_AcceptsMaximum`, `TestNewLabState_RejectsBelowZero`, `TestNewLabState_RejectsAboveMaximum`, `TestLabState_CurrentEnergyIsInteger` | `NewLabState`, `LabState.CurrentEnergy` | GREEN | inclusive constructor bounds and integer derived value |
+| LAB-002 | Tutorial starts 100 | BEH | `TestNewTutorialLabState_StartsAtMaximum`, `TestNewTutorialLabState_UsesProvidedTimestamp`, `TestNewTutorialLabState_HasNoOverride` | `NewTutorialLabState` | PARTIAL | domain constructor proven; Tutorial bootstrap remains Stage 14 |
+| LAB-003 | Regen +1/sec | BEH | `TestLabState_CurrentEnergyAtBaseline`, `TestLabState_CurrentEnergyUsesCompletedWholeSeconds`, `TestLabState_CurrentEnergyAtExactSecond`, `TestLabState_CurrentEnergyUsesConfiguredRate`, `TestLabState_CurrentEnergyBeforeBaselineDoesNotRegenerate`, `TestLabState_CurrentEnergyDoesNotMutateBaseline` | `LabState.CurrentEnergy` | GREEN | derived from completed whole seconds; pure read |
+| LAB-004 | Cap 100 | BEH | `TestLabState_CurrentEnergyCapsAtMaximum` | `LabState.CurrentEnergy` | GREEN | configured maximum cap |
 | LAB-005 | SEND 0 | BAL | — | — | PLANNED | |
 | LAB-006 | RECALL 0 | BAL | — | — | PLANNED | |
 | LAB-007 | CLOSE 5 | BAL | — | — | PLANNED | |

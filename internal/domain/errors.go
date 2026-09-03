@@ -20,4 +20,5 @@ var (
 	ErrPortalCreaturesPresent   = errors.New("creatures are still inside portal")
 	ErrNoAvailableObserver      = errors.New("no available observer")
 	ErrNoWaitingObserver        = errors.New("no observer waiting in destination plane")
+	ErrLabEnergyInvariant       = errors.New("laboratory energy invariant violated")
 )
