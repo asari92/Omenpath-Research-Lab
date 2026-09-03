@@ -30,3 +30,38 @@ func (l *LabState) ActivateLeylineOverride(collapseAt time.Time, cfg config.Conf
 	l.LeylineOverrideUntil = &deadline
 	return nil
 }
+
+// ResolvePortalLifecycleWithLabEmergency atomically couples one Portal
+// lifecycle transition to the Lab emergency state. Portal.ClosedAt supplies
+// the semantic Collapse time, including during late resolution.
+func ResolvePortalLifecycleWithLabEmergency(
+	lab *LabState,
+	portal *Portal,
+	now time.Time,
+	cfg config.Config,
+) (changed bool, err error) {
+	if _, err := prepareLabEnergySpend(lab, now, 0, cfg); err != nil {
+		return false, err
+	}
+	if portal == nil {
+		return false, ErrPortalNotOpen
+	}
+
+	nextLab := *lab
+	nextPortal := *portal
+	changed, err = nextPortal.ResolveLifecycle(now)
+	if err != nil || !changed {
+		return changed, err
+	}
+	if nextPortal.Status == PortalStatusCollapsed {
+		if nextPortal.ClosedAt == nil {
+			return false, ErrLabEnergyInvariant
+		}
+		if err := nextLab.ActivateLeylineOverride(*nextPortal.ClosedAt, cfg); err != nil {
+			return false, err
+		}
+		*lab = nextLab
+	}
+	*portal = nextPortal
+	return true, nil
+}
