@@ -21,4 +21,5 @@ var (
 	ErrNoAvailableObserver      = errors.New("no available observer")
 	ErrNoWaitingObserver        = errors.New("no observer waiting in destination plane")
 	ErrLabEnergyInvariant       = errors.New("laboratory energy invariant violated")
+	ErrInsufficientLabEnergy    = errors.New("insufficient laboratory energy")
 )

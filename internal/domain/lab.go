@@ -56,6 +56,42 @@ func (l LabState) CurrentEnergy(now time.Time, cfg config.Config) int {
 	return energy
 }
 
+// CanAfford reports whether a valid baseline has enough derived energy at now.
+func (l LabState) CanAfford(now time.Time, cost int, cfg config.Config) bool {
+	_, err := prepareLabEnergySpend(&l, now, cost, cfg)
+	return err == nil
+}
+
+// SpendEnergy atomically stores the post-spend energy as a new baseline.
+// A zero-cost spend is a true no-op and does not move the baseline timestamp.
+func (l *LabState) SpendEnergy(now time.Time, cost int, cfg config.Config) error {
+	remaining, err := prepareLabEnergySpend(l, now, cost, cfg)
+	if err != nil {
+		return err
+	}
+	commitLabEnergySpend(l, now, cost, remaining)
+	return nil
+}
+
+func prepareLabEnergySpend(l *LabState, now time.Time, cost int, cfg config.Config) (int, error) {
+	if l == nil || l.EnergyBase < 0 || l.EnergyBase > cfg.LabEnergyMax || now.Before(l.EnergyBaseAt) || cost < 0 {
+		return 0, ErrLabEnergyInvariant
+	}
+	current := l.CurrentEnergy(now, cfg)
+	if current < cost {
+		return 0, ErrInsufficientLabEnergy
+	}
+	return current - cost, nil
+}
+
+func commitLabEnergySpend(l *LabState, now time.Time, cost, remaining int) {
+	if cost == 0 {
+		return
+	}
+	l.EnergyBase = remaining
+	l.EnergyBaseAt = now
+}
+
 // AppMode distinguishes the deterministic Tutorial from Live Mode
 // (Final Spec §28).
 type AppMode string

@@ -110,7 +110,7 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| LAB-001 | Integer 0..100 | INV | `TestNewLabState_AcceptsZero`, `TestNewLabState_AcceptsMaximum`, `TestNewLabState_RejectsBelowZero`, `TestNewLabState_RejectsAboveMaximum`, `TestLabState_CurrentEnergyIsInteger` | `NewLabState`, `LabState.CurrentEnergy` | GREEN | inclusive constructor bounds and integer derived value |
+| LAB-001 | Integer 0..100 | INV | `TestNewLabState_AcceptsZero`, `TestNewLabState_AcceptsMaximum`, `TestNewLabState_RejectsBelowZero`, `TestNewLabState_RejectsAboveMaximum`, `TestLabState_CurrentEnergyIsInteger`, `TestLabState_SpendEnergyAllowsExactBalance`, `TestLabState_SpendEnergyRejectsMalformedBaseline` | `NewLabState`, `LabState.CurrentEnergy`, `LabState.SpendEnergy` | GREEN | inclusive constructor bounds; derived reads clamp; mutations reject malformed baselines and never produce negative energy |
 | LAB-002 | Tutorial starts 100 | BEH | `TestNewTutorialLabState_StartsAtMaximum`, `TestNewTutorialLabState_UsesProvidedTimestamp`, `TestNewTutorialLabState_HasNoOverride` | `NewTutorialLabState` | PARTIAL | domain constructor proven; Tutorial bootstrap remains Stage 14 |
 | LAB-003 | Regen +1/sec | BEH | `TestLabState_CurrentEnergyAtBaseline`, `TestLabState_CurrentEnergyUsesCompletedWholeSeconds`, `TestLabState_CurrentEnergyAtExactSecond`, `TestLabState_CurrentEnergyUsesConfiguredRate`, `TestLabState_CurrentEnergyBeforeBaselineDoesNotRegenerate`, `TestLabState_CurrentEnergyDoesNotMutateBaseline` | `LabState.CurrentEnergy` | GREEN | derived from completed whole seconds; pure read |
 | LAB-004 | Cap 100 | BEH | `TestLabState_CurrentEnergyCapsAtMaximum` | `LabState.CurrentEnergy` | GREEN | configured maximum cap |
@@ -119,7 +119,7 @@
 | LAB-007 | CLOSE 5 | BAL | — | — | PLANNED | |
 | LAB-008 | STABILIZE 20 | BAL | — | — | PLANNED | |
 | LAB-009 | EXTRACTION 30 | BAL | — | — | PLANNED | |
-| LAB-010 | Insufficient energy rejects | BEH | — | — | PLANNED | |
+| LAB-010 | Insufficient energy rejects | BEH | `TestLabState_SpendEnergyRejectsInsufficientBalance`, `TestLabState_SpendEnergyInsufficientIsAtomic`, `TestLabState_CanAffordUsesDerivedEnergy` | `LabState.CanAfford`, `LabState.SpendEnergy` | PARTIAL | primitive and atomic rejection proven; ordinary action integrations follow in Stage 5, override/Extraction paths in Stages 6–7 |
 
 ## OBSERVER
 
