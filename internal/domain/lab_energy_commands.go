@@ -64,3 +64,22 @@ func ClosePortalWithLabEnergy(
 	commitLabEnergySpend(lab, now, cfg.CloseCost, remaining)
 	return nil
 }
+
+// StabilizePortalWithLabEnergy preflights the configured ordinary Stabilize
+// cost and commits one debit only after Portal.Stabilize succeeds.
+func StabilizePortalWithLabEnergy(
+	lab *LabState,
+	portal *Portal,
+	now time.Time,
+	cfg config.Config,
+) error {
+	remaining, err := prepareLabEnergySpend(lab, now, cfg.StabilizeCost, cfg)
+	if err != nil {
+		return err
+	}
+	if err := portal.Stabilize(now, cfg); err != nil {
+		return err
+	}
+	commitLabEnergySpend(lab, now, cfg.StabilizeCost, remaining)
+	return nil
+}
