@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"math"
 	"time"
 
 	"omenpath-lab/internal/config"
@@ -127,6 +128,28 @@ func (p Portal) EnergyDepletionAt() (at time.Time, ok bool) {
 	}
 	seconds := p.EnergyBase / p.EnergyDecayRate
 	return p.EnergyBaseAt.Add(time.Duration(seconds * float64(time.Second))), true
+}
+
+// EnergyLifetime converts the current energy into seconds of remaining
+// life at the current decay rate (Final Spec §13).
+// With no positive decay the lifetime is effectively infinite.
+func (p Portal) EnergyLifetime(now time.Time) time.Duration {
+	if p.EnergyDecayRate <= 0 {
+		return time.Duration(math.MaxInt64) // ~292 years; safe inside min()
+	}
+	seconds := p.CurrentEnergy(now) / p.EnergyDecayRate
+	return time.Duration(seconds * float64(time.Second))
+}
+
+// EffectiveLifetime returns min(scheduled remaining, energy lifetime)
+// (Final Spec §13) — the portal's realistic remaining usefulness.
+func (p Portal) EffectiveLifetime(now time.Time) time.Duration {
+	remaining := p.ScheduledRemaining(now)
+	lifetime := p.EnergyLifetime(now)
+	if lifetime < remaining {
+		return lifetime
+	}
+	return remaining
 }
 
 // ResolveLifecycle advances an OPEN portal to its terminal state when a

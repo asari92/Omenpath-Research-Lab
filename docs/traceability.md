@@ -70,7 +70,7 @@
 | STABILITY-001 | STABLE/UNSTABLE only | INV | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_StabilizeConvertsUnstableToStable` | `PortalStability` enum | GREEN | генерация обеих стабильностей — factory (чекпоинт F) |
 | STABILITY-002 | Stable has no hidden timer | INV | `TestPortalBuilder_Defaults` | builder / `Stabilize` | GREEN | factory-проверка — чекпоинт F |
 | STABILITY-003 | Unstable gets hidden timer | BEH | `TestPortal_UnstableCollapsesAtHiddenTime` | lifetime fixtures | GREEN | диапазон генерации random(opened+5s, close−1s) — factory-тесты чекпоинта F |
-| STABILITY-004 | Hidden timer not exposed / not in risk | UI | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | — | GREEN | domain-часть: hidden не участвует в Risk; отсутствие в API/UI — Stage 12/13 |
+| STABILITY-004 | Hidden timer not exposed / not in risk | UI | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | `Portal.RiskScore` | GREEN | domain-часть: hidden не участвует в Risk; отсутствие в API/UI — Stage 12/13 |
 | STABILITY-005 | Stabilize unstable→stable | BEH | `TestPortal_StabilizeConvertsUnstableToStable` | `Portal.Stabilize` | GREEN | |
 | STABILITY-006 | Stabilize clears hidden timer | BEH | `TestPortal_StabilizeConvertsUnstableToStable`, `TestPortal_StabilizedPortalLosesInstabilityCandidate` | `Portal.Stabilize` | GREEN | |
 | STABILITY-007 | Stable cannot be stabilized | BEH | `TestPortal_StabilizeRejectsStablePortal` | `Portal.Stabilize` | GREEN | state unchanged при отказе |
@@ -92,16 +92,16 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| RISK-001 | energy_lifetime formula | BEH | — | — | PLANNED | |
-| RISK-002 | effective_lifetime = min | BEH | — | — | PLANNED | |
-| RISK-003 | base risk formula (45s) | BEH | — | — | PLANNED | |
-| RISK-004 | UNSTABLE +20 | BEH | — | — | PLANNED | |
-| RISK-005 | max 100 | INV | — | — | PLANNED | |
-| RISK-006 | 0..25 LOW | BEH | — | — | PLANNED | |
-| RISK-007 | >25..50 MEDIUM | BEH | — | — | PLANNED | |
-| RISK-008 | >50..75 HIGH | BEH | — | — | PLANNED | |
-| RISK-009 | >75..100 CRITICAL | BEH | — | — | PLANNED | |
-| RISK-010 | Hidden timer not used | INV | — | — | PLANNED | |
+| RISK-001 | energy_lifetime formula | BEH | `TestPortal_EnergyLifetime` | `Portal.EnergyLifetime` | GREEN | |
+| RISK-002 | effective_lifetime = min | BEH | `TestPortal_EffectiveLifetime` | `Portal.EffectiveLifetime` | GREEN | |
+| RISK-003 | base risk formula (45s) | BEH | `TestPortal_RiskScore` | `Portal.RiskScore` | GREEN | границы 0/25/50/75 покрыты |
+| RISK-004 | UNSTABLE +20 | BEH | `TestPortal_UnstableAddsRiskPenalty` | `Portal.RiskScore` | GREEN | MEDIUM→HIGH сдвиг по плану §17.5 |
+| RISK-005 | max 100 | INV | `TestPortal_RiskScore` (cap-кейсы) | `Portal.RiskScore` | GREEN | |
+| RISK-006 | 0..25 LOW | BEH | `TestPortal_RiskLevelBoundaries` | `Portal.RiskLevel` | GREEN | score==25 → LOW |
+| RISK-007 | >25..50 MEDIUM | BEH | `TestPortal_RiskLevelBoundaries` | `Portal.RiskLevel` | GREEN | score==50 → MEDIUM |
+| RISK-008 | >50..75 HIGH | BEH | `TestPortal_RiskLevelBoundaries` | `Portal.RiskLevel` | GREEN | score==75 → HIGH |
+| RISK-009 | >75..100 CRITICAL | BEH | `TestPortal_RiskLevelBoundaries`, `TestPortal_RiskAgreedExamples` | `Portal.RiskLevel` | GREEN | agreed 14s HIGH / 10s CRITICAL |
+| RISK-010 | Hidden timer not used | INV | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | `Portal.RiskScore` | GREEN | одинаковый Risk при разных hidden |
 | RISK-011 | UI gets level, not score | UI | — | — | PLANNED | |
 | RISK-012 | CRITICAL blocks SEND | BEH | — | — | PLANNED | |
 | RISK-013 | CRITICAL blocks RECALL | BEH | — | — | PLANNED | |
