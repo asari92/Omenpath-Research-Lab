@@ -316,7 +316,8 @@ energy_depletion_at
 instability_collapse_at (only UNSTABLE)
 ```
 
-with Natural Close winning exact ties.
+Tie-breaking is deterministic: Natural Close wins every exact tie involving
+Natural Close; ENERGY_DEPLETED wins an exact tie with INSTABILITY.
 
 This should be implemented/tested as deterministic domain semantics rather than accidental Tick ordering.
 
@@ -1285,7 +1286,7 @@ Example:
 | STABILITY-005 | `TestPortal_StabilizeConvertsUnstableToStable` | GREEN |
 | CREATURE-005 | `TestCreatureLimit_TTL10AllowsMaxFour` | GREEN |
 | RISK-009 | `TestPortal_RiskLevelBoundaries/critical` | GREEN |
-| SLOT-006 | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | GREEN |
+| SLOT-006 | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | PARTIAL |
 
 ---
 
