@@ -174,3 +174,206 @@ func TestSendObserver_AllowsAnotherObserverInDestinationPlane(t *testing.T) {
 	require.Equal(t, domain.ObserverWaitingReturn, observers[0].Status)
 	require.Equal(t, domain.ObserverOutbound, observers[1].Status)
 }
+
+func TestSendObserver_RejectsClosedPortal(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusClosed
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+}
+
+func TestSendObserver_RejectsCollapsedPortal(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusCollapsed
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+}
+
+func TestSendObserver_RejectsCriticalRisk(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(10 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalCriticalRisk)
+}
+
+func TestSendObserver_RejectsInboundFlow(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowInbound
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+}
+
+func TestSendObserver_RejectsCreaturesInside(t *testing.T) {
+	portal := stage4Portal()
+	portal.CreaturesInitial = 1
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalCreaturesPresent)
+}
+
+func TestSendObserver_RejectsBusyPortal(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	busy := outboundObserver(testutil.BaseTime, testutil.BaseTime.Add(10*time.Second))
+	observers := []domain.Observer{busy, domain.NewObserver(2, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalBusy)
+}
+
+func TestSendObserver_RejectsWhenNoObserverAvailable(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	observers := []domain.Observer{waitingObserver(testutil.BaseTime.Add(-time.Minute))}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrNoAvailableObserver)
+}
+
+func TestSendObserver_UnstableRequiresConfirmation(t *testing.T) {
+	portal := stage4Portal()
+	portal.Stability = domain.PortalUnstable
+	hidden := testutil.BaseTime.Add(time.Minute)
+	portal.InstabilityCollapseAt = &hidden
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+	portalBefore := portal
+	observersBefore := append([]domain.Observer(nil), observers...)
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrConfirmationRequired)
+	require.Equal(t, portalBefore, portal)
+	require.Equal(t, observersBefore, observers)
+}
+
+func TestSendObserver_UnstableConfirmedStartsTransit(t *testing.T) {
+	portal := stage4Portal()
+	portal.Stability = domain.PortalUnstable
+	hidden := testutil.BaseTime.Add(time.Minute)
+	portal.InstabilityCollapseAt = &hidden
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	id, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, true, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1), id)
+	require.Equal(t, domain.ObserverOutbound, observers[0].Status)
+}
+
+func TestSendObserver_HighRiskStablePortalNeedsNoConfirmation(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(14 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestSendObserver_LowEnergyDoesNotCreateSeparateWarning(t *testing.T) {
+	portal := stage4Portal()
+	portal.EnergyBase = 5
+	portal.EnergyDecayRate = 0.1
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestSendObserver_LowRemainingTimeDoesNotCreateSeparateWarning(t *testing.T) {
+	portal := stage4Portal()
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(14 * time.Second)
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestSendObserver_ExploredPlaneDoesNotCreateSeparateWarning(t *testing.T) {
+	portal := stage4Portal()
+	plane := stage4Plane()
+	plane.Explored = true
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom().QueueInt(10), config.Default())
+
+	require.NoError(t, err)
+}
+
+func TestSendObserver_RejectionIsAtomic(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowInbound
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+	portalBefore := portal
+	planeBefore := plane
+	observersBefore := append([]domain.Observer(nil), observers...)
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+	require.Equal(t, portalBefore, portal)
+	require.Equal(t, planeBefore, plane)
+	require.Equal(t, observersBefore, observers)
+}
+
+func TestSendObserver_RejectionDoesNotConsumeRandom(t *testing.T) {
+	portal := stage4Portal()
+	portal.ObserverFlow = domain.PortalFlowInbound
+	plane := stage4Plane()
+	observers := []domain.Observer{domain.NewObserver(1, testutil.BaseTime)}
+	rnd := testutil.NewFakeRandom().QueueInt(13)
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, rnd, config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalDirectionConflict)
+	require.Equal(t, 13, rnd.IntInclusive(5, 15))
+}
+
+func TestSendObserver_UsesDocumentedErrorPrecedence(t *testing.T) {
+	portal := stage4Portal()
+	portal.Status = domain.PortalStatusClosed
+	portal.ObserverFlow = domain.PortalFlowInbound
+	portal.CreaturesInitial = 1
+	portal.Stability = domain.PortalUnstable
+	plane := stage4Plane()
+	busy := outboundObserver(testutil.BaseTime, testutil.BaseTime.Add(10*time.Second))
+	observers := []domain.Observer{busy}
+
+	_, err := domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+
+	require.ErrorIs(t, err, domain.ErrPortalNotOpen)
+
+	portal.Status = domain.PortalStatusOpen
+	portal.ScheduledCloseAt = testutil.BaseTime.Add(10 * time.Second)
+	_, err = domain.SendObserver(&portal, &plane, observers, testutil.BaseTime, false, testutil.NewFakeRandom(), config.Default())
+	require.ErrorIs(t, err, domain.ErrPortalCriticalRisk)
+}
