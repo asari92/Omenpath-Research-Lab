@@ -30,9 +30,9 @@
 | PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | — | — | PLANNED | |
 | PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | — | — | PLANNED | |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | — | — | PLANNED | |
-| PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires` | `Portal.ResolveLifecycle` | GREEN | Stage 0–1 first RED cycle; semantic ClosedAt |
+| PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | — | — | PLANNED | Stage 2 substage 2.8 |
-| PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.ResolveLifecycle` | GREEN | покрыт первым RED-циклом; полная проработка — Stage 2 substage 2.4 |
+| PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose`, `TestPortal_NaturalCloseWinsEnergyTie`, `TestPortal_NaturalCloseBeforeEnergyDepletion` | `Portal.ResolveLifecycle` | GREEN | tie → NATURAL_CLOSE (Stage 2 plan Rule B) |
 | PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | — | — | PLANNED | Stage 2 substage 2.5 |
 | PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen` | `Portal.IsTerminal` + `ResolveLifecycle` guard | GREEN | snapshot-equality проверяет полное отсутствие мутаций |
 
@@ -54,8 +54,8 @@
 |---|---|---|---|---|---|---|
 | ENERGY-001 | Initial natural 10..100 | BAL | — | — | PLANNED | |
 | ENERGY-002 | Decay 0.1..1.0/sec hidden | BAL | — | — | PLANNED | |
-| ENERGY-003 | Current derived from baseline/time | BEH | — | — | PLANNED | |
-| ENERGY-004 | Clamp ≥ 0 | INV | — | — | PLANNED | |
+| ENERGY-003 | Current derived from baseline/time | BEH | `TestPortal_CurrentEnergy`, `TestPortal_EnergyDepletionAt` | `Portal.CurrentEnergy`, `Portal.EnergyDepletionAt` | GREEN | |
+| ENERGY-004 | Clamp ≥ 0 | INV | `TestPortal_CurrentEnergy/clamped_at_zero` | `Portal.CurrentEnergy` | GREEN | |
 | ENERGY-005 | 0 before close → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.energyDepletionAt` | GREEN | Stage 0–1 first RED cycle |
 | ENERGY-006 | Stabilize +15 | BEH | — | — | PLANNED | |
 | ENERGY-007 | Stabilize re-baselines | BEH | — | — | PLANNED | |

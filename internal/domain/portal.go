@@ -89,10 +89,35 @@ func (p Portal) IsTerminal() bool {
 	return p.Status != PortalStatusOpen
 }
 
-// energyDepletionAt returns the semantic moment the energy baseline
-// reaches zero: EnergyBaseAt + EnergyBase/DecayRate (Final Spec §9).
+// ScheduledRemaining returns the time left until natural close,
+// clamped at zero (Final Spec §8). It is derived, never stored.
+func (p Portal) ScheduledRemaining(now time.Time) time.Duration {
+	remaining := p.ScheduledCloseAt.Sub(now)
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
+}
+
+// CurrentEnergy returns the derived realtime energy
+// max(0, energy_base − elapsed × decay) (Final Spec §9).
+// No per-second storage happens anywhere: callers compute on demand.
+func (p Portal) CurrentEnergy(now time.Time) float64 {
+	elapsed := now.Sub(p.EnergyBaseAt)
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	energy := p.EnergyBase - elapsed.Seconds()*p.EnergyDecayRate
+	if energy < 0 {
+		return 0
+	}
+	return energy
+}
+
+// EnergyDepletionAt returns the semantic moment the energy reaches zero:
+// EnergyBaseAt + EnergyBase/DecayRate (Final Spec §9).
 // ok is false when the energy can never deplete (no positive decay).
-func (p Portal) energyDepletionAt() (at time.Time, ok bool) {
+func (p Portal) EnergyDepletionAt() (at time.Time, ok bool) {
 	if p.EnergyDecayRate <= 0 {
 		return time.Time{}, false
 	}
@@ -120,7 +145,7 @@ func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
 	reason := TerminationNaturalClose
 	status := PortalStatusClosed
 
-	if depletion, ok := p.energyDepletionAt(); ok && depletion.Before(deadline) {
+	if depletion, ok := p.EnergyDepletionAt(); ok && depletion.Before(deadline) {
 		deadline = depletion
 		reason = TerminationEnergyDepleted
 		status = PortalStatusCollapsed
