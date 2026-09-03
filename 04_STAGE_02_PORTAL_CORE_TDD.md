@@ -1281,11 +1281,11 @@ Example:
 
 | ID | Test | Status |
 |---|---|---|
-| PORTAL-005 | `TestPortal_NaturalCloseAtScheduledTime` | GREEN |
-| ENERGY-005 | `TestPortal_CollapsesWhenEnergyDepletesBeforeNaturalClose` | GREEN |
+| PORTAL-005 | `TestPortal_NaturalCloseWhenTTLExpires` | GREEN |
+| ENERGY-005 | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | GREEN |
 | STABILITY-005 | `TestPortal_StabilizeConvertsUnstableToStable` | GREEN |
-| CREATURE-005 | `TestCreatureLimit_TTL10AllowsMaxFour` | GREEN |
-| RISK-009 | `TestPortal_RiskLevelBoundaries/critical` | GREEN |
+| CREATURE-005 | `TestMaxCreaturesForTTL/TTL_10s_allows_four` | GREEN |
+| RISK-009 | `TestPortal_RiskLevelBoundaries` | GREEN |
 | SLOT-006 | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | PARTIAL |
 
 ---
