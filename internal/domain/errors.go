@@ -10,4 +10,6 @@ var (
 	ErrPortalOverchargeRisk = errors.New("stabilize rejected: portal energy above 85%")
 	ErrConfirmationRequired = errors.New("confirmation required")
 	ErrNoFreePortalSlot     = errors.New("no free portal slot")
+	ErrObserverNotAvailable = errors.New("observer is not available")
+	ErrObserverLost         = errors.New("observer is lost")
 )
