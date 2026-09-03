@@ -447,3 +447,59 @@ Checkpoint G's exact-tie and non-retroactive-close cases were already compatible
 - Scope checks: в `internal/domain/observer*.go` нет `time.Now`/Sleep/ticker/after; lifecycle не зависит от Portal Flow, Risk, creatures, Lab Energy, Extraction или Event system.
 
 Stage 4 не начат.
+
+## Stage 4 — Portal Observer Flow via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Реализация выполнена строго по `06_STAGE_04_PORTAL_OBSERVER_FLOW_TDD.md` поверх Stage 2 Portal Core и Stage 3 Observer Lifecycle.
+- Блокирующих противоречий с Final Spec §§15–19/21/29 не обнаружено.
+- Реализованы только чистые domain-команды. `LabManager`, Laboratory Energy, Leyline Override, Extraction, Events, persistence, REST/WebSocket и simulation не начинались.
+- Caller по-прежнему обязан сначала разрешить Portal/Observer lifecycle к `now`; будущий `LabManager` Stage 11 обеспечит resolve-first и сериализацию под lock.
+
+### Что реализовано
+
+- `AvailableObserverIndex`: SEND детерминированно выбирает AVAILABLE Observer с минимальным ID.
+- `LongestWaitingObserverIndex`: RECALL фильтрует по destination Plane, выбирает самый ранний `PhaseStartedAt`, при точном tie — минимальный Observer ID.
+- `ActiveTransitObserverIndex`: busy scope ограничен точным Portal ID; duplicate или stale transit возвращает invariant error.
+- `SendObserver` и `RecallObserver`: общий порядок admission — structural invariants → OPEN → Risk != CRITICAL → direction → creatures == 0 → not busy → eligible Observer → UNSTABLE confirmation → mutation.
+- Первый успешный SEND фиксирует `OUTBOUND`, первый успешный RECALL — `INBOUND`; rejected/confirmation-required action flow не меняет, completion/loss flow не сбрасывают.
+- SEND разрешён в EXPLORED Plane и Plane с другими Observers; RECALL выбирает только WAITING_RETURN в destination Plane.
+- UNSTABLE использует единый `ErrConfirmationRequired`; LOW/MEDIUM/HIGH, low energy, short remaining time и explored destination отдельного warning не создают.
+- `ClosePortalWithObservers`: active OUTBOUND/RETURNING требует confirmation; подтверждённый Close переиспользует `Portal.Close` и `ResolveObserverLifecycle`, поэтому Portal становится CLOSED/MANUAL_CLOSE, а Observer — LOST в том же `now`.
+- Один `confirm=true` покрывает одновременно creatures и active transit. Lab Energy cost намеренно не реализован.
+- Aggregate preflight отклоняет nil/mismatched Portal/Plane, duplicate Observer IDs, неканонические state fields и stale transit до любой мутации/random draw.
+
+Добавлено 98 top-level Stage 4 tests в шести файлах; все обязательные test names из checkpoints A–H присутствуют.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — selection/busy helpers | `e67667b` — undefined selectors | `6689331` |
+| B — successful SEND/first flow | `3dc2f15` — undefined `SendObserver` | `eb22a7c` |
+| C — SEND restrictions/warning | `204877a` — missing Stage 4 errors/admission | `d34503d` |
+| D — successful RECALL/longest waiting | `0ea2022` — undefined `RecallObserver` | `92ab740` |
+| E — RECALL restrictions/warning | `6fdd193` — restrictions returned nil and mutated state | `5bf24dc` |
+| F — permanent flow/next transit | already GREEN characterization over A–E behavior | `232611f` |
+| G — active-transit manual Close | `71dd620` — undefined `ClosePortalWithObservers` | `bd25981` |
+| H — aggregate atomicity/integration | `270ab23` — mismatched/duplicate state mutated; nil Portal panicked | `f883f23` |
+
+Checkpoint F deliberately did not manufacture a RED failure: all permanent-flow and Portal-ID-scope characterizations already passed after checkpoints A–E.
+
+### Реальные ошибки/операционные замечания
+
+- Первый checkpoint A test run не смог писать в sandboxed `/home/asari/.cache/go-build`; повторные Go-команды использовали отдельный `GOCACHE` в `/tmp` и показали настоящий expected RED по отсутствующим symbols.
+- Одна комбинированная shell-команда не получила разрешение на `.git/index.lock`; staging и commit были безопасно повторены отдельными разрешёнными `git add`/`git commit` вызовами. Файлы не повреждались.
+- Checkpoint H поймал реальный atomicity defect промежуточной реализации: Close успевал мутировать Portal до обнаружения mismatched Plane; aggregate validation перенесён перед business admission и mutation.
+- Product semantics завершённых Stage 2/3 не менялись.
+
+### Traceability и verification
+
+- `FLOW-001..007`, `CREATURE-007`, `RISK-012..013`, `OBSERVER-015..016`, `PLANE-005` переведены в GREEN с конкретными tests/symbols.
+- `PORTAL-006` и `OBSERVER-012` дополнены active-transit manual-close coverage без изменения прежних semantics.
+- `OBSERVER-001` и `PLANE-009` остаются PARTIAL; Stage 5+ requirements остаются PLANNED.
+- После каждого meaningful GREEN выполнены `gofmt -l .`, `go vet ./...`, `go build ./...`, `go test -count=1 ./...`, `go test -race -count=1 ./...`; все завершились с exit 0.
+- Scope scan новых Stage 4 domain-файлов не нашёл wall-clock calls, Lab Energy, Leyline, Extraction, database/HTTP или mutex dependencies.
+
+Stage 5 не начат.
