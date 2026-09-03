@@ -1,6 +1,11 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"omenpath-lab/internal/config"
+	"omenpath-lab/internal/random"
+)
 
 // AvailableObserverIndex returns the slice index of the AVAILABLE Observer
 // with the lowest ID. The stable choice keeps command results deterministic.
@@ -70,4 +75,32 @@ func ActiveTransitObserverIndex(observers []Observer, portalID int64, now time.T
 		selected = i
 	}
 	return selected, selected != -1, nil
+}
+
+// SendObserver starts an admitted Lab-to-Plane transit and permanently fixes
+// an unused Portal to the OUTBOUND direction.
+func SendObserver(
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	confirmUnstable bool,
+	rnd random.Random,
+	cfg config.Config,
+) (observerID int64, err error) {
+	_ = plane
+	_ = confirmUnstable
+
+	index, ok := AvailableObserverIndex(observers)
+	if !ok {
+		return 0, ErrObserverNotAvailable
+	}
+	if err := observers[index].StartOutbound(now, portal.ID, rnd, cfg); err != nil {
+		return 0, err
+	}
+	if portal.ObserverFlow == PortalFlowNone {
+		portal.ObserverFlow = PortalFlowOutbound
+		portal.UpdatedAt = now
+	}
+	return observers[index].ID, nil
 }

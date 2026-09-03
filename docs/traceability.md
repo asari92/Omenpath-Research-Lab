@@ -16,7 +16,7 @@
 | PLANE-002 | Plane 0..N Portals | INV | — | — | PLANNED | |
 | PLANE-003 | Multiple OPEN Portals to same Plane | BEH | — | — | PLANNED | |
 | PLANE-004 | Seed 85, default UNEXPLORED | BEH | — | — | PLANNED | |
-| PLANE-005 | SEND does not explore | INV | `TestObserver_StartOutboundDoesNotExplorePlane` | `Observer.StartOutbound` | PARTIAL | lifecycle primitive does not explore; real SEND command — Stage 4 |
+| PLANE-005 | SEND does not explore | INV | `TestObserver_StartOutboundDoesNotExplorePlane`, `TestSendObserver_DoesNotExplorePlane`, `TestSendObserver_AllowsAlreadyExploredPlane` | `Observer.StartOutbound`, `SendObserver` | GREEN | real SEND command leaves both unexplored and already-explored Plane state unchanged |
 | PLANE-006 | Arrival does not explore | INV | `TestObserver_OutboundArrivalDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | successful OUTBOUND leaves Plane exploration unchanged |
 | PLANE-007 | Research completion does not explore | INV | `TestObserver_ResearchCompletionDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | WAITING_RETURN retains Plane location but not exploration |
 | PLANE-008 | Successful return explores | BEH | `TestObserver_SuccessfulReturnExploresPlane`, `TestObserver_SuccessfulReturnSetsExploredAtToArrival` | `ResolveObserverLifecycle` | GREEN | explored at semantic return deadline |
@@ -139,7 +139,7 @@
 | OBSERVER-012 | CLOSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalClosesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalClosesBeforeTransitEnd`, `TestObserver_LossUsesPortalClosedAtAsTransitionTime`, `TestObserver_LossClearsActiveState` | `ResolveObserverLifecycle` | GREEN | strict-before failure; LOST fields canonicalized and timestamped at `ClosedAt` |
 | OBSERVER-013 | COLLAPSED in transit → LOST | BEH | `TestObserver_OutboundLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_ReturningLostWhenPortalCollapsesBeforeTransitEnd`, `TestObserver_LossDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | same loss semantics for ENERGY_DEPLETED/INSTABILITY collapse |
 | OBSERVER-014 | Multiple per Plane | BEH | `TestObservers_MultipleObserversMayExploreSamePlaneConcurrently` | lifecycle primitives + `ResolveObserverLifecycle` | GREEN | no uniqueness-by-Plane guard; Stage 4 separately owns per-Portal transit admission |
-| OBSERVER-015 | Send to explored allowed | BEH | — | — | PLANNED | |
+| OBSERVER-015 | Send to explored allowed | BEH | `TestSendObserver_AllowsAlreadyExploredPlane` | `SendObserver` | GREEN | explored destination is not an admission restriction |
 | OBSERVER-016 | Recall longest-waiting | BEH | `TestLongestWaitingObserverIndex_SelectsEarliestWaitingTimestamp`, `TestLongestWaitingObserverIndex_FiltersByDestinationPlane`, `TestLongestWaitingObserverIndex_BreaksExactTieByLowestID`, `TestLongestWaitingObserverIndex_RejectsMissingWaitingTimestamp` | `LongestWaitingObserverIndex` | PARTIAL | deterministic selector covered; RECALL command consumption remains Stage 4 checkpoint D |
 
 ## FLOW
@@ -147,7 +147,7 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | FLOW-001 | Natural starts NONE | BEH | — | — | PLANNED | |
-| FLOW-002 | First SEND → OUTBOUND | BEH | — | — | PLANNED | |
+| FLOW-002 | First SEND → OUTBOUND | BEH | `TestSendObserver_FirstUseSetsOutboundFlow`, `TestSendObserver_ExistingOutboundFlowRemainsOutbound`, `TestSendObserver_UpdatesPortalOnlyWhenFlowFirstChanges` | `SendObserver` | GREEN | first successful SEND fixes flow after Observer transit starts |
 | FLOW-003 | First RECALL → INBOUND | BEH | — | — | PLANNED | |
 | FLOW-004 | OUTBOUND rejects RECALL | BEH | — | — | PLANNED | |
 | FLOW-005 | INBOUND rejects SEND | BEH | — | — | PLANNED | |
