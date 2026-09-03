@@ -33,7 +33,7 @@
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
 | PORTAL-006 | Manual Close → CLOSED/MANUAL_CLOSE | BEH | — | — | PLANNED | Stage 2 substage 2.8 |
 | PORTAL-007 | Energy 0 → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose`, `TestPortal_NaturalCloseWinsEnergyTie`, `TestPortal_NaturalCloseBeforeEnergyDepletion` | `Portal.ResolveLifecycle` | GREEN | tie → NATURAL_CLOSE (Stage 2 plan Rule B) |
-| PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | — | — | PLANNED | Stage 2 substage 2.5 |
+| PORTAL-008 | Hidden instability → COLLAPSED/INSTABILITY | BEH | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_NaturalCloseWinsBeforeHiddenCollapse`, `TestPortal_NaturalCloseTiesHiddenCollapse` | `Portal.ResolveLifecycle` | GREEN | Rule C: tie → NATURAL_CLOSE |
 | PORTAL-009 | Terminal cannot return OPEN | INV | `TestPortal_TerminalStateCannotReopen` | `Portal.IsTerminal` + `ResolveLifecycle` guard | GREEN | snapshot-equality проверяет полное отсутствие мутаций |
 
 ## SLOT
@@ -57,23 +57,23 @@
 | ENERGY-003 | Current derived from baseline/time | BEH | `TestPortal_CurrentEnergy`, `TestPortal_EnergyDepletionAt` | `Portal.CurrentEnergy`, `Portal.EnergyDepletionAt` | GREEN | |
 | ENERGY-004 | Clamp ≥ 0 | INV | `TestPortal_CurrentEnergy/clamped_at_zero` | `Portal.CurrentEnergy` | GREEN | |
 | ENERGY-005 | 0 before close → COLLAPSED/ENERGY_DEPLETED | BEH | `TestPortal_CollapsesWhenEnergyReachesZeroBeforeNaturalClose` | `Portal.energyDepletionAt` | GREEN | Stage 0–1 first RED cycle |
-| ENERGY-006 | Stabilize +15 | BEH | — | — | PLANNED | |
-| ENERGY-007 | Stabilize re-baselines | BEH | — | — | PLANNED | |
-| ENERGY-008 | Decay unchanged after Stabilize | INV | — | — | PLANNED | |
-| ENERGY-009 | >85 rejects Stabilize | BEH | — | — | PLANNED | |
-| ENERGY-010 | Exactly 85 → 100 | BEH | — | — | PLANNED | |
+| ENERGY-006 | Stabilize +15 | BEH | `TestPortal_StabilizeConvertsUnstableToStable` | `Portal.Stabilize` | GREEN | |
+| ENERGY-007 | Stabilize re-baselines | BEH | `TestPortal_StabilizeConvertsUnstableToStable`, `TestPortal_StabilizeUsesCurrentEnergyNotBaseline` | `Portal.Stabilize` | GREEN | stale-baseline регресс покрыт |
+| ENERGY-008 | Decay unchanged after Stabilize | INV | `TestPortal_StabilizeConvertsUnstableToStable` | `Portal.Stabilize` | GREEN | |
+| ENERGY-009 | >85 rejects Stabilize | BEH | `TestPortal_StabilizeRejectsEnergyAbove85` | `Portal.Stabilize` | GREEN | проверка по current, не baseline |
+| ENERGY-010 | Exactly 85 → 100 | BEH | `TestPortal_StabilizeAllowsExactly85Percent` | `Portal.Stabilize` | GREEN | |
 
 ## STABILITY
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| STABILITY-001 | STABLE/UNSTABLE only | INV | — | — | PLANNED | |
-| STABILITY-002 | Stable has no hidden timer | INV | — | — | PLANNED | |
-| STABILITY-003 | Unstable gets hidden timer | BEH | — | — | PLANNED | |
-| STABILITY-004 | Hidden timer not exposed / not in risk | UI | — | — | PLANNED | |
-| STABILITY-005 | Stabilize unstable→stable | BEH | — | — | PLANNED | |
-| STABILITY-006 | Stabilize clears hidden timer | BEH | — | — | PLANNED | |
-| STABILITY-007 | Stable cannot be stabilized | BEH | — | — | PLANNED | |
+| STABILITY-001 | STABLE/UNSTABLE only | INV | `TestPortal_UnstableCollapsesAtHiddenTime`, `TestPortal_StabilizeConvertsUnstableToStable` | `PortalStability` enum | GREEN | генерация обеих стабильностей — factory (чекпоинт F) |
+| STABILITY-002 | Stable has no hidden timer | INV | `TestPortalBuilder_Defaults` | builder / `Stabilize` | GREEN | factory-проверка — чекпоинт F |
+| STABILITY-003 | Unstable gets hidden timer | BEH | `TestPortal_UnstableCollapsesAtHiddenTime` | lifetime fixtures | GREEN | диапазон генерации random(opened+5s, close−1s) — factory-тесты чекпоинта F |
+| STABILITY-004 | Hidden timer not exposed / not in risk | UI | `TestPortal_HiddenInstabilityTimestampDoesNotAffectRisk` | — | GREEN | domain-часть: hidden не участвует в Risk; отсутствие в API/UI — Stage 12/13 |
+| STABILITY-005 | Stabilize unstable→stable | BEH | `TestPortal_StabilizeConvertsUnstableToStable` | `Portal.Stabilize` | GREEN | |
+| STABILITY-006 | Stabilize clears hidden timer | BEH | `TestPortal_StabilizeConvertsUnstableToStable`, `TestPortal_StabilizedPortalLosesInstabilityCandidate` | `Portal.Stabilize` | GREEN | |
+| STABILITY-007 | Stable cannot be stabilized | BEH | `TestPortal_StabilizeRejectsStablePortal` | `Portal.Stabilize` | GREEN | state unchanged при отказе |
 
 ## CREATURE
 

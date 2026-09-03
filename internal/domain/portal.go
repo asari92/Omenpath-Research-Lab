@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"omenpath-lab/internal/config"
+)
 
 // PortalKind (Final Spec §4).
 type PortalKind string
@@ -134,8 +138,14 @@ func (p Portal) EnergyDepletionAt() (at time.Time, ok bool) {
 // on tick ordering. ClosedAt stores the semantic event time, not the time
 // the resolution happened to run.
 //
-// Terminal portals are left untouched (PORTAL-009). The hidden instability
-// collapse (§10) is intentionally not handled yet — Stage 2, substage 2.5.
+// Terminal portals are left untouched (PORTAL-009).
+//
+// Candidates are considered by earliest semantic moment (Stage 2 plan
+// Rule D) with Natural Close winning exact ties (Rules B and C). An exact
+// tie between energy depletion and the hidden instability moment keeps
+// ENERGY_DEPLETED — an arbitrary but fixed choice that cannot arise from
+// the valid factory (which schedules the hidden moment strictly inside
+// the TTL window).
 func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
 	if p.IsTerminal() {
 		return false, nil
@@ -151,6 +161,16 @@ func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
 		status = PortalStatusCollapsed
 	}
 
+	// Hidden instability collapse (Final Spec §10): only while the portal
+	// is still OPEN and UNSTABLE. Stabilize clears the timestamp, so a
+	// stabilized portal can never hit this branch.
+	if p.Stability == PortalUnstable && p.InstabilityCollapseAt != nil &&
+		p.InstabilityCollapseAt.Before(deadline) {
+		deadline = *p.InstabilityCollapseAt
+		reason = TerminationInstability
+		status = PortalStatusCollapsed
+	}
+
 	if now.Before(deadline) {
 		return false, nil
 	}
@@ -161,4 +181,31 @@ func (p *Portal) ResolveLifecycle(now time.Time) (changed bool, err error) {
 	p.ClosedAt = &closedAt
 	p.UpdatedAt = now
 	return true, nil
+}
+
+// Stabilize is the portal-level primitive (Final Spec §11):
+//
+//	OPEN + UNSTABLE + current energy ≤ 85%
+//	→ STABLE, hidden collapse cleared, current energy +15 as new baseline.
+//
+// Laboratory Energy cost (20, or 0 during Leyline Override), events and
+// broadcasts are orchestrated in later stages — Stage 2 must not couple
+// Portal to LabState (stage boundary, plan §3).
+func (p *Portal) Stabilize(now time.Time, cfg config.Config) error {
+	if p.IsTerminal() {
+		return ErrPortalNotOpen
+	}
+	if p.Stability == PortalStable {
+		return ErrPortalAlreadyStable
+	}
+	if current := p.CurrentEnergy(now); current > cfg.StabilizeMaxStartEnergy {
+		return ErrPortalOverchargeRisk
+	}
+
+	p.Stability = PortalStable
+	p.InstabilityCollapseAt = nil
+	p.EnergyBase = p.CurrentEnergy(now) + cfg.StabilizeBoost
+	p.EnergyBaseAt = now
+	p.UpdatedAt = now
+	return nil
 }
