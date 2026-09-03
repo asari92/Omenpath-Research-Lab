@@ -54,15 +54,23 @@ func ClosePortalWithLabEnergy(
 	confirm bool,
 	cfg config.Config,
 ) error {
-	remaining, err := prepareLabEnergySpend(lab, now, cfg.CloseCost, cfg)
+	cost := effectiveCloseCost(lab, now, cfg)
+	remaining, err := prepareLabEnergySpend(lab, now, cost, cfg)
 	if err != nil {
 		return err
 	}
 	if err := ClosePortalWithObservers(portal, plane, observers, now, confirm, cfg); err != nil {
 		return err
 	}
-	commitLabEnergySpend(lab, now, cfg.CloseCost, remaining)
+	commitLabEnergySpend(lab, now, cost, remaining)
 	return nil
+}
+
+func effectiveCloseCost(lab *LabState, now time.Time, cfg config.Config) int {
+	if lab != nil && lab.LeylineOverrideActive(now, cfg) {
+		return 0
+	}
+	return cfg.CloseCost
 }
 
 // StabilizePortalWithLabEnergy preflights the configured ordinary Stabilize
