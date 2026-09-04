@@ -93,9 +93,7 @@ func TestSimulationTick_CompletedExtractionDoesNotReturnSecondObserver(t *testin
 func TestSimulationTick_TerminalExtractionDoesNotSynchronize(t *testing.T) {
 	p := tickExtractionPortal(1, 1, 1, testutil.BaseTime)
 	closedAt := testutil.BaseTime.Add(time.Second)
-	p.Status = domain.PortalStatusClosed
-	p.TerminationReason = domain.TerminationManualClose
-	p.ClosedAt = &closedAt
+	makeTerminalPortal(&p, domain.PortalStatusClosed, domain.TerminationManualClose, closedAt)
 	state := extractionTickState([]domain.Portal{p}, tickWaitingObserver(1, 0))
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
@@ -220,6 +218,6 @@ func TestSimulationTick_InvalidExtractionAggregateIsAtomic(t *testing.T) {
 	state := extractionTickState([]domain.Portal{p}, tickExploringObserver(1, 5*time.Second))
 	before := state
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
-	require.ErrorIs(t, err, domain.ErrExtractionInvariant)
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
 	require.Equal(t, before, state)
 }

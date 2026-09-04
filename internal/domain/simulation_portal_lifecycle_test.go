@@ -60,8 +60,8 @@ func TestSimulationTick_ResolvesEnergyCollapse(t *testing.T) {
 }
 
 func TestSimulationTick_ResolvesInstabilityCollapse(t *testing.T) {
-	state := portalTickState(tickInstabilityCollapsePortal(1, 1, 2*time.Second))
-	_, err := state.ResolveTick(testutil.BaseTime.Add(2*time.Second), nil, config.Default())
+	state := portalTickState(tickInstabilityCollapsePortal(1, 1, 5*time.Second))
+	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
 	require.Equal(t, domain.PortalStatusCollapsed, state.Portals[0].Status)
 	require.Equal(t, domain.TerminationInstability, state.Portals[0].TerminationReason)
@@ -92,8 +92,8 @@ func TestSimulationTick_EnergyCollapseResetsLabEnergy(t *testing.T) {
 }
 
 func TestSimulationTick_InstabilityCollapseResetsLabEnergy(t *testing.T) {
-	state := portalTickState(tickInstabilityCollapsePortal(1, 1, 2*time.Second))
-	_, err := state.ResolveTick(testutil.BaseTime.Add(2*time.Second), nil, config.Default())
+	state := portalTickState(tickInstabilityCollapsePortal(1, 1, 5*time.Second))
+	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
 	require.Zero(t, state.Lab.EnergyBase)
 }
@@ -123,13 +123,13 @@ func TestSimulationTick_MultipleCollapsesIgnorePortalSliceOrder(t *testing.T) {
 
 func TestSimulationTick_EqualCollapseTimesUsePortalIDOrder(t *testing.T) {
 	forward := portalTickState(
-		tickEnergyCollapsePortal(1, 1, 2*time.Second),
-		tickInstabilityCollapsePortal(2, 2, 2*time.Second),
+		tickEnergyCollapsePortal(1, 1, 5*time.Second),
+		tickInstabilityCollapsePortal(2, 2, 5*time.Second),
 	)
 	reverse := portalTickState(forward.Portals[1], forward.Portals[0])
-	_, err := forward.ResolveTick(testutil.BaseTime.Add(2*time.Second), nil, config.Default())
+	_, err := forward.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
-	_, err = reverse.ResolveTick(testutil.BaseTime.Add(2*time.Second), nil, config.Default())
+	_, err = reverse.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
 	require.Equal(t, forward.Lab, reverse.Lab)
 }

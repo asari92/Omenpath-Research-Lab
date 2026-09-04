@@ -196,7 +196,7 @@ func TestSimulationTick_InvalidStateDoesNotPartiallySynchronizeExtraction(t *tes
 	state := extractionTickState([]domain.Portal{p}, tickExploringObserver(1, 5*time.Second))
 	before := state
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
-	require.ErrorIs(t, err, domain.ErrExtractionInvariant)
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
 	require.Equal(t, before, state)
 }
 
