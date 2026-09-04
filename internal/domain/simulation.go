@@ -87,6 +87,9 @@ func (state *SimulationState) ResolveTick(now time.Time, rnd random.Random, cfg 
 	if err := resolveObserverStage(&next, now, cfg); err != nil {
 		return SimulationTickResult{}, err
 	}
+	if err := resolveExtractionStage(&next, now, rnd, cfg); err != nil {
+		return SimulationTickResult{}, err
+	}
 	spawn, err := resolveNaturalSpawnPrepared(&next, now, rnd, cfg)
 	if err != nil {
 		return SimulationTickResult{}, err
@@ -194,6 +197,41 @@ func resolveObserverStage(state *SimulationState, now time.Time, cfg config.Conf
 		}
 
 		if err := ResolveObserverLifecycle(observer, plane, portal, now, cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveExtractionStage(state *SimulationState, now time.Time, rnd random.Random, cfg config.Config) error {
+	planeIndexByID := make(map[int64]int, len(state.Planes))
+	for i := range state.Planes {
+		planeIndexByID[state.Planes[i].ID] = i
+	}
+	indices := make([]int, 0)
+	for i := range state.Portals {
+		if state.Portals[i].Kind == PortalKindExtraction {
+			indices = append(indices, i)
+		}
+	}
+	sort.Slice(indices, func(i, j int) bool {
+		return state.Portals[indices[i]].ID < state.Portals[indices[j]].ID
+	})
+
+	for _, index := range indices {
+		portal := &state.Portals[index]
+		planeIndex, ok := planeIndexByID[portal.DestinationPlaneID]
+		if !ok {
+			return ErrSimulationInvariant
+		}
+		if _, _, err := ResolveExtractionSynchronization(
+			portal,
+			&state.Planes[planeIndex],
+			state.Observers,
+			now,
+			rnd,
+			cfg,
+		); err != nil {
 			return err
 		}
 	}
