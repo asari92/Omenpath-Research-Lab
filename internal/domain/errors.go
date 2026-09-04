@@ -24,4 +24,5 @@ var (
 	ErrInsufficientLabEnergy    = errors.New("insufficient laboratory energy")
 	ErrExtractionInvariant      = errors.New("extraction invariant violated")
 	ErrExtractionSynchronizing  = errors.New("extraction portal is synchronizing")
+	ErrSimulationInvariant      = errors.New("simulation invariant violated")
 )

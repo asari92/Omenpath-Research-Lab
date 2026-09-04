@@ -15,7 +15,7 @@
 | PLANE-001 | Plane permanent, independent of Portal | INV | — | — | PLANNED | |
 | PLANE-002 | Plane 0..N Portals | INV | — | — | PLANNED | |
 | PLANE-003 | Multiple OPEN Portals to same Plane | BEH | — | — | PLANNED | |
-| PLANE-004 | Seed 85, default UNEXPLORED | BEH | — | — | PLANNED | |
+| PLANE-004 | Seed 85, default UNEXPLORED | BEH | `TestSimulationState_RequiresExactlyEightyFivePlanes`, `TestSimulationState_RejectsDuplicatePlaneIDs` | `validateSimulationState` | PARTIAL | active aggregate enforces 85 unique Plane IDs; canonical seed/default data remains Stage 10 |
 | PLANE-005 | SEND does not explore | INV | `TestObserver_StartOutboundDoesNotExplorePlane`, `TestSendObserver_DoesNotExplorePlane`, `TestSendObserver_AllowsAlreadyExploredPlane`, `TestObserverCommands_DoNotChangePlaneExplorationOnTransitStart` | `Observer.StartOutbound`, `SendObserver`, `RecallObserver` | GREEN | transit-start commands leave both unexplored and already-explored Plane state unchanged |
 | PLANE-006 | Arrival does not explore | INV | `TestObserver_OutboundArrivalDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | successful OUTBOUND leaves Plane exploration unchanged |
 | PLANE-007 | Research completion does not explore | INV | `TestObserver_ResearchCompletionDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | WAITING_RETURN retains Plane location but not exploration |
@@ -184,7 +184,7 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| SPAWN-001 | Inclusive random delay 0..20 sec | BAL | — | — | PLANNED | Stage 8 |
+| SPAWN-001 | Inclusive random delay 0..20 sec | BAL | `TestNewNaturalSpawnState_AcceptsZeroDelay`, `TestNewNaturalSpawnState_AcceptsMaximumDelay`, `TestNewNaturalSpawnState_DrawsExactlyOnce` | `NewNaturalSpawnState` | GREEN | inclusive whole-second scheduler draw from config |
 | SPAWN-002 | Fresh delay after successful spawn | BEH | — | — | PLANNED | Stage 8 |
 | SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | — | — | PLANNED | Stage 8 |
 | SPAWN-004 | Random destination among 85 Planes | BEH | — | — | PLANNED | Stage 8 |
@@ -195,9 +195,9 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| SIMULATION-001 | One-second supplied-time domain step | BEH | — | — | PLANNED | actual ticker Stage 11 |
+| SIMULATION-001 | One-second supplied-time domain step | BEH | `TestSimulationState_InvalidAggregateIsAtomic` | `SimulationState.ResolveTick` | PARTIAL | pure supplied-time validation boundary exists; actual ordered tick stages and real ticker remain Stage 8/11 |
 | SIMULATION-002 | Ordered tick transition stages | BEH | — | — | PLANNED | Stage 8 subset of Final Spec §33 |
-| SIMULATION-003 | Atomic, monotonic, idempotent tick | INV | — | — | PLANNED | Stage 8 |
+| SIMULATION-003 | Atomic, monotonic, idempotent tick | INV | `TestSimulationState_InvalidAggregateDoesNotConsumeRandom`, `TestSimulationState_InvalidAggregateIsAtomic` | `validateSimulationState`, `SimulationState.ResolveTick` | PARTIAL | structural/config rejection is atomic and draw-free; monotonic/idempotent transition behavior remains later Stage 8 checkpoints |
 | SIMULATION-004 | Realtime values stay derived | INV | — | — | PLANNED | Stage 8 domain boundary |
 
 ## ATTENTION
