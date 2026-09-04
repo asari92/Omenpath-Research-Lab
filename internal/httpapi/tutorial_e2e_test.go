@@ -86,8 +86,19 @@ func TestTutorialAPI_CriticalRejectionPersistsProgressAndEvent(t *testing.T) {
 	require.Equal(t, domain.TutorialPhaseSendReplacement, persisted.App.TutorialPhase)
 	events, err := store.ListEvents(ctx, nil)
 	require.NoError(t, err)
-	require.Equal(t, domain.EventActionRejected, events[len(events)-1].EventType)
-	require.Equal(t, snapshot.Simulation.Portals[0].ID, *events[len(events)-1].PortalID)
+	require.Equal(t, []domain.EventType{domain.EventActionRejected, domain.EventPortalOpened}, []domain.EventType{
+		events[len(events)-2].EventType,
+		events[len(events)-1].EventType,
+	})
+	require.Equal(t, snapshot.Simulation.Portals[0].ID, *events[len(events)-2].PortalID)
+	require.Equal(t, *persisted.App.TutorialPortalID, *events[len(events)-1].PortalID)
+	opened := 0
+	for _, event := range events {
+		if event.EventType == domain.EventPortalOpened && event.PortalID != nil && *event.PortalID == *persisted.App.TutorialPortalID {
+			opened++
+		}
+	}
+	require.Equal(t, 1, opened)
 }
 
 func TestTutorialWebSocket_ReconnectShowsPersistedStepAndPhase(t *testing.T) {
