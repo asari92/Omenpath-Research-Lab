@@ -25,19 +25,31 @@ type Random interface {
 	FloatRange(min, max float64) float64
 }
 
+// Checkpointable is the transactional random boundary used by orchestration
+// that must roll back draws when durable state cannot be committed. Pure
+// domain consumers continue to depend only on Random.
+type Checkpointable interface {
+	Random
+	MarshalBinary() ([]byte, error)
+	UnmarshalBinary([]byte) error
+}
+
 // RealRandom is the production implementation.
 // It is safe for concurrent use.
 type RealRandom struct {
-	mu  sync.Mutex
-	rng *rand.Rand
+	mu     sync.Mutex
+	source *rand.PCG
+	rng    *rand.Rand
 }
 
 var _ Random = (*RealRandom)(nil)
+var _ Checkpointable = (*RealRandom)(nil)
 
 // NewRealRandom seeds the generator from crypto/rand.
 func NewRealRandom() *RealRandom {
 	a, b := seed()
-	return &RealRandom{rng: rand.New(rand.NewPCG(a, b))}
+	source := rand.NewPCG(a, b)
+	return &RealRandom{source: source, rng: rand.New(source)}
 }
 
 // IntInclusive implements Random.
@@ -58,6 +70,29 @@ func (r *RealRandom) FloatRange(min, max float64) float64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.rng.Float64()*(max-min) + min
+}
+
+// MarshalBinary returns an exact snapshot of the underlying PCG state.
+func (r *RealRandom) MarshalBinary() ([]byte, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.source == nil {
+		return nil, fmt.Errorf("random: uninitialized PCG source")
+	}
+	return r.source.MarshalBinary()
+}
+
+// UnmarshalBinary restores an exact snapshot of the underlying PCG state.
+func (r *RealRandom) UnmarshalBinary(state []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.source == nil {
+		return fmt.Errorf("random: uninitialized PCG source")
+	}
+	if err := r.source.UnmarshalBinary(state); err != nil {
+		return fmt.Errorf("random: restore PCG state: %w", err)
+	}
+	return nil
 }
 
 func seed() (uint64, uint64) {

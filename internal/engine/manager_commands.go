@@ -142,12 +142,19 @@ func (m *LabManager) OpenExtraction(ctx context.Context, planeID int64) error {
 	})
 }
 
-func (m *LabManager) executeCommand(ctx context.Context, command managerCommand) error {
+func (m *LabManager) executeCommand(ctx context.Context, command managerCommand) (err error) {
 	if m == nil {
 		return fmt.Errorf("%s: nil manager", command.action)
 	}
-	m.mu.Lock()
+	if err := m.mu.LockContext(ctx); err != nil {
+		return err
+	}
 	defer m.mu.Unlock()
+	randomTx, err := beginRandomTransaction(m.random)
+	if err != nil {
+		return fmt.Errorf("checkpoint random state: %w", err)
+	}
+	defer func() { err = randomTx.finish(err) }()
 
 	now := m.clock.Now().UTC()
 	working := cloneSnapshot(m.snapshot)
@@ -185,6 +192,7 @@ func (m *LabManager) executeCommand(ctx context.Context, command managerCommand)
 		return fmt.Errorf("commit %s: %w", command.action, err)
 	}
 	m.snapshot = cloneSnapshot(working)
+	randomTx.commit()
 	m.signalLocked()
 	return commandErr
 }

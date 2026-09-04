@@ -4,9 +4,9 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
-	"sync"
 	"time"
 
 	"omenpath-lab/internal/clock"
@@ -20,10 +20,10 @@ import (
 // The exclusive mutex deliberately covers domain resolution, random draws,
 // repository commit and memory publication so exactly one transition wins.
 type LabManager struct {
-	mu       sync.Mutex
+	mu       contextMutex
 	cfg      config.Config
 	clock    clock.Clock
-	random   random.Random
+	random   random.Checkpointable
 	repo     Repository
 	snapshot persistence.Snapshot
 	updates  chan struct{}
@@ -41,14 +41,19 @@ func NewLabManager(
 	if clk == nil || rnd == nil || repo == nil {
 		return nil, fmt.Errorf("new lab manager: nil dependency")
 	}
+	checkpointable, ok := rnd.(random.Checkpointable)
+	if !ok {
+		return nil, fmt.Errorf("new lab manager: random source is not checkpointable")
+	}
 	snapshot, err := repo.Load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("new lab manager: load snapshot: %w", err)
 	}
 	return &LabManager{
+		mu:       newContextMutex(),
 		cfg:      cfg,
 		clock:    clk,
-		random:   rnd,
+		random:   checkpointable,
 		repo:     repo,
 		snapshot: cloneSnapshot(snapshot),
 		updates:  make(chan struct{}, 1),
@@ -60,13 +65,17 @@ func (m *LabManager) Tick(ctx context.Context) error {
 	if m == nil {
 		return fmt.Errorf("tick: nil manager")
 	}
-	m.mu.Lock()
+	if err := m.mu.LockContext(ctx); err != nil {
+		return err
+	}
 	defer m.mu.Unlock()
 	return m.resolveLocked(ctx, m.clock.Now().UTC(), true)
 }
 
 func (m *LabManager) tickAt(ctx context.Context, now time.Time) error {
-	m.mu.Lock()
+	if err := m.mu.LockContext(ctx); err != nil {
+		return err
+	}
 	defer m.mu.Unlock()
 	return m.resolveLocked(ctx, now.UTC(), true)
 }
@@ -87,6 +96,9 @@ func (m *LabManager) Run(ctx context.Context, ticks <-chan time.Time) error {
 				return nil
 			}
 			if err := m.tickAt(ctx, at.UTC()); err != nil {
+				if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+					return nil
+				}
 				return err
 			}
 		}
@@ -98,7 +110,9 @@ func (m *LabManager) State(ctx context.Context) (persistence.Snapshot, error) {
 	if m == nil {
 		return persistence.Snapshot{}, fmt.Errorf("state: nil manager")
 	}
-	m.mu.Lock()
+	if err := m.mu.LockContext(ctx); err != nil {
+		return persistence.Snapshot{}, err
+	}
 	defer m.mu.Unlock()
 	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false); err != nil {
 		return persistence.Snapshot{}, err
@@ -112,7 +126,9 @@ func (m *LabManager) Portal(ctx context.Context, id int64) (domain.Portal, []dom
 	if m == nil {
 		return domain.Portal{}, nil, fmt.Errorf("portal: nil manager")
 	}
-	m.mu.Lock()
+	if err := m.mu.LockContext(ctx); err != nil {
+		return domain.Portal{}, nil, err
+	}
 	defer m.mu.Unlock()
 	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false); err != nil {
 		return domain.Portal{}, nil, err
@@ -150,13 +166,21 @@ func (m *LabManager) Updates() <-chan struct{} {
 	return m.updates
 }
 
-func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bool) error {
+func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bool) (err error) {
+	randomTx, err := beginRandomTransaction(m.random)
+	if err != nil {
+		return fmt.Errorf("checkpoint random state: %w", err)
+	}
+	defer func() { err = randomTx.finish(err) }()
 	if lastTickAt := m.snapshot.Simulation.LastTickAt; !now.IsZero() && lastTickAt != nil && now.Before(*lastTickAt) {
 		// A tick may have been captured before a newer command acquired the
 		// manager lock. Validate the current aggregate at its committed time so
 		// stale delivery is the only ignored error condition.
 		validationCopy := cloneSnapshot(m.snapshot)
-		_, err := validationCopy.Simulation.ResolveTick(*lastTickAt, m.random, m.cfg)
+		_, err = validationCopy.Simulation.ResolveTick(*lastTickAt, m.random, m.cfg)
+		if err == nil {
+			randomTx.commit()
+		}
 		return err
 	}
 	before := cloneSnapshot(m.snapshot)
@@ -166,6 +190,7 @@ func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bo
 		return err
 	}
 	if !result.Changed {
+		randomTx.commit()
 		return nil
 	}
 	if meaningfulSnapshotChange(before, working) || len(result.Events) > 0 {
@@ -174,10 +199,39 @@ func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bo
 		}
 	}
 	m.snapshot = cloneSnapshot(working)
+	randomTx.commit()
 	if signal {
 		m.signalLocked()
 	}
 	return nil
+}
+
+type randomTransaction struct {
+	source     random.Checkpointable
+	checkpoint []byte
+	committed  bool
+}
+
+func beginRandomTransaction(source random.Checkpointable) (*randomTransaction, error) {
+	checkpoint, err := source.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return &randomTransaction{source: source, checkpoint: checkpoint}, nil
+}
+
+func (tx *randomTransaction) commit() {
+	tx.committed = true
+}
+
+func (tx *randomTransaction) finish(operationErr error) error {
+	if tx.committed {
+		return operationErr
+	}
+	if err := tx.source.UnmarshalBinary(tx.checkpoint); err != nil {
+		return errors.Join(operationErr, fmt.Errorf("restore random state: %w", err))
+	}
+	return operationErr
 }
 
 func meaningfulSnapshotChange(before, after persistence.Snapshot) bool {
