@@ -193,7 +193,14 @@ func hasCompositeCause(err error) bool {
 		return false
 	}
 	if composite, ok := err.(interface{ Unwrap() []error }); ok {
-		return len(composite.Unwrap()) > 0
+		causes := composite.Unwrap()
+		if len(causes) > 1 {
+			return true
+		}
+		if len(causes) == 1 {
+			return hasCompositeCause(causes[0])
+		}
+		return false
 	}
 	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
 		return hasCompositeCause(wrapped.Unwrap())
