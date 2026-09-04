@@ -158,12 +158,16 @@ func (m *LabManager) executeCommand(ctx context.Context, command managerCommand)
 
 	now := m.clock.Now().UTC()
 	working := cloneSnapshot(m.snapshot)
+	prepareTutorialSpawn(&working)
 	tick, err := working.Simulation.ResolveTick(now, m.random, m.cfg)
 	if err != nil {
 		return err
 	}
 	resolved := cloneSnapshot(working)
 	commandErr := command.apply(&working, now)
+	if err := m.advanceTutorialAfterCommand(&working, &resolved, command, commandErr, now); err != nil {
+		return err
+	}
 	drafts := cloneDrafts(tick.Events)
 	if commandErr == nil {
 		commandDrafts, eventErr := domain.EventsForStateTransition(

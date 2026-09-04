@@ -32,15 +32,23 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 
 	var mode string
 	var scheduledAt, dueAt, lastTickAt sql.NullInt64
-	if err := tx.QueryRowContext(ctx, `SELECT mode, tutorial_step, next_portal_id,
+	var phase string
+	var tutorialPortalID, tutorialPlaneID, tutorialObserverID sql.NullInt64
+	if err := tx.QueryRowContext(ctx, `SELECT mode, tutorial_step, tutorial_phase,
+		tutorial_portal_id, tutorial_plane_id, tutorial_observer_id, next_portal_id,
 		spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at
 		FROM app_state WHERE id = 1`).Scan(
-		&mode, &snapshot.App.TutorialStep, &snapshot.Simulation.NextPortalID,
+		&mode, &snapshot.App.TutorialStep, &phase,
+		&tutorialPortalID, &tutorialPlaneID, &tutorialObserverID, &snapshot.Simulation.NextPortalID,
 		&scheduledAt, &dueAt, &snapshot.Simulation.NaturalSpawn.Paused, &lastTickAt,
 	); err != nil {
 		return Snapshot{}, fmt.Errorf("load app state: %w", err)
 	}
 	snapshot.App.Mode = domain.AppMode(mode)
+	snapshot.App.TutorialPhase = domain.TutorialPhase(phase)
+	snapshot.App.TutorialPortalID = decodeOptionalInt64(tutorialPortalID)
+	snapshot.App.TutorialPlaneID = decodeOptionalInt64(tutorialPlaneID)
+	snapshot.App.TutorialObserverID = decodeOptionalInt64(tutorialObserverID)
 	snapshot.Simulation.NaturalSpawn.ScheduledAt = decodeOptionalTime(scheduledAt)
 	snapshot.Simulation.NaturalSpawn.DueAt = decodeOptionalTime(dueAt)
 	snapshot.Simulation.LastTickAt = decodeOptionalTime(lastTickAt)

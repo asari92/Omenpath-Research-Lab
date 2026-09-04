@@ -198,18 +198,30 @@ func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bo
 	}
 	before := cloneSnapshot(m.snapshot)
 	working := cloneSnapshot(m.snapshot)
+	prepareTutorialSpawn(&working)
 	result, err := working.Simulation.ResolveTick(now, m.random, m.cfg)
 	if err != nil {
 		return err
 	}
-	if !result.Changed {
-		randomTx.commit()
-		return nil
+	resolved := cloneSnapshot(working)
+	if err := m.advanceTutorialAfterTick(&working, now); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(resolved.Simulation, working.Simulation) {
+		tutorialEvents, eventErr := domain.EventsForStateTransition(resolved.Simulation, working.Simulation, now, now, m.cfg)
+		if eventErr != nil {
+			return eventErr
+		}
+		result.Events = append(result.Events, tutorialEvents...)
 	}
 	if meaningfulSnapshotChange(before, working) || len(result.Events) > 0 {
 		if _, err := m.repo.Commit(ctx, cloneSnapshot(working), cloneDrafts(result.Events)); err != nil {
 			return fmt.Errorf("commit resolved state: %w", err)
 		}
+	}
+	if !result.Changed && !meaningfulSnapshotChange(before, working) && len(result.Events) == 0 {
+		randomTx.commit()
+		return nil
 	}
 	m.snapshot = cloneSnapshot(working)
 	randomTx.commit()
@@ -300,6 +312,9 @@ func cloneSnapshot(snapshot persistence.Snapshot) persistence.Snapshot {
 	clone.Simulation.NaturalSpawn.ScheduledAt = cloneTime(snapshot.Simulation.NaturalSpawn.ScheduledAt)
 	clone.Simulation.NaturalSpawn.DueAt = cloneTime(snapshot.Simulation.NaturalSpawn.DueAt)
 	clone.Simulation.LastTickAt = cloneTime(snapshot.Simulation.LastTickAt)
+	clone.App.TutorialPortalID = cloneInt64(snapshot.App.TutorialPortalID)
+	clone.App.TutorialPlaneID = cloneInt64(snapshot.App.TutorialPlaneID)
+	clone.App.TutorialObserverID = cloneInt64(snapshot.App.TutorialObserverID)
 	for i := range clone.Simulation.Planes {
 		if snapshot.Simulation.Planes[i].Aliases != nil {
 			clone.Simulation.Planes[i].Aliases = make([]string, len(snapshot.Simulation.Planes[i].Aliases))

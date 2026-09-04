@@ -103,6 +103,10 @@ const (
 
 // AppState holds mode-level application state (Final Spec §2, §34).
 type AppState struct {
-	Mode         AppMode
-	TutorialStep int
+	Mode               AppMode
+	TutorialStep       int
+	TutorialPhase      TutorialPhase
+	TutorialPortalID   *int64
+	TutorialPlaneID    *int64
+	TutorialObserverID *int64
 }

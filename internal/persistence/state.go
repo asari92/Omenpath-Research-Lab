@@ -59,6 +59,9 @@ func validateSnapshot(snapshot Snapshot) error {
 		snapshot.Simulation.Lab.EnergyBase < 0 || snapshot.Simulation.Lab.EnergyBase > 100 {
 		return fmt.Errorf("invalid snapshot")
 	}
+	if !validTutorialContext(snapshot.App) {
+		return fmt.Errorf("invalid tutorial context")
+	}
 	if _, err := encodeTime(snapshot.Simulation.Lab.EnergyBaseAt, "lab.energy_base_at"); err != nil {
 		return fmt.Errorf("invalid snapshot: %w", err)
 	}
@@ -210,19 +213,40 @@ func persistSnapshot(ctx context.Context, tx *sql.Tx, snapshot Snapshot) error {
 	dueAt, _ := encodeOptionalTime(snapshot.Simulation.NaturalSpawn.DueAt, "app.spawn_due_at")
 	lastTickAt, _ := encodeOptionalTime(snapshot.Simulation.LastTickAt, "app.last_tick_at")
 	if _, err := tx.ExecContext(ctx, `INSERT INTO app_state
-		(id, mode, tutorial_step, next_portal_id, spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at)
-		VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+		(id, mode, tutorial_step, tutorial_phase, tutorial_portal_id, tutorial_plane_id,
+		 tutorial_observer_id, next_portal_id, spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at)
+		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET mode=excluded.mode, tutorial_step=excluded.tutorial_step,
+		tutorial_phase=excluded.tutorial_phase, tutorial_portal_id=excluded.tutorial_portal_id,
+		tutorial_plane_id=excluded.tutorial_plane_id, tutorial_observer_id=excluded.tutorial_observer_id,
 		next_portal_id=excluded.next_portal_id, spawn_scheduled_at=excluded.spawn_scheduled_at,
 		spawn_due_at=excluded.spawn_due_at, spawn_paused=excluded.spawn_paused,
 		last_tick_at=excluded.last_tick_at`,
-		snapshot.App.Mode, snapshot.App.TutorialStep, snapshot.Simulation.NextPortalID,
+		snapshot.App.Mode, snapshot.App.TutorialStep, snapshot.App.TutorialPhase,
+		snapshot.App.TutorialPortalID, snapshot.App.TutorialPlaneID, snapshot.App.TutorialObserverID,
+		snapshot.Simulation.NextPortalID,
 		scheduledAt, dueAt, snapshot.Simulation.NaturalSpawn.Paused, lastTickAt,
 	); err != nil {
 		return fmt.Errorf("persist app state: %w", err)
 	}
 	return nil
 }
+
+func validTutorialContext(app domain.AppState) bool {
+	if app.TutorialStep > 9 || !validOptionalID(app.TutorialPortalID) ||
+		!validOptionalID(app.TutorialPlaneID) || !validOptionalID(app.TutorialObserverID) {
+		return false
+	}
+	switch app.TutorialPhase {
+	case domain.TutorialPhaseNone, domain.TutorialPhaseSendReplacement,
+		domain.TutorialPhaseWaitResearch, domain.TutorialPhaseRecallReady:
+		return true
+	default:
+		return false
+	}
+}
+
+func validOptionalID(id *int64) bool { return id == nil || *id > 0 }
 
 func persistPortal(ctx context.Context, tx *sql.Tx, portal domain.Portal) error {
 	energyAt, _ := encodeTime(portal.EnergyBaseAt, "portal.energy_base_at")
