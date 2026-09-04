@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ type fakeRepository struct {
 	snapshot    persistence.Snapshot
 	events      []domain.Event
 	commits     []repositoryCommit
+	attempts    []repositoryCommit
 	commitErr   error
 	loadErr     error
 	listErr     error
@@ -50,6 +52,11 @@ func (r *fakeRepository) Load(context.Context) (persistence.Snapshot, error) {
 func (r *fakeRepository) Commit(_ context.Context, snapshot persistence.Snapshot, drafts []domain.EventDraft) ([]domain.Event, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	attempt := repositoryCommit{
+		snapshot: cloneTestSnapshot(snapshot),
+		drafts:   cloneTestDrafts(drafts),
+	}
+	r.attempts = append(r.attempts, attempt)
 	if r.commitErr != nil {
 		return nil, r.commitErr
 	}
@@ -103,6 +110,54 @@ func (r *lockedMinimumRandom) FloatRange(min, _ float64) float64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return min
+}
+
+func (r *lockedMinimumRandom) MarshalBinary() ([]byte, error) { return []byte{}, nil }
+
+func (r *lockedMinimumRandom) UnmarshalBinary([]byte) error { return nil }
+
+type checkpointSequenceRandom struct {
+	mu      sync.Mutex
+	ints    []int
+	floats  []float64
+	intAt   int
+	floatAt int
+}
+
+func (r *checkpointSequenceRandom) IntInclusive(_, _ int) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	value := r.ints[r.intAt]
+	r.intAt++
+	return value
+}
+
+func (r *checkpointSequenceRandom) FloatRange(_, _ float64) float64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	value := r.floats[r.floatAt]
+	r.floatAt++
+	return value
+}
+
+func (r *checkpointSequenceRandom) MarshalBinary() ([]byte, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	state := make([]byte, 16)
+	binary.LittleEndian.PutUint64(state[:8], uint64(r.intAt))
+	binary.LittleEndian.PutUint64(state[8:], uint64(r.floatAt))
+	return state, nil
+}
+
+func (r *checkpointSequenceRandom) UnmarshalBinary(state []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(state) != 16 {
+		return fmt.Errorf("invalid checkpoint length %d", len(state))
+	}
+	r.intAt = int(binary.LittleEndian.Uint64(state[:8]))
+	r.floatAt = int(binary.LittleEndian.Uint64(state[8:]))
+	return nil
 }
 
 func managerSnapshot(now time.Time) persistence.Snapshot {
@@ -213,6 +268,29 @@ func TestManagerTick_PersistenceFailureKeepsMemoryUnchanged(t *testing.T) {
 	require.ErrorContains(t, err, "database unavailable")
 	require.Equal(t, want, manager.snapshot)
 	require.Empty(t, repo.commits)
+}
+
+func TestManagerCommand_PersistenceFailureRestoresRandomForIdenticalRetry(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+	repo := newFakeRepository(snapshot)
+	rnd := &checkpointSequenceRandom{ints: []int{7, 11, 13}}
+	manager, err := NewLabManager(
+		context.Background(), config.Default(), testutil.NewFakeClock(base), rnd, repo,
+	)
+	require.NoError(t, err)
+	repo.commitErr = errors.New("database unavailable")
+
+	err = manager.SendObserver(context.Background(), 1, true)
+
+	require.ErrorContains(t, err, "database unavailable")
+	require.Len(t, repo.attempts, 1)
+	repo.commitErr = nil
+
+	require.NoError(t, manager.SendObserver(context.Background(), 1, true))
+	require.Len(t, repo.attempts, 2)
+	require.Equal(t, repo.attempts[0], repo.attempts[1], "retry must reproduce the same snapshot and events")
+	require.Equal(t, 11, rnd.IntInclusive(5, 15), "one durable command must advance exactly one logical draw")
 }
 
 func TestManagerCommand_ResolvesWholeSimulationBeforeAction(t *testing.T) {

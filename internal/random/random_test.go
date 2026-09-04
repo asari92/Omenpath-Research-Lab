@@ -56,3 +56,25 @@ func TestRealRandom_ConcurrentUse(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestRealRandom_MarshalRestoreReplaysExactPCGState(t *testing.T) {
+	r := NewRealRandom()
+	checkpointable, ok := any(r).(interface {
+		MarshalBinary() ([]byte, error)
+		UnmarshalBinary([]byte) error
+	})
+	if !ok {
+		t.Fatal("RealRandom does not expose a checkpoint boundary")
+	}
+	state, err := checkpointable.MarshalBinary()
+	require.NoError(t, err)
+
+	wantInt := r.IntInclusive(-1000, 1000)
+	wantFloat := r.FloatRange(-5.5, 9.25)
+	wantNext := r.IntInclusive(1, 1_000_000)
+	require.NoError(t, checkpointable.UnmarshalBinary(state))
+
+	require.Equal(t, wantInt, r.IntInclusive(-1000, 1000))
+	require.Equal(t, wantFloat, r.FloatRange(-5.5, 9.25))
+	require.Equal(t, wantNext, r.IntInclusive(1, 1_000_000))
+}

@@ -11,8 +11,49 @@ import (
 
 	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
+	"omenpath-lab/internal/persistence"
 	"omenpath-lab/testutil"
 )
+
+type blockingCommitRepository struct {
+	*fakeRepository
+	entered     chan struct{}
+	release     chan struct{}
+	enteredOnce sync.Once
+	releaseOnce sync.Once
+}
+
+func newBlockingCommitRepository(snapshot persistence.Snapshot) *blockingCommitRepository {
+	return &blockingCommitRepository{
+		fakeRepository: newFakeRepository(snapshot),
+		entered:        make(chan struct{}),
+		release:        make(chan struct{}),
+	}
+}
+
+func (r *blockingCommitRepository) Commit(ctx context.Context, snapshot persistence.Snapshot, drafts []domain.EventDraft) ([]domain.Event, error) {
+	r.enteredOnce.Do(func() { close(r.entered) })
+	select {
+	case <-r.release:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	return r.fakeRepository.Commit(ctx, snapshot, drafts)
+}
+
+func (r *blockingCommitRepository) unblock() {
+	r.releaseOnce.Do(func() { close(r.release) })
+}
+
+func newBlockingTestManager(t *testing.T, snapshot persistence.Snapshot, now time.Time) (*LabManager, *blockingCommitRepository) {
+	t.Helper()
+	repo := newBlockingCommitRepository(snapshot)
+	manager, err := NewLabManager(
+		context.Background(), config.Default(), testutil.NewFakeClock(now), &lockedMinimumRandom{}, repo,
+	)
+	require.NoError(t, err)
+	return manager, repo
+}
 
 func TestManagerRun_ConsumesInjectedTicksUntilContextCancel(t *testing.T) {
 	base := testutil.BaseTime
@@ -37,6 +78,87 @@ func TestManagerRun_ConsumesInjectedTicksUntilContextCancel(t *testing.T) {
 		t.Fatal("manager did not stop promptly after context cancellation")
 	}
 	require.Equal(t, base.Add(time.Second), *manager.snapshot.Simulation.LastTickAt)
+}
+
+func TestManagerOwnership_ContextCancellationInterruptsWaitingCalls(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		call func(context.Context, *LabManager) error
+	}{
+		{
+			name: "state",
+			call: func(ctx context.Context, manager *LabManager) error {
+				_, err := manager.State(ctx)
+				return err
+			},
+		},
+		{
+			name: "command",
+			call: func(ctx context.Context, manager *LabManager) error {
+				return manager.ClosePortal(ctx, 2, true)
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			base := testutil.BaseTime
+			snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+			snapshot = withManagerPortal(snapshot, managerPortal(2, 2, base))
+			manager, repo := newBlockingTestManager(t, snapshot, base)
+			firstDone := make(chan error, 1)
+			go func() { firstDone <- manager.ClosePortal(context.Background(), 1, true) }()
+			<-repo.entered
+
+			ctx, cancel := context.WithCancel(context.Background())
+			waitingDone := make(chan error, 1)
+			go func() { waitingDone <- test.call(ctx, manager) }()
+			cancel()
+
+			select {
+			case err := <-waitingDone:
+				require.ErrorIs(t, err, context.Canceled)
+			case <-time.After(250 * time.Millisecond):
+				repo.unblock()
+				require.NoError(t, <-firstDone)
+				<-waitingDone
+				t.Fatal("canceled call remained blocked waiting for manager ownership")
+			}
+			repo.unblock()
+			require.NoError(t, <-firstDone)
+		})
+	}
+}
+
+func TestManagerRun_CancelAfterTickSelectionInterruptsOwnershipWait(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+	manager, repo := newBlockingTestManager(t, snapshot, base)
+	firstDone := make(chan error, 1)
+	go func() { firstDone <- manager.ClosePortal(context.Background(), 1, true) }()
+	<-repo.entered
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ticks := make(chan time.Time)
+	runDone := make(chan error, 1)
+	go func() { runDone <- manager.Run(ctx, ticks) }()
+	tickSelected := make(chan struct{})
+	go func() {
+		ticks <- base.Add(time.Second)
+		close(tickSelected)
+	}()
+	<-tickSelected
+	cancel()
+
+	select {
+	case err := <-runDone:
+		require.NoError(t, err, "Run keeps its nil-on-cancel contract")
+	case <-time.After(250 * time.Millisecond):
+		repo.unblock()
+		require.NoError(t, <-firstDone)
+		<-runDone
+		t.Fatal("Run remained blocked after cancellation of an already selected tick")
+	}
+	repo.unblock()
+	require.NoError(t, <-firstDone)
 }
 
 func TestManagerRun_StaleTickIsNoOpAndLaterTickRuns(t *testing.T) {
