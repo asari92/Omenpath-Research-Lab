@@ -12,6 +12,26 @@ Requirement → Test → RED → Minimal Implementation → GREEN → Refactor
 
 Полностью расписывать все будущие этапы до последней функции заранее не требуется. Используем rolling-wave planning: подробный план ближайших 1–2 этапов, реализация, сверка, затем детализация следующих.
 
+### Блоковый delivery-режим после Stage 8
+
+Из-за срока сдачи Stages 9–27 выполняются блоками:
+
+```text
+Block C = Stages 9–14
+Block D = Stages 15–21
+Block E = Stages 22–27
+```
+
+На каждый блок создаётся один detailed plan с отдельными scope/DoD и
+RED/GREEN evidence для входящих стадий. Дополнительное подтверждение между
+стадиями одного утверждённого блока не требуется. После каждого блока
+обязательны полный verification suite, traceability/worklog update, сверка с
+Final Spec и остановка для пользовательской «сверки часов». Следующий блок до
+этой сверки не начинается.
+
+Полное описание режима:
+[`docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md`](docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md).
+
 ## Block A — Specification & Domain Foundation
 
 ### Stage 0 — Executable specification
