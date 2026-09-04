@@ -1055,7 +1055,8 @@ destination-linked transit loss и first-tick baseline; исправления �
 - `go build ./...` — exit 0.
 - `go test -count=1 ./...` — exit 0.
 
-Stage 9 завершён. Stage 10 не начат.
+На момент этой записи Stage 9 был завершён, а реализация Stage 10 ещё не была
+начата.
 
 ### Stage 9 corrective review pass
 
@@ -1082,4 +1083,63 @@ Corrective TDD evidence:
 - `go vet ./...`, `go build ./...`, `go test -count=1 ./...` — exit 0.
 - `go test -race -count=1 ./...` — exit 0.
 
-Stage 10 по-прежнему не начат.
+На момент corrective review Stage 9 реализация Stage 10 ещё не была начата.
+
+## Stage 10 — SQLite persistence via TDD (2026-09-04)
+
+### Реализованный scope
+
+- Добавлены idempotent SQLite migration и canonical bootstrap: шесть требуемых
+  product tables, служебная `schema_migrations`, constraints/indexes, embedded
+  catalog из 85 Planes, 10 AVAILABLE Observers, Tutorial Step 0, Lab Energy 100
+  и paused natural scheduler. Bootstrap не зависит от working directory и не
+  перезаписывает уже существующее состояние.
+- `Store.Commit` атомарно сохраняет полный Simulation/App snapshot и Event
+  drafts в одной transaction, назначает Event IDs в хронологическом порядке и
+  полностью откатывает state при ошибке Event insert.
+- `Store.Load` восстанавливает сохранённые baselines/deadlines без скрытого
+  lifecycle resolution; `Store.ListEvents` использует те же Event rows для
+  global log и Portal History.
+- Persistence codecs строго отклоняют corrupt enum/JSON/timestamps,
+  round-trip сохраняет Unix epoch, optional extraction/override timestamps,
+  scheduler и next Portal ID. Event entity IDs являются soft references, чтобы
+  сохранять `ACTION_REJECTED` для отсутствующей запрошенной сущности.
+- Review passes дополнительно закрепили структурную валидацию snapshot,
+  non-finite Portal Energy rejection, consistent transactional reads,
+  configurable structurally-valid timings, корректные shared-memory DSN и
+  обязательные SQLite foreign-key/busy-timeout pragmas на каждом соединении.
+- Stage 10 не запускает ticker, HTTP или WebSocket; manager ownership и
+  meaningful-write orchestration остаются Stage 11.
+
+### RED / GREEN evidence
+
+| Checkpoint / corrective pass | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 10A migrations/bootstrap | `573716c` | отсутствовали `Store`, migration schema и canonical bootstrap | `5b17f10` |
+| 10B atomic round-trip/restart | `27a6909` | отсутствовали `Commit`, `Load`, `ListEvents`, codecs и atomic rollback | `d8b1e6b` |
+| soft Event references / invalid persisted data | `41adfd4` | FK не позволял missing requested entity IDs; invalid timestamps не отклонялись строго | `5220578` |
+| Unix epoch timestamp | `a392a95` | zero Unix-nanos ошибочно трактовался как отсутствующее время | `c9430f6` |
+| persistence invariants / consistent reads | `ac8249c` | malformed snapshots и non-finite Energy проходили; Load не гарантировал единый read snapshot | `f69829c` |
+| configurable snapshots / memory DSN | `c885358` | валидные custom timings отвергались; memory URI semantics терялись | `85debf7` |
+| adversarial SQLite pragma override | `89c6fb4` | URI мог переопределить обязательные connection pragmas | `bf6d132` |
+
+Оба обязательных checkpoint прошли spec review. Последующие code-quality и
+adversarial review passes дали пять отдельных RED/GREEN corrective pairs выше;
+финальный review не оставил блокирующих замечаний для Stage 10 boundary.
+
+### Requirements и verification
+
+- `PERSIST-001`, `PERSIST-002` — GREEN.
+- `PERSIST-003`, `PERSIST-004` — PARTIAL: Store-level atomic commit/recovery
+  реализованы, но manager startup и правило meaningful writes относятся к
+  Stage 11.
+- `PLANE-004` — GREEN: canonical embedded bootstrap создаёт ровно 85
+  неизученных Planes. `LAB-002` остаётся PARTIAL до полного Tutorial bootstrap
+  Stage 14; Stage 10 лишь подтверждает persisted initial row Step 0/Energy 100.
+- Focused persistence suites и review verification — exit 0.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+
+Stage 10 завершён. Stage 11 не начат.

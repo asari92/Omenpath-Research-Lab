@@ -576,26 +576,26 @@ Stage 9 не импортирует `database/sql`, chi, websocket или engine
 
 ### Checkpoint 10A — migrations и bootstrap
 
-- [ ] Подключить `modernc.org/sqlite` и embedded seed.
-- [ ] Добавить migration/bootstrap tests:
+- [x] Подключить `modernc.org/sqlite` и embedded seed.
+- [x] Добавить migration/bootstrap tests:
   `TestStoreMigrate_CreatesRequiredTablesAndIndexes`,
   `TestStoreMigrate_IsIdempotent`,
   `TestStoreBootstrap_SeedsExactly85PlanesAnd10Observers`,
   `TestStoreBootstrap_UsesTutorialEnergy100AndStep0`,
   `TestStoreBootstrap_DoesNotOverwriteExistingState`,
   `TestStoreBootstrap_DoesNotDependOnWorkingDirectory`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage10): RED sqlite migrations and canonical bootstrap`.
-- [ ] Реализовать `data/embed.go`, migration runner, `Open`, `Close`,
+- [x] Реализовать `data/embed.go`, migration runner, `Open`, `Close`,
   `Bootstrap` и schema constraints.
-- [ ] Проверить только на временных DB через `t.TempDir()`; in-memory tests
+- [x] Проверить только на временных DB через `t.TempDir()`; in-memory tests
   должны использовать уникальный DSN на test.
-- [ ] Commit GREEN:
+- [x] Commit GREEN:
   `feat(stage10): GREEN sqlite migrations and canonical bootstrap`.
 
 ### Checkpoint 10B — atomic round-trip и restart
 
-- [ ] Добавить tests:
+- [x] Добавить tests:
   `TestStoreCommitAndLoad_RoundTripsCompleteSnapshot`,
   `TestStoreCommit_PreservesExtractionAndOverrideTimestamps`,
   `TestStoreCommit_PersistsSchedulerAndNextPortalID`,
@@ -604,16 +604,16 @@ Stage 9 не импортирует `database/sql`, chi, websocket или engine
   `TestStoreCommit_RollsBackStateWhenEventInsertFails`,
   `TestStoreLoad_RecoversOverdueStateWithoutResolvingIt`,
   `TestSchema_HasNoDerivedRealtimeColumns`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage10): RED atomic persistence and restart recovery`.
-- [ ] Реализовать codecs, `Load`, `Commit`, `ListEvents`; invalid decoded enum,
+- [x] Реализовать codecs, `Load`, `Commit`, `ListEvents`; invalid decoded enum,
   timestamp или JSON должен вернуть ошибку, а не silently normalize.
-- [ ] Закрыть все prepared statements/rows; настроить SQLite foreign keys,
+- [x] Закрыть все prepared statements/rows; настроить SQLite foreign keys,
   busy timeout и один writer connection.
-- [ ] Выполнить focused persistence suite и полный обычный suite.
-- [ ] `PERSIST-001`, `PERSIST-002` → GREEN; `PERSIST-003`, `PERSIST-004` →
+- [x] Выполнить focused persistence suite и полный обычный suite.
+- [x] `PERSIST-001`, `PERSIST-002` → GREEN; `PERSIST-003`, `PERSIST-004` →
   PARTIAL до manager startup/meaningful-write proof.
-- [ ] Worklog + GREEN commit:
+- [x] Worklog + GREEN commit:
   `feat(stage10): GREEN atomic sqlite persistence and recovery`.
 
 Stage 10 не запускает ticker, HTTP server или WebSocket.
@@ -1004,7 +1004,7 @@ git status --short
 
 - [ ] Stage 9: полный deterministic event stream, shared history и rejection
   drafts доказаны tests.
-- [ ] Stage 10: schema, 85-plane seed, atomic persistence и restart recovery
+- [x] Stage 10: schema, 85-plane seed, atomic persistence и restart recovery
   доказаны tests.
 - [ ] Stage 11: resolve-first manager, exactly-one transitions, ticker и race
   safety доказаны tests.
