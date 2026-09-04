@@ -69,7 +69,7 @@ func (m *LabManager) Tick(ctx context.Context) error {
 		return err
 	}
 	defer m.mu.Unlock()
-	return m.resolveLocked(ctx, m.clock.Now().UTC(), true)
+	return m.resolveLocked(ctx, m.clock.Now().UTC(), true, true)
 }
 
 func (m *LabManager) tickAt(ctx context.Context, now time.Time) error {
@@ -77,7 +77,7 @@ func (m *LabManager) tickAt(ctx context.Context, now time.Time) error {
 		return err
 	}
 	defer m.mu.Unlock()
-	return m.resolveLocked(ctx, now.UTC(), true)
+	return m.resolveLocked(ctx, now.UTC(), true, true)
 }
 
 // Run consumes externally supplied tick instants until cancellation or channel
@@ -114,7 +114,7 @@ func (m *LabManager) State(ctx context.Context) (persistence.Snapshot, error) {
 		return persistence.Snapshot{}, err
 	}
 	defer m.mu.Unlock()
-	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false); err != nil {
+	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false, false); err != nil {
 		return persistence.Snapshot{}, err
 	}
 	return cloneSnapshot(m.snapshot), nil
@@ -130,7 +130,7 @@ func (m *LabManager) PortalState(ctx context.Context, id int64) (persistence.Sna
 		return persistence.Snapshot{}, nil, err
 	}
 	defer m.mu.Unlock()
-	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false); err != nil {
+	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false, false); err != nil {
 		return persistence.Snapshot{}, nil, err
 	}
 	_, ok := portalIndex(m.snapshot.Simulation.Portals, id)
@@ -179,7 +179,7 @@ func (m *LabManager) Updates() <-chan struct{} {
 	return m.updates
 }
 
-func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bool) (err error) {
+func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal, advanceTutorial bool) (err error) {
 	randomTx, err := beginRandomTransaction(m.random)
 	if err != nil {
 		return fmt.Errorf("checkpoint random state: %w", err)
@@ -204,8 +204,10 @@ func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bo
 		return err
 	}
 	resolved := cloneSnapshot(working)
-	if err := m.advanceTutorialAfterTick(&working, now); err != nil {
-		return err
+	if advanceTutorial {
+		if err := m.advanceTutorialAfterTick(&working, now); err != nil {
+			return err
+		}
 	}
 	if !reflect.DeepEqual(resolved.Simulation, working.Simulation) {
 		tutorialEvents, eventErr := domain.EventsForStateTransition(resolved.Simulation, working.Simulation, now, now, m.cfg)
