@@ -3,6 +3,8 @@ module omenpath-lab
 go 1.26.4
 
 require (
+	github.com/coder/websocket v1.8.14
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/stretchr/testify v1.10.0
 	modernc.org/sqlite v1.58.0
 )
@@ -10,7 +12,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/go-chi/chi/v5 v5.2.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
