@@ -117,11 +117,12 @@ func (r *lockedMinimumRandom) MarshalBinary() ([]byte, error) { return []byte{},
 func (r *lockedMinimumRandom) UnmarshalBinary([]byte) error { return nil }
 
 type checkpointSequenceRandom struct {
-	mu      sync.Mutex
-	ints    []int
-	floats  []float64
-	intAt   int
-	floatAt int
+	mu         sync.Mutex
+	ints       []int
+	floats     []float64
+	intAt      int
+	floatAt    int
+	restoreErr error
 }
 
 func (r *checkpointSequenceRandom) IntInclusive(_, _ int) int {
@@ -152,6 +153,9 @@ func (r *checkpointSequenceRandom) MarshalBinary() ([]byte, error) {
 func (r *checkpointSequenceRandom) UnmarshalBinary(state []byte) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.restoreErr != nil {
+		return r.restoreErr
+	}
 	if len(state) != 16 {
 		return fmt.Errorf("invalid checkpoint length %d", len(state))
 	}

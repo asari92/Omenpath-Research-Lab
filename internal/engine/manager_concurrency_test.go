@@ -161,6 +161,36 @@ func TestManagerRun_CancelAfterTickSelectionInterruptsOwnershipWait(t *testing.T
 	require.NoError(t, <-firstDone)
 }
 
+func TestManagerRun_CancellationDoesNotHideRandomRestoreFailure(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := managerSnapshot(base)
+	dueAt := base.Add(time.Second)
+	snapshot.Simulation.NaturalSpawn.DueAt = &dueAt
+	repo := newBlockingCommitRepository(snapshot)
+	restoreFailure := errors.New("checkpoint restore unavailable")
+	rnd := &checkpointSequenceRandom{
+		ints:       []int{0, 20, 0, 10},
+		floats:     []float64{50, 0.5, 0.9},
+		restoreErr: restoreFailure,
+	}
+	manager, err := NewLabManager(
+		context.Background(), config.Default(), testutil.NewFakeClock(base), rnd, repo,
+	)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ticks := make(chan time.Time)
+	runDone := make(chan error, 1)
+	go func() { runDone <- manager.Run(ctx, ticks) }()
+	ticks <- base.Add(2 * time.Second)
+	<-repo.entered
+	cancel()
+
+	err = <-runDone
+	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorIs(t, err, restoreFailure, "Run must surface failure of the random rollback")
+}
+
 func TestManagerRun_StaleTickIsNoOpAndLaterTickRuns(t *testing.T) {
 	base := testutil.BaseTime
 	latest := base.Add(2 * time.Second)
