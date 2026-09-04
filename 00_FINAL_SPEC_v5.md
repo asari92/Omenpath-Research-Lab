@@ -943,7 +943,8 @@ Steps:
 1. Open Portal Details; show Risk, Recommendation, History.
 2. Creatures block SEND; wait corridor.
 3. SEND Observer.
-4. STABILIZE a prepared UNSTABLE Portal; must guarantee Risk HIGH→MEDIUM.
+4. STABILIZE a prepared UNSTABLE Portal; must guarantee Risk
+   HIGH/CRITICAL → MEDIUM/LOW.
 5. Prepared CRITICAL Portal; SEND must be rejected. Expected rejection completes step.
 6. Observer completes research; new Portal to same Plane; RECALL.
 7. Successful return → Plane EXPLORED.
@@ -952,8 +953,9 @@ Steps:
 
 ### 28.1 Семантика исполнения Tutorial
 
-- Step 0 виден до первого simulation tick. Первый тик создаёт подготовленный
-  Tutorial Portal и переводит state machine на Step 1.
+- Step 0 остаётся активным сколько угодно и не завершается simulation tick.
+  `TUTORIAL_INTRO_COMPLETED` после явного действия пользователя создаёт
+  подготовленный Tutorial Portal и переводит state machine на Step 1.
 - Открытие Portal Details и Event Log передаётся явными UI-сигналами в
   `POST /api/tutorial/signal`; read-only GET никогда не меняют Tutorial state.
 - Step 2 завершается ожиданием очистки corridor. Намеренно вызывать
@@ -973,6 +975,50 @@ Steps:
   без OPEN Portals.
 - Истёкшие подготовленные timed Portals пересоздаются, поэтому корректность не
   зависит от выполнения шага в короткое wall-clock окно.
+- Natural Generator полностью отключён в Tutorial. Tutorial tick разрешает
+  lifecycle существующих prepared entities, но не создаёт Natural Portals.
+- Prepared Portals создаются детерминированно по требуемым свойствам сценария,
+  а не через случайный Natural generator.
+- LOST во время Step 7 не телепортирует replacement Observer в Plane. Step 6
+  повторяет обычный путь через подфазы `SEND_REPLACEMENT`, `WAIT_RESEARCH` и
+  `RECALL_READY`, сохраняя настоящие domain transitions и Events.
+
+### 28.2 Tutorial guidance и системные переходы
+
+Каждый step отдельно задаёт объяснение, действие игрока, system transition и
+completion condition:
+
+| Step | Объяснение | Действие игрока | Действие системы | Completion |
+|---|---|---|---|---|
+| 0 | Лор лаборатории, цель 85/85, Dashboard/Lab Summary/Observers/7 Slots/Needs Attention/Details/Event Log | Нажать «Начать практику» | До сигнала 0 OPEN и paused Natural Generator; после сигнала создать безопасный target Portal | `TUTORIAL_INTRO_COMPLETED` |
+| 1 | Portal Energy отличается от Lab Energy; индивидуальный расход; Time не гарантирует запас Energy; Stability/Risk/Recommendation/History | Открыть target Portal Details | GET не мутирует state; explicit signal проверяет target ID | matching `PORTAL_DETAILS_OPENED` |
+| 2 | Creatures блокируют corridor и выходят по одному каждые 2 sec | Ждать | Обычные ticks уменьшают derived Creatures; broken target пересоздаётся | `CreaturesInside == 0` |
+| 3 | SEND стоит 0; нужен AVAILABLE; transit 5–15 sec; первое использование фиксирует OUTBOUND | SEND через target | Обычная command выбирает Observer; система сохраняет Observer/Plane и создаёт отдельный Step 4 target | Observer стал OUTBOUND |
+| 4 | STABILIZE стоит 20; Lab Energy 0–100 и +1/sec; Portal Energy ≤85%; +15 Portal Energy; UNSTABLE → STABLE | STABILIZE target | Обычная debit/command/events; затем создать Step 5 CRITICAL target | STABLE и Risk HIGH/CRITICAL → MEDIUM/LOW |
+| 5 | CRITICAL блокирует SEND/RECALL; CLOSE стоит 5; CLOSED ≠ COLLAPSED; Collapse обнуляет Lab Energy и запускает Override | Попытаться SEND | Обычный domain rejection + `ACTION_REJECTED`; Step 5 target настроен на безопасный NATURAL_CLOSE | `ErrPortalCriticalRisk` |
+| 6 | Research 20 sec; RECALL стоит 0; longest-waiting; новый Portal фиксирует INBOUND | Ждать research, затем RECALL; при retry сначала SEND replacement | После research создать безопасный Portal к тому же Plane; retry использует normal outbound/research/inbound flow | Observer стал RETURNING |
+| 7 | EXPLORED только после return; terminal Portal во время transit делает Observer LOST | Ждать | Обычный lifecycle делает AVAILABLE+EXPLORED либо LOST и возврат к Step 6 | AVAILABLE и Plane EXPLORED |
+| 8 | Event Log и Portal History используют общий источник | Открыть Event Log | GET не мутирует; explicit signal проверяет текущий step | `EVENT_LOG_OPENED` |
+| 9 | Natural Portals; Extraction стоит 30; sync 5 sec; первый return автоматический; переход в Live | Нажать «Начать Live» | Бесплатно закрыть оставшиеся OPEN Tutorial Portals, сохранить continuity, запустить Natural schedule | Mode LIVE |
+
+Step 0 не содержит action prices или подробных Portal/Observer rules: правила
+даются непосредственно перед соответствующим действием. UI copy реализуется в
+Stage 20, но Stage 14 API возвращает authoritative `step`, `phase`, target IDs
+и `expected_action` для правильного отображения.
+
+Prepared scenario properties:
+
+- Step 1 Portal: STABLE, creatures > 0, безопасный запас для clearance и SEND;
+- Step 4 Portal: UNSTABLE, current Energy ≤85%, Risk HIGH/CRITICAL; обычный
+  Stabilize гарантирует итоговый Risk MEDIUM/LOW;
+- Step 5 Portal: STABLE CRITICAL из-за короткого scheduled lifetime, но Energy
+  не заканчивается раньше NATURAL_CLOSE;
+- Step 6 return Portal: STABLE, corridor clear, lifetime строго больше
+  `ObserverTransitMax`.
+
+Completed Portals продолжают обычный lifecycle. Бесплатная принудительная
+очистка всех оставшихся OPEN Tutorial Portals выполняется только при переходе
+в Live.
 
 ## 29. UI actions / errors
 
@@ -1139,11 +1185,14 @@ POST /api/live/start
 
 Тело Tutorial signal:
 ```json
-{"signal": "PORTAL_DETAILS_OPENED"}
+{"signal": "PORTAL_DETAILS_OPENED", "portal_id": 42}
 ```
 
-Допустимые значения: `PORTAL_DETAILS_OPENED` и `EVENT_LOG_OPENED`. Сигнал
-продвигает Tutorial только при совпадении с текущим ожидаемым step и target.
+Допустимые значения: `TUTORIAL_INTRO_COMPLETED`, `PORTAL_DETAILS_OPENED` и
+`EVENT_LOG_OPENED`. Сигнал продвигает Tutorial только при совпадении с текущим
+ожидаемым step и target. `portal_id` обязателен только для
+`PORTAL_DETAILS_OPENED` и должен совпадать с текущим Tutorial target; для двух
+остальных сигналов он отсутствует.
 
 WebSocket:
 ```text

@@ -980,3 +980,21 @@ Stage 9 не начинается.
 
 Block C plan требует отдельной корректировки после утверждения written design;
 Stage 9 production implementation не начат.
+
+## Tutorial guidance/system design amendment (2026-09-04)
+
+- Пользователь уточнил, что Step 0 не должен автоматически исчезать на первом
+  tick и не должен перегружаться ценами или lifecycle rules. Он содержит лор,
+  цель и карту интерфейса; explicit `TUTORIAL_INTRO_COMPLETED` начинает практику.
+- Для каждого Step зафиксированы четыре независимые части: contextual guidance,
+  действие игрока, system transition и completion condition.
+- Stabilize exercise расширен с HIGH→MEDIUM до допустимого
+  HIGH/CRITICAL→MEDIUM/LOW при обязательном реальном снижении Risk band.
+- LOST retry использует normal SEND → research → RECALL другого Observer через
+  сохраняемую Step 6 subphase; teleport состояния запрещён.
+- Natural generator отключён во всём Tutorial, prepared Portals создаются по
+  детерминированным свойствам, а не через случайный generator.
+- Добавлены Final Spec §28.2 и requirements `TUTORIAL-016..019`; изменены
+  `TUTORIAL-005`, `009`, `013`.
+
+Production implementation Stage 9 всё ещё не начат.

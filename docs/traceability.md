@@ -258,17 +258,21 @@
 | TUTORIAL-002 | Advance on expected condition | BEH | — | — | PLANNED | |
 | TUTORIAL-003 | Wrong reversible → same step | BEH | — | — | PLANNED | |
 | TUTORIAL-004 | Wrong irreversible → recreate | BEH | — | — | PLANNED | |
-| TUTORIAL-005 | Stabilize HIGH→MEDIUM guaranteed | BEH | — | — | PLANNED | |
+| TUTORIAL-005 | Stabilize HIGH/CRITICAL→MEDIUM/LOW guaranteed | BEH | — | — | PLANNED | |
 | TUTORIAL-006 | Critical step expects rejected SEND | BEH | — | — | PLANNED | |
 | TUTORIAL-007 | Exploration after return only | BEH | — | — | PLANNED | |
 | TUTORIAL-008 | Energy not reset entering Live | BEH | — | — | PLANNED | |
-| TUTORIAL-009 | Первый тик завершает Empty State и готовит Step 1 | BEH | — | — | PLANNED | |
+| TUTORIAL-009 | Tick не завершает Step 0; intro signal готовит Step 1 | BEH | — | — | PLANNED | |
 | TUTORIAL-010 | UI signals меняют progress; GET не меняет | BEH | — | — | PLANNED | |
 | TUTORIAL-011 | Ожидание corridor завершает Step 2 | BEH | — | — | PLANNED | |
 | TUTORIAL-012 | Сломанный prepared scenario получает новый эквивалентный Portal | BEH | — | — | PLANNED | |
-| TUTORIAL-013 | LOST на возврате повторяет Step 6 с другим Observer | BEH | — | — | PLANNED | |
+| TUTORIAL-013 | LOST повторяет Step 6 normal lifecycle другим Observer | BEH | — | — | PLANNED | без teleport |
 | TUTORIAL-014 | Идемпотентный start и полный reset | BEH | — | — | PLANNED | |
 | TUTORIAL-015 | Live gate, бесплатная очистка и continuity | BEH | — | — | PLANNED | |
+| TUTORIAL-016 | Context/action/system/completion contract каждого step | BEH | — | — | PLANNED | Stage 14 backend contract; Stage 20 copy |
+| TUTORIAL-017 | Deterministic prepared Portal properties and fresh retry ID | INV | — | — | PLANNED | |
+| TUTORIAL-018 | Natural generator disabled until Live | INV | — | — | PLANNED | |
+| TUTORIAL-019 | Step 0 overview; contextual rules later | UI | — | — | PLANNED | Stage 20 rendering |
 
 ## API / WS / UI / PERSIST
 

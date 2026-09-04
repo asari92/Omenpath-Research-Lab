@@ -268,17 +268,21 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | TUTORIAL-002 | BEH | Step продвигается только после expected completion condition | §28 |
 | TUTORIAL-003 | BEH | Wrong reversible action → тот же step | §28 |
 | TUTORIAL-004 | BEH | Wrong irreversible action → recreate equivalent Tutorial Portal, повторить step | §28 |
-| TUTORIAL-005 | BEH | Stabilize step гарантирует Risk HIGH→MEDIUM | §28 |
+| TUTORIAL-005 | BEH | Stabilize step гарантирует Risk HIGH/CRITICAL→MEDIUM/LOW | §28, §28.2 |
 | TUTORIAL-006 | BEH | Critical step завершается именно rejected SEND | §28 |
 | TUTORIAL-007 | BEH | Exploration только после успешного return (шаг 7) | §28 |
 | TUTORIAL-008 | BEH | Tutorial Energy не сбрасывается при переходе в Live | §28 |
-| TUTORIAL-009 | BEH | Step 0 существует до первого тика; первый тик создаёт prepared Portal и переводит к Step 1 | §28.1 |
+| TUTORIAL-009 | BEH | Step 0 не меняется от tick; explicit intro signal создаёт prepared Portal и переводит к Step 1 | §28.1–28.2 |
 | TUTORIAL-010 | BEH | Details/Event Log продвигают Tutorial только через явный signal command; GET не мутирует state | §28.1, §35 |
 | TUTORIAL-011 | BEH | Step 2 завершается ожиданием очистки corridor без обязательного rejected SEND | §28.1 |
 | TUTORIAL-012 | BEH | Истёкший/сломанный prepared Portal автоматически заменяется эквивалентным с новым ID | §28.1 |
-| TUTORIAL-013 | BEH | LOST на return exercise возвращает Tutorial к Step 6 для повтора другим Observer | §28.1 |
+| TUTORIAL-013 | BEH | LOST возвращает к Step 6; replacement проходит normal SEND/research/RECALL без teleport | §28.1–28.2 |
 | TUTORIAL-014 | BEH | Tutorial start идемпотентен; reset полностью восстанавливает исходный Tutorial и удаляет его прежнюю историю | §28.1 |
 | TUTORIAL-015 | BEH | Live разрешён только после Step 9; Tutorial Portals закрываются бесплатно, continuity сохраняется, OPEN Portals = 0 | §28.1 |
+| TUTORIAL-016 | BEH | Каждый step задаёт contextual guidance, действие игрока, system transition и completion condition | §28.2 |
+| TUTORIAL-017 | INV | Prepared Portals детерминированы требуемыми свойствами; broken target получает новый ID | §28.1–28.2 |
+| TUTORIAL-018 | INV | Natural Generator отключён во всём Tutorial и запускается только при переходе в Live | §28.1–28.2 |
+| TUTORIAL-019 | UI | Step 0 содержит только лор, цель и карту интерфейса; цены и правила показываются на релевантных шагах | §28.2 |
 
 ---
 
