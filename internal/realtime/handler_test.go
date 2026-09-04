@@ -168,3 +168,126 @@ func TestHub_RemovesDisconnectedClient(t *testing.T) {
 	require.NoError(t, conn.Close(websocket.StatusNormalClosure, "done"))
 	require.Eventually(t, func() bool { return hub.clientCount() == 0 }, time.Second, 10*time.Millisecond)
 }
+
+func TestWebSocket_ReconnectGetsLatestSnapshot(t *testing.T) {
+	at := testutil.BaseTime
+	source := newFakeStateSource(realtimeSnapshot(at))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	server := httptest.NewServer(hub)
+	t.Cleanup(server.Close)
+
+	first := dialRealtime(t, server.URL)
+	_ = readSnapshot(t, first)
+	require.NoError(t, first.Close(websocket.StatusNormalClosure, "reconnect"))
+	require.Eventually(t, func() bool { return hub.clientCount() == 0 }, time.Second, 10*time.Millisecond)
+
+	latest := realtimeSnapshot(at.Add(3 * time.Second))
+	latest.Simulation.Lab.EnergyBase = 61
+	source.replace(latest)
+	got := readSnapshot(t, dialRealtime(t, server.URL))
+	want, err := transport.BuildStateSnapshot(latest, at.Add(3*time.Second), config.Default())
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+}
+
+func TestHub_SlowClientDoesNotBlockFastClientOrManager(t *testing.T) {
+	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+
+	slowCtx, cancelSlow := context.WithCancel(context.Background())
+	fastCtx, cancelFast := context.WithCancel(context.Background())
+	slow := &client{queue: make(chan queuedSnapshot, 1), cancel: cancelSlow}
+	fast := &client{queue: make(chan queuedSnapshot, 1), cancel: cancelFast}
+	require.NoError(t, hub.register(slowCtx, slow))
+	require.NoError(t, hub.register(fastCtx, fast))
+	t.Cleanup(func() {
+		hub.unregister(slow)
+		hub.unregister(fast)
+	})
+	<-slow.queue
+	<-fast.queue
+
+	hub.publish(queuedSnapshot{sequence: 100, view: transport.StateSnapshot{GeneratedAt: testutil.BaseTime}})
+	done := make(chan struct{})
+	go func() {
+		hub.publish(queuedSnapshot{sequence: 101, view: transport.StateSnapshot{GeneratedAt: testutil.BaseTime.Add(time.Second)}})
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("slow client blocked snapshot publication")
+	}
+	select {
+	case got := <-fast.queue:
+		require.Equal(t, uint64(101), got.sequence)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("fast client did not receive latest snapshot")
+	}
+}
+
+func TestHub_CoalescesPendingSnapshots(t *testing.T) {
+	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	candidate := &client{queue: make(chan queuedSnapshot, 1), cancel: cancel}
+	require.NoError(t, hub.register(ctx, candidate))
+	t.Cleanup(func() { hub.unregister(candidate) })
+	<-candidate.queue
+
+	hub.publish(queuedSnapshot{sequence: 10, view: transport.StateSnapshot{GeneratedAt: testutil.BaseTime}})
+	hub.publish(queuedSnapshot{sequence: 11, view: transport.StateSnapshot{GeneratedAt: testutil.BaseTime.Add(time.Second)}})
+	require.Len(t, candidate.queue, 1)
+	require.Equal(t, uint64(11), (<-candidate.queue).sequence)
+}
+
+func TestWebSocket_ConcurrentConnectBroadcastDisconnect(t *testing.T) {
+	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	server := httptest.NewServer(hub)
+	t.Cleanup(server.Close)
+
+	const clients = 12
+	start := make(chan struct{})
+	errs := make(chan error, clients)
+	var wg sync.WaitGroup
+	for i := 0; i < clients; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			conn, _, err := websocket.Dial(ctx, websocketURL(server.URL), nil)
+			if err != nil {
+				errs <- err
+				return
+			}
+			var snapshot transport.StateSnapshot
+			if err := wsjson.Read(ctx, conn, &snapshot); err != nil {
+				errs <- err
+				_ = conn.CloseNow()
+				return
+			}
+			if err := conn.Close(websocket.StatusNormalClosure, "done"); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	close(start)
+	for i := 1; i <= 20; i++ {
+		next := realtimeSnapshot(testutil.BaseTime.Add(time.Duration(i) * time.Second))
+		next.Simulation.Lab.EnergyBase = 100 - i
+		source.replace(next)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		require.NoError(t, err)
+	}
+	require.Eventually(t, func() bool { return hub.clientCount() == 0 }, time.Second, 10*time.Millisecond)
+}
