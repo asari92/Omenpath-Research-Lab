@@ -46,6 +46,11 @@ func NewRouter(manager Manager, cfg config.Config, clk clock.Clock) http.Handler
 	router.Get("/api/state", api.getState)
 	router.Get("/api/portals/{id}", api.getPortal)
 	router.Get("/api/events", api.getEvents)
+	router.Post("/api/portals/{id}/stabilize", api.stabilize)
+	router.Post("/api/portals/{id}/close", api.closePortal)
+	router.Post("/api/portals/{id}/send-observer", api.sendObserver)
+	router.Post("/api/portals/{id}/recall-observer", api.recallObserver)
+	router.Post("/api/extraction/open", api.openExtraction)
 	return router
 }
 
