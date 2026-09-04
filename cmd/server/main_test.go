@@ -120,6 +120,24 @@ func TestRunServices_ManagerErrorShutsDownServer(t *testing.T) {
 	require.ErrorIs(t, err, managerErr)
 }
 
+func TestRunServices_JoinsIndependentManagerAndServerFailures(t *testing.T) {
+	serverErr := errors.New("independent server failure")
+	managerErr := errors.New("independent manager failure")
+	release := make(chan struct{})
+	server := &fakeServingServer{
+		listen:   func() error { <-release; return serverErr },
+		shutdown: func(context.Context) error { return nil },
+		close:    func() error { return nil },
+	}
+	close(release)
+
+	err := runServices(context.Background(), server, func(context.Context) error {
+		return managerErr
+	}, func() {}, func() error { return nil })
+	require.ErrorIs(t, err, serverErr)
+	require.ErrorIs(t, err, managerErr)
+}
+
 func TestRunServices_ContextCancellationStopsBoth(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	stopListen := make(chan struct{})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/testutil"
 )
@@ -500,6 +501,116 @@ func TestStartLive_BeforeStep9IsRejected(t *testing.T) {
 	require.ErrorIs(t, err, ErrTutorialNotReady)
 	require.Equal(t, domain.ModeTutorial, manager.snapshot.App.Mode)
 	require.Equal(t, domain.EventActionRejected, repo.events[len(repo.events)-1].EventType)
+}
+
+func TestStartLive_RejectionPersistsRecreatedTerminalTargetEventExactlyOnce(t *testing.T) {
+	tests := []struct {
+		name    string
+		step    int
+		phase   domain.TutorialPhase
+		profile domain.TutorialPortalProfile
+	}{
+		{name: "step1", step: 1, profile: domain.TutorialPortalStep1},
+		{name: "step2", step: 2, profile: domain.TutorialPortalStep2},
+		{name: "step6_recall_ready", step: 6, phase: domain.TutorialPhaseRecallReady, profile: domain.TutorialPortalStep6Return},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			base := testutil.BaseTime
+			manager, repo := tutorialManager(t, tc.step, base)
+			portal, err := domain.NewTutorialPortal(tc.profile, 1, 1, 1, base, manager.cfg)
+			require.NoError(t, err)
+			portal.ScheduledCloseAt = base.Add(time.Second)
+			portalID, planeID := portal.ID, portal.DestinationPlaneID
+			manager.snapshot.Simulation.Portals = []domain.Portal{portal}
+			manager.snapshot.Simulation.NextPortalID = 2
+			manager.snapshot.App.TutorialPortalID = &portalID
+			manager.snapshot.App.TutorialPlaneID = &planeID
+			manager.snapshot.App.TutorialPhase = tc.phase
+			if tc.step == 6 {
+				observerID := manager.snapshot.Simulation.Observers[0].ID
+				manager.snapshot.Simulation.Observers[0].Status = domain.ObserverWaitingReturn
+				manager.snapshot.Simulation.Observers[0].CurrentPlaneID = &planeID
+				manager.snapshot.Simulation.Observers[0].PhaseStartedAt = &base
+				manager.snapshot.Simulation.Observers[0].UpdatedAt = base
+				manager.snapshot.App.TutorialObserverID = &observerID
+			}
+			repo.snapshot = cloneTestSnapshot(manager.snapshot)
+			manager.clock = testutil.NewFakeClock(base.Add(2 * time.Second))
+
+			err = manager.StartLive(context.Background())
+			require.ErrorIs(t, err, ErrTutorialNotReady)
+			require.Equal(t, tc.step, manager.snapshot.App.TutorialStep)
+			require.NotEqual(t, portalID, *manager.snapshot.App.TutorialPortalID)
+			require.Equal(t, []domain.EventType{
+				domain.EventPortalClosed,
+				domain.EventPortalOpened,
+				domain.EventActionRejected,
+			}, eventTypes(repo.events))
+			freshID := *manager.snapshot.App.TutorialPortalID
+			require.Equal(t, freshID, *repo.events[1].PortalID)
+
+			restarted, restartErr := NewLabManager(context.Background(), manager.cfg, manager.clock, &lockedMinimumRandom{}, repo)
+			require.NoError(t, restartErr)
+			got, stateErr := restarted.State(context.Background())
+			require.NoError(t, stateErr)
+			require.Equal(t, freshID, *got.App.TutorialPortalID)
+			require.Len(t, got.Simulation.Portals, 2)
+			require.Len(t, repo.events, 3)
+		})
+	}
+}
+
+func TestStartTutorial_LiveRejectionResolvesDueLifecycleAtomically(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := managerSnapshot(base)
+	due := base.Add(time.Second)
+	snapshot.Simulation.NaturalSpawn.DueAt = &due
+	repo := newFakeRepository(snapshot)
+	rnd := &checkpointSequenceRandom{
+		ints:   []int{0, 10, 0, 1},
+		floats: []float64{10, .1, 1},
+	}
+	manager, err := NewLabManager(context.Background(), config.Default(), testutil.NewFakeClock(base.Add(2*time.Second)), rnd, repo)
+	require.NoError(t, err)
+
+	err = manager.StartTutorial(context.Background())
+	require.ErrorIs(t, err, ErrTutorialNotReady)
+	require.Equal(t, domain.ModeLive, manager.snapshot.App.Mode)
+	require.Len(t, manager.snapshot.Simulation.Portals, 1)
+	require.Equal(t, []domain.EventType{domain.EventPortalOpened, domain.EventActionRejected}, eventTypes(repo.events))
+	require.Equal(t, 4, rnd.intAt)
+	require.Equal(t, 3, rnd.floatAt)
+}
+
+func TestStartTutorial_LiveRejectionFailureRollsBackCatchupAndRandom(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := managerSnapshot(base)
+	due := base.Add(time.Second)
+	snapshot.Simulation.NaturalSpawn.DueAt = &due
+	repo := newFakeRepository(snapshot)
+	rnd := &checkpointSequenceRandom{
+		ints:   []int{0, 10, 0, 1},
+		floats: []float64{10, .1, 1},
+	}
+	manager, err := NewLabManager(context.Background(), config.Default(), testutil.NewFakeClock(base.Add(2*time.Second)), rnd, repo)
+	require.NoError(t, err)
+	want := cloneSnapshot(manager.snapshot)
+	repo.commitErr = errors.New("forced rejection failure")
+
+	err = manager.StartTutorial(context.Background())
+	require.ErrorContains(t, err, "forced rejection failure")
+	require.Equal(t, want, manager.snapshot)
+	require.Zero(t, rnd.intAt)
+	require.Zero(t, rnd.floatAt)
+	require.Len(t, repo.attempts, 1)
+	require.Len(t, repo.attempts[0].snapshot.Simulation.Portals, 1)
+
+	repo.commitErr = nil
+	err = manager.StartTutorial(context.Background())
+	require.ErrorIs(t, err, ErrTutorialNotReady)
+	require.Len(t, repo.attempts, 2)
+	require.Equal(t, repo.attempts[0], repo.attempts[1])
 }
 
 func TestStartLive_PreservesEnergyEventsObserversAndExploration(t *testing.T) {
