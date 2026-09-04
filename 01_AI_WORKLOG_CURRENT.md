@@ -951,3 +951,15 @@ Stage 9 всё ещё не начат: эта запись фиксирует т
   её product gate для Block D остаётся без изменений.
 
 Stage 9 implementation по-прежнему не начат.
+
+### Block C execution-plan
+
+- Создан `11_BLOCK_C_STAGE_09_14_TDD.md`: единый checkpoint-by-checkpoint план
+  для Stages 9–14 с отдельными RED/GREEN commit boundaries.
+- Зафиксированы package boundaries Events → SQLite → LabManager → REST →
+  WebSocket → Tutorial, shared DTO, resolve-first transaction protocol,
+  SQLite schema/restart contract и block-level verification.
+- План явно не реализует Recommendation decision table и не начинает Stage 15.
+
+До пользовательского утверждения execution-plan production implementation
+Stage 9 не начинается.

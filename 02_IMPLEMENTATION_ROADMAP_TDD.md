@@ -101,6 +101,10 @@ Final Spec и остановка для пользовательской «св�
 
 ## Block C — Persistence & Transport
 
+Detailed execution-plan: `11_BLOCK_C_STAGE_09_14_TDD.md`. После его
+утверждения Stages 9–14 выполняются последовательно без промежуточного
+пользовательского подтверждения; после Stage 14 обязательна блоковая сверка.
+
 ### Stage 9 — Event system
 - Domain events.
 - Portal history.
