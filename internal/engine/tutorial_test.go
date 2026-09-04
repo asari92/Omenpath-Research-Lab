@@ -69,6 +69,72 @@ func TestTutorial_ReadsNeverAdvanceProgress(t *testing.T) {
 	require.Equal(t, 0, manager.snapshot.App.TutorialStep)
 }
 
+func TestTutorial_StateReadAtStep2ResolvesTimeWithoutCompletingCorridor(t *testing.T) {
+	manager, repo := tutorialManager(t, 0, testutil.BaseTime)
+	require.NoError(t, manager.TutorialSignal(context.Background(), domain.TutorialSignalIntroCompleted, nil))
+	require.NoError(t, manager.TutorialSignal(context.Background(), domain.TutorialSignalPortalDetailsOpened, manager.snapshot.App.TutorialPortalID))
+	wantApp := cloneSnapshot(manager.snapshot).App
+	wantPortalCount := len(manager.snapshot.Simulation.Portals)
+	wantEvents := len(repo.events)
+	manager.clock = testutil.NewFakeClock(testutil.BaseTime.Add(30 * time.Second))
+
+	got, err := manager.State(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, wantApp, got.App)
+	require.Equal(t, 2, manager.snapshot.App.TutorialStep)
+	require.Len(t, manager.snapshot.Simulation.Portals, wantPortalCount)
+	require.Len(t, repo.events, wantEvents)
+	require.Equal(t, 0, got.Simulation.Portals[0].CreaturesInside(manager.clock.Now(), manager.cfg))
+	require.Equal(t, manager.clock.Now(), *got.Simulation.LastTickAt)
+}
+
+func TestTutorial_StateReadAtStep6ResolvesResearchWithoutCreatingReturnTarget(t *testing.T) {
+	manager, repo := tutorialStep6ResearchManager(t)
+	wantApp := cloneSnapshot(manager.snapshot).App
+	wantPortalCount := len(manager.snapshot.Simulation.Portals)
+
+	got, err := manager.State(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, domain.ObserverWaitingReturn, got.Simulation.Observers[0].Status)
+	require.Equal(t, wantApp, got.App)
+	require.Len(t, got.Simulation.Portals, wantPortalCount)
+	require.Equal(t, []domain.EventType{domain.EventResearchCompleted}, eventTypes(repo.events))
+}
+
+func TestTutorial_StateReadAtStep7ResolvesReturnWithoutAdvancingToEventLog(t *testing.T) {
+	manager, repo := tutorialStep6ResearchManager(t)
+	require.NoError(t, manager.Tick(context.Background()))
+	require.NoError(t, manager.RecallObserver(context.Background(), *manager.snapshot.App.TutorialPortalID, true))
+	wantApp := cloneSnapshot(manager.snapshot).App
+	wantPortalCount := len(manager.snapshot.Simulation.Portals)
+	wantEventCount := len(repo.events)
+	manager.clock = testutil.NewFakeClock(*manager.snapshot.Simulation.Observers[0].PhaseEndsAt)
+
+	got, err := manager.State(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, domain.ObserverAvailable, got.Simulation.Observers[0].Status)
+	require.True(t, got.Simulation.Planes[0].Explored)
+	require.Equal(t, wantApp, got.App)
+	require.Len(t, got.Simulation.Portals, wantPortalCount)
+	require.Greater(t, len(repo.events), wantEventCount, "ordinary return/exploration events still persist")
+}
+
+func TestTutorial_PortalStateReadResolvesTerminalTargetWithoutRecreatingIt(t *testing.T) {
+	manager, repo := tutorialManager(t, 0, testutil.BaseTime)
+	require.NoError(t, manager.TutorialSignal(context.Background(), domain.TutorialSignalIntroCompleted, nil))
+	oldID := *manager.snapshot.App.TutorialPortalID
+	wantApp := cloneSnapshot(manager.snapshot).App
+	manager.clock = testutil.NewFakeClock(manager.snapshot.Simulation.Portals[0].ScheduledCloseAt.Add(time.Second))
+
+	got, history, err := manager.PortalState(context.Background(), oldID)
+	require.NoError(t, err)
+	require.Equal(t, domain.PortalStatusClosed, got.Simulation.Portals[0].Status)
+	require.Equal(t, wantApp, got.App)
+	require.Len(t, got.Simulation.Portals, 1)
+	require.Equal(t, []domain.EventType{domain.EventPortalOpened, domain.EventPortalClosed}, eventTypes(repo.events))
+	require.Equal(t, []domain.EventType{domain.EventPortalOpened, domain.EventPortalClosed}, eventTypes(history))
+}
+
 func TestTutorial_TickNeverSpawnsNaturalPortal(t *testing.T) {
 	manager, _ := tutorialManager(t, 0, testutil.BaseTime)
 	due := testutil.BaseTime
@@ -88,6 +154,55 @@ func TestTutorial_Step2AdvancesOnlyWhenCreaturesReachZero(t *testing.T) {
 	manager.clock = testutil.NewFakeClock(testutil.BaseTime.Add(30 * time.Second))
 	require.NoError(t, manager.Tick(context.Background()))
 	require.Equal(t, 3, manager.snapshot.App.TutorialStep)
+}
+
+func TestTutorial_Step3UsesNormalSendAndTracksObserverPlane(t *testing.T) {
+	manager, repo := tutorialManager(t, 0, testutil.BaseTime)
+	require.NoError(t, manager.TutorialSignal(context.Background(), domain.TutorialSignalIntroCompleted, nil))
+	require.NoError(t, manager.TutorialSignal(context.Background(), domain.TutorialSignalPortalDetailsOpened, manager.snapshot.App.TutorialPortalID))
+	manager.clock = testutil.NewFakeClock(testutil.BaseTime.Add(30 * time.Second))
+	require.NoError(t, manager.Tick(context.Background()))
+	sendPortalID := *manager.snapshot.App.TutorialPortalID
+	planeID := manager.snapshot.Simulation.Portals[0].DestinationPlaneID
+
+	require.NoError(t, manager.SendObserver(context.Background(), sendPortalID, true))
+	require.Equal(t, 4, manager.snapshot.App.TutorialStep)
+	require.Equal(t, &planeID, manager.snapshot.App.TutorialPlaneID)
+	require.Equal(t, int64(1), *manager.snapshot.App.TutorialObserverID)
+	require.Equal(t, domain.ObserverOutbound, manager.snapshot.Simulation.Observers[0].Status)
+	require.Equal(t, &sendPortalID, manager.snapshot.Simulation.Observers[0].ActivePortalID)
+	require.NotEqual(t, sendPortalID, *manager.snapshot.App.TutorialPortalID)
+	require.Contains(t, eventTypes(repo.events), domain.EventObserverDispatched)
+	require.Equal(t, 100, manager.snapshot.Simulation.Lab.EnergyBase)
+}
+
+func TestTutorial_Step4SuccessfulStabilizeUsesNormalDebitEventsAndCreatesStep5Target(t *testing.T) {
+	manager, repo := tutorialManager(t, 4, testutil.BaseTime)
+	portal, err := domain.NewTutorialPortal(domain.TutorialPortalStep4, 1, 1, 1, testutil.BaseTime, manager.cfg)
+	require.NoError(t, err)
+	portalID, planeID := portal.ID, portal.DestinationPlaneID
+	manager.snapshot.Simulation.Portals = []domain.Portal{portal}
+	manager.snapshot.Simulation.NextPortalID = 2
+	manager.snapshot.App.TutorialPortalID = &portalID
+	manager.snapshot.App.TutorialPlaneID = &planeID
+	repo.snapshot = cloneSnapshot(manager.snapshot)
+
+	require.NoError(t, manager.Stabilize(context.Background(), portalID))
+	require.Equal(t, 80, manager.snapshot.Simulation.Lab.EnergyBase)
+	require.Equal(t, domain.PortalStable, manager.snapshot.Simulation.Portals[0].Stability)
+	risk, ok := manager.snapshot.Simulation.Portals[0].RiskLevel(testutil.BaseTime, manager.cfg)
+	require.True(t, ok)
+	require.Contains(t, []domain.RiskLevel{domain.RiskLow, domain.RiskMedium}, risk)
+	require.Equal(t, 5, manager.snapshot.App.TutorialStep)
+	require.NotEqual(t, portalID, *manager.snapshot.App.TutorialPortalID)
+	require.Equal(t, domain.RiskCritical, func() domain.RiskLevel {
+		level, _ := manager.snapshot.Simulation.Portals[1].RiskLevel(testutil.BaseTime, manager.cfg)
+		return level
+	}())
+	types := eventTypes(repo.events)
+	require.Contains(t, types, domain.EventPortalStabilized)
+	require.Contains(t, types, domain.EventRiskLevelChanged)
+	require.Contains(t, types, domain.EventPortalOpened)
 }
 
 func TestTutorial_CriticalRejectedSendCommitsActionRejectedAndStep6(t *testing.T) {
