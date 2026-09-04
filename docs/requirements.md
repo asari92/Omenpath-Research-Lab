@@ -194,6 +194,38 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | EMERGENCY-005 | BEH | Lab Energy продолжает +1/sec во время Override | §22 |
 | EMERGENCY-006 | BEH | Новый Collapse: Energy → 0 и deadline сбрасывается на now+20 sec | §22 |
 
+## SPAWN
+
+| ID | Type | Rule | Spec |
+|---|---|---|---|
+| SPAWN-001 | BAL | Natural spawn delay is inclusive random 0..20 sec | §7, §37 |
+| SPAWN-002 | BEH | Every successful spawn creates a fresh next delay unless capacity becomes full | §7 |
+| SPAWN-003 | BEH | At 7/7 generation pauses; after a Slot frees, a fresh delay starts | §5, §7 |
+| SPAWN-004 | BEH | Natural destination is random among the canonical 85 Planes | §3, §7 |
+| SPAWN-005 | BEH | Multiple OPEN Portals may target the same Plane | §3, §7 |
+| SPAWN-006 | BEH | At most one Natural spawn per tick; delay 0 becomes eligible on a later tick | §7, §33 |
+
+## SIMULATION
+
+| ID | Type | Rule | Spec |
+|---|---|---|---|
+| SIMULATION-001 | BEH | One-second simulation has a supplied-time deterministic domain step | §31, §33 |
+| SIMULATION-002 | BEH | Tick transition order follows the Stage 8 subset of §33 | §33 |
+| SIMULATION-003 | INV | Tick is atomic, monotonic and idempotent at the same timestamp | §32, §33 |
+| SIMULATION-004 | INV | Realtime Lab/Portal Energy, creatures and risk remain derived | §9, §12, §13, §34 |
+
+## ATTENTION
+
+| ID | Type | Rule | Spec |
+|---|---|---|---|
+| ATTENTION-001 | BEH | Highest internal risk_score wins | §6 |
+| ATTENTION-002 | BEH | Exact risk tie prefers UNSTABLE | §6 |
+| ATTENTION-003 | BEH | Remaining tie prefers lower effective_lifetime | §6 |
+| ATTENTION-004 | BEH | Remaining tie prefers older opened_at | §6 |
+| ATTENTION-005 | INV | Only OPEN Portals participate | §6, §13 |
+| ATTENTION-006 | INV | Complete technical tie uses lower Portal ID | §6, Stage 8 design S8-D8 |
+| ATTENTION-007 | INV | Selection does not sort or mutate stored Portals | §5, §6 |
+
 ## EVENT
 
 | ID | Type | Rule | Spec |

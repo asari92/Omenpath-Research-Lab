@@ -180,6 +180,38 @@
 | EMERGENCY-005 | Regen continues | BEH | `TestLabState_LabEnergyRegeneratesDuringOverride`, `TestLabState_OverrideRegenerationUsesCompletedWholeSeconds`, `TestLabState_OverrideRegenerationCapsAtMaximum`, `TestLabState_FreeCloseDoesNotInterruptRegeneration`, `TestLabState_FreeStabilizeDoesNotInterruptRegeneration` | `LabState.CurrentEnergy`, `effectiveCloseCost`, `effectiveStabilizeCost` | GREEN | Override reuses normal capped integer regeneration; free actions never re-baseline it |
 | EMERGENCY-006 | New collapse resets | BEH | `TestLabState_SecondCollapseResetsRegeneratedEnergyToZero`, `TestLabState_SecondCollapseRebasesAtSecondCollapse`, `TestLabState_SecondCollapseReplacesDeadline`, `TestLabState_SecondCollapseDoesNotExtendFromOldDeadline`, `TestResolvePortalLifecycleWithLabEmergency_SecondCollapseMayUseDifferentCause`, `TestLabState_OutOfOrderCollapseRejectsWithoutMutation`, `TestResolvePortalLifecycleWithLabEmergency_TwoPortalsResetTwice`, `TestResolvePortalLifecycleWithLabEmergency_ReplayOfSecondPortalIsIdempotent` | `LabState.ActivateLeylineOverride`, `ResolvePortalLifecycleWithLabEmergency` | GREEN | each chronologically new Collapse re-baselines to zero and replaces deadline; terminal replay is idempotent |
 
+## SPAWN
+
+| ID | Rule | Type | Test | Implementation | Status | Notes |
+|---|---|---|---|---|---|---|
+| SPAWN-001 | Inclusive random delay 0..20 sec | BAL | — | — | PLANNED | Stage 8 |
+| SPAWN-002 | Fresh delay after successful spawn | BEH | — | — | PLANNED | Stage 8 |
+| SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | — | — | PLANNED | Stage 8 |
+| SPAWN-004 | Random destination among 85 Planes | BEH | — | — | PLANNED | Stage 8 |
+| SPAWN-005 | Repeated Plane destinations allowed | BEH | — | — | PLANNED | Stage 8 |
+| SPAWN-006 | At most one spawn per tick | BEH | — | — | PLANNED | delay 0 waits a later tick |
+
+## SIMULATION
+
+| ID | Rule | Type | Test | Implementation | Status | Notes |
+|---|---|---|---|---|---|---|
+| SIMULATION-001 | One-second supplied-time domain step | BEH | — | — | PLANNED | actual ticker Stage 11 |
+| SIMULATION-002 | Ordered tick transition stages | BEH | — | — | PLANNED | Stage 8 subset of Final Spec §33 |
+| SIMULATION-003 | Atomic, monotonic, idempotent tick | INV | — | — | PLANNED | Stage 8 |
+| SIMULATION-004 | Realtime values stay derived | INV | — | — | PLANNED | Stage 8 domain boundary |
+
+## ATTENTION
+
+| ID | Rule | Type | Test | Implementation | Status | Notes |
+|---|---|---|---|---|---|---|
+| ATTENTION-001 | Highest risk_score | BEH | — | — | PLANNED | Stage 8 |
+| ATTENTION-002 | Risk tie prefers UNSTABLE | BEH | — | — | PLANNED | Stage 8 |
+| ATTENTION-003 | Then lower effective_lifetime | BEH | — | — | PLANNED | Stage 8 |
+| ATTENTION-004 | Then older opened_at | BEH | — | — | PLANNED | Stage 8 |
+| ATTENTION-005 | OPEN candidates only | INV | — | — | PLANNED | Stage 8 |
+| ATTENTION-006 | Complete tie uses lower Portal ID | INV | — | — | PLANNED | technical deterministic tie |
+| ATTENTION-007 | No sorting or mutation | INV | — | — | PLANNED | Stage 8 |
+
 ## EVENT
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
