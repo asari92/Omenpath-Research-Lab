@@ -1,156 +1,168 @@
-# Stage 8 Corrective Pass — Design
+# Corrective pass Stage 8 — дизайн
 
-## Purpose
+## Цель
 
-Correct the three verified Stage 8 integration defects before Stage 9 starts,
-without broadening the pass into Events, persistence, LabManager, transport or
-frontend work. The Final Spec remains the product source of truth.
+Исправить три подтверждённых интеграционных дефекта Stage 8 до начала Stage 9,
+не расширяя работу на Events, persistence, LabManager, transport или frontend.
+Final Spec остаётся единственным источником продуктовой семантики.
 
-## Scope
+## Граница работы
 
-This pass owns:
+Corrective pass включает:
 
-- chronological `Plane.ExploredAt` when multiple Observer returns are resolved
-  by one late tick;
-- late-tick coordination of multiple due Extraction synchronizations;
-- complete Stage 8 aggregate validation for Portal and Observer canonical
-  fields;
-- consistency updates to the Stage 8 plan, requirements, traceability and
-  worklog;
-- explicit tracking of the known Recommendation Engine contract and its
+- корректный хронологический `Plane.ExploredAt`, когда один поздний тик
+  разрешает несколько возвратов Observer;
+- согласованную обработку нескольких просроченных Extraction-синхронизаций;
+- полную обещанную Stage 8 валидацию canonical полей Portal и Observer;
+- синхронизацию Stage 8 plan, requirements, traceability и worklog;
+- явный учёт известного контракта Recommendation Engine и блокирующего
   product-definition gate.
 
-This pass does not implement Stage 9, restart recovery, a real one-second
-ticker, concurrency, persistence, APIs, WebSockets, UI, or the Recommendation
-selection algorithm.
+В corrective pass не входят Stage 9, restart recovery, реальный секундный
+ticker, concurrency, persistence, API, WebSocket, UI и алгоритм выбора
+Recommendation.
 
-## Chosen approach
+## Выбранный подход
 
-Use a targeted correction that preserves the public domain APIs and the Final
-Spec tick-stage order. Do not replace the tick with a global chronological
-event queue: that would overlap Stage 9 and change substantially more completed
-behavior than the verified defects require.
+Используется точечная коррекция с сохранением публичных domain API и порядка
+стадий тика из Final Spec. Общая хронологическая очередь событий не вводится:
+это пересеклось бы со Stage 9 и изменило бы существенно больше завершённого
+поведения, чем требуют найденные дефекты.
 
-### Earliest exploration timestamp
+### Самый ранний timestamp исследования Plane
 
-Observer traversal remains deterministic and does not reorder the stored
-slice. For every Plane that is UNEXPLORED at the start of the Observer stage,
-the stage records all successful RETURNING completions resolved by that tick.
-After traversal, the Plane receives the earliest semantic return deadline.
+Обход Observers остаётся детерминированным и не меняет порядок хранимого slice.
+Для каждого Plane, который был UNEXPLORED в начале Observer stage, собираются
+все успешные завершения RETURNING, разрешённые текущим тиком. После обхода Plane
+получает самый ранний семантический deadline возврата.
 
-An already EXPLORED Plane retains its original `ExploredAt`, including when a
-later tick resolves another return whose stored deadline is older. This
-preserves the established repeat-return idempotence contract while removing
-Observer-ID dependence for simultaneous catch-up.
+Если Plane уже был EXPLORED до начала тика, его исходный `ExploredAt`
+сохраняется даже тогда, когда очередной разрешённый return содержит более
+ранний timestamp. Это сохраняет действующий контракт идемпотентного повторного
+возврата и одновременно убирает зависимость первого исследования от Observer
+ID.
 
-### Multiple late Extraction synchronizations
+### Несколько поздних Extraction-синхронизаций
 
-Strict stale-transit validation remains part of public SEND/RECALL command
-admission. The Simulation tick already performs complete aggregate preflight
-and therefore uses a prepared Extraction synchronization path that does not
-re-run command-time freshness checks after each earlier synchronization has
-mutated the working roster.
+Строгая проверка stale transit остаётся частью публичного допуска SEND/RECALL.
+Simulation tick уже выполняет полную aggregate preflight-проверку, поэтому
+использует внутренний prepared-path Extraction synchronization. Этот путь не
+повторяет command-time freshness validation после каждой предыдущей
+синхронизации, изменившей рабочую копию roster.
 
-Extraction Portals remain visited by ascending Portal ID. Every due Portal
-reselects the current longest-waiting Observer. An Observer selected by an
-earlier Portal is RETURNING and cannot be selected again, so multiple due
-Portals select distinct candidates while candidates exist.
+Extraction Portals по-прежнему обходятся по возрастанию Portal ID. Каждый due
+Portal заново выбирает текущего longest-waiting Observer. Observer, которого
+уже выбрал предыдущий Portal, имеет статус RETURNING и не может быть выбран
+повторно. Поэтому несколько due Portals получают разных кандидатов, пока они
+существуют.
 
-The Observer stage remains before the Extraction stage. Consequently, a return
-started during a late Extraction stage remains RETURNING until the next tick,
-even when its semantic transit deadline is already at or before the current
-`now`. The following tick catches it up. This follows the defined stage order
-and avoids introducing a second Observer pass.
+Observer stage остаётся перед Extraction stage. Следовательно, возврат,
+запущенный поздней Extraction-синхронизацией, остаётся RETURNING до следующего
+тика даже тогда, когда его семантический transit deadline уже не позже
+текущего `now`. Следующий тик догоняет этот переход. Так сохраняется
+утверждённый порядок стадий без второго Observer pass.
 
-The public `ResolveExtractionSynchronization` contract remains strict and
-atomic for direct callers. Shared internal preparation code may be extracted,
-but the command path must retain all Stage 7 error identities and random-draw
-behavior.
+Публичный `ResolveExtractionSynchronization` сохраняет строгую атомарность и
+валидацию прямых вызовов. Общая внутренняя подготовленная логика может быть
+выделена, но command-path обязан сохранить все Stage 7 error identities и
+порядок расходования random.
 
 ### Aggregate validation
 
-`SimulationState.ResolveTick` rejects malformed state before mutation or random
-consumption. Portal validation will cover:
+`SimulationState.ResolveTick` отклоняет malformed state до мутации и
+расходования random.
 
-- positive identity, destination reference, and Slot in `1..7` for historical
-  as well as OPEN records;
-- recognized kind, status, stability, flow and termination enums;
-- ordered creation/opening/update, energy-baseline, lifecycle and terminal
-  timestamps relative to the requested tick time;
-- positive decay, bounded energy and creature baselines;
-- STABLE implies no hidden collapse timestamp, including after stabilization;
-  UNSTABLE requires a hidden timestamp inside its legal lifetime window;
-- NATURAL has no Extraction marker;
-- EXTRACTION is STABLE, INBOUND and creature-free;
-- a completed Extraction marker equals `OpenedAt + ExtractionSync`;
-- OPEN records have no terminal fields, while terminal status, reason and
-  `ClosedAt` agree with the applicable lifecycle outcome.
+Plane и scheduler validation проверяют:
 
-Observer validation will retain due phases as legal input while checking:
+- положительные уникальные Plane ID;
+- согласованность `Explored` и `ExploredAt`;
+- `ExploredAt` не находится в будущем;
+- активный scheduler имеет оба timestamp, `ScheduledAt <= DueAt` и
+  `ScheduledAt <= now`;
+- paused scheduler не содержит timestamp.
 
-- positive unique identity and resolvable Plane/Portal references;
-- canonical status-dependent optional fields;
-- ordered `CreatedAt`, `UpdatedAt`, `PhaseStartedAt` and `PhaseEndsAt` values;
-- phase starts are not in the future, while phase ends may be due;
-- OUTBOUND and RETURNING active portals have the compatible permanent flow;
-- RETURNING Plane matches the active Portal destination.
+Portal validation проверяет:
 
-Validation must continue to accept terminal Portals referenced by unresolved
-transits, because the ordered tick needs to turn those Observers into LOST.
+- положительный ID, существующий destination и Slot в диапазоне `1..7` для
+  OPEN и исторических записей;
+- известные kind, status, stability, flow и termination enums;
+- положительную длительность lifecycle и упорядоченные timestamps создания,
+  открытия, energy baseline, update и terminal transition;
+- energy baseline в `0..100`, положительный decay и creatures baseline в
+  `0..cfg.CreatureMax`;
+- STABLE не имеет hidden collapse timestamp, включая состояние после
+  стабилизации; UNSTABLE имеет hidden timestamp внутри допустимого окна;
+- NATURAL не имеет Extraction marker;
+- EXTRACTION всегда STABLE, INBOUND и без creatures;
+- завершённый Extraction marker равен `OpenedAt + ExtractionSync`;
+- OPEN не имеет terminal fields, а terminal status, reason и `ClosedAt`
+  согласованы с соответствующим lifecycle outcome.
 
-## Documentation consistency
+Observer validation сохраняет due phase как допустимый вход и проверяет:
 
-The Stage 8 execution plan will be corrected so Observer-ID traversal is no
-longer allowed to determine the exploration timestamp. Its invariant and test
-sections will describe the new regression cases.
+- положительный уникальный ID и разрешимые ссылки Plane/Portal;
+- canonical набор optional fields для каждого статуса;
+- `CreatedAt <= UpdatedAt <= now`;
+- `PhaseStartedAt <= now`, а `PhaseEndsAt` строго позже старта, но может
+  быть due;
+- OUTBOUND и RETURNING ссылаются на Portal совместимого постоянного flow;
+- Plane RETURNING Observer совпадает с destination активного Portal.
 
-`docs/requirements.md` will distinguish global Extraction availability from
-selected-Plane eligibility. Traceability statuses and notes affected by the
-three defects will be made conservative until their new tests are GREEN.
-`01_AI_WORKLOG_CURRENT.md` will record the audit, RED/GREEN commits, actual
-implementation choices and final verification.
+Terminal Portal может оставаться ссылкой незавершённого transit: ordered tick
+должен принять такое состояние и перевести Observer в LOST.
 
-The known Recommendation contracts will be catalogued as PLANNED:
+## Согласованность документации
 
-- deterministic and without a runtime LLM;
-- limited to the Final Spec output enum;
-- informational rather than an action restriction;
-- exposed only in Portal Details.
+Stage 8 execution plan исправляется так, чтобы Observer-ID traversal больше не
+определял exploration timestamp. В разделы invariants и tests добавляются новые
+regression cases.
 
-The selection decision table is absent from the Final Spec. Before the Stage 12
-or Stage 17 detailed plan may implement Recommendation, the product semantics
-must be approved and added to the Final Spec. This corrective pass does not
-invent that algorithm.
+`docs/requirements.md` разделяет глобальную доступность Extraction и
+eligibility выбранного Plane. Затронутые статусы и примечания traceability
+приводятся к доказанному состоянию. `01_AI_WORKLOG_CURRENT.md` фиксирует
+аудит, RED/GREEN commits, принятые решения и итоговую верификацию.
 
-## TDD and commit structure
+Известные контракты Recommendation добавляются со статусом PLANNED:
 
-Use isolated RED/GREEN history for:
+- deterministic, без runtime LLM;
+- результат принадлежит закрытому enum из Final Spec;
+- рекомендация информационная и не блокирует действия;
+- показывается только в Portal Details.
 
-1. earliest exploration timestamp;
-2. multiple late Extraction synchronization;
+Final Spec не содержит decision table выбора Recommendation. До составления
+детального плана Stage 12 или Stage 17 продуктовая семантика должна быть
+согласована и добавлена в Final Spec. Corrective pass не изобретает этот
+алгоритм.
+
+## TDD и структура commits
+
+Отдельная RED/GREEN history сохраняется для:
+
+1. самого раннего exploration timestamp;
+2. нескольких поздних Extraction synchronization;
 3. canonical aggregate validation.
 
-Each RED commit contains only compiling tests and necessary documentation of
-the expected rule. Each GREEN commit contains the minimal production change.
-After all three cycles, run focused tests, the full tests, race detector,
-formatting, vet and build. Then update traceability/worklog in a final docs
-commit. Stage 9 remains unstarted.
+Каждый RED commit содержит только компилирующиеся тесты и необходимое уточнение
+ожидаемого правила. Каждый GREEN commit содержит минимальное production
+изменение. После трёх циклов выполняются focused tests, полный test suite, race
+detector, formatting, vet и build. Затем traceability/worklog обновляются
+отдельным docs commit. Stage 9 не начинается.
 
-## Acceptance criteria
+## Критерии приёмки
 
-- A late tick with two successful returns to one previously unexplored Plane
-  records the earlier return deadline regardless of Observer IDs or slice
+- Поздний тик с двумя успешными возвратами в один ранее UNEXPLORED Plane
+  записывает более ранний return deadline независимо от Observer ID и slice
   order.
-- A previously explored Plane never has its established exploration timestamp
-  rewritten by a repeated return.
-- Multiple due Extraction Portals cannot fail merely because an earlier Portal
-  in the same Extraction stage created a transit whose semantic end is already
-  due.
-- Each due Extraction Portal remains one-shot and each automatic return selects
-  a currently waiting Observer at most once.
-- Every canonical invariant promised by the Stage 8 plan has a rejection test;
-  malformed input is atomic and draw-free.
-- Existing Stage 0–8 tests and public domain error contracts remain GREEN.
-- Recommendation remains explicitly blocked on product definition rather than
-  receiving invented behavior.
-- No Stage 9 implementation is introduced.
+- Уже EXPLORED Plane никогда не теряет первоначальный exploration timestamp
+  из-за повторного возврата.
+- Несколько due Extraction Portals не приводят к ошибке только потому, что
+  предыдущий Portal в том же Extraction stage создал уже due transit.
+- Каждый due Extraction Portal остаётся one-shot, а каждый автоматический
+  return не более одного раза выбирает текущего waiting Observer.
+- Каждый canonical invariant, обещанный Stage 8 plan, имеет rejection test;
+  malformed input отклоняется атомарно и без random draw.
+- Существующие Stage 0–8 tests и публичные domain error contracts остаются
+  GREEN.
+- Recommendation явно заблокирован на product definition вместо придуманной
+  реализации.
+- Stage 9 implementation не появляется.
