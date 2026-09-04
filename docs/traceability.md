@@ -165,7 +165,7 @@
 | EXTRACTION-005 | Energy 60..100 | BAL | `TestNewExtractionPortal_AcceptsMinimumEnergy`, `TestNewExtractionPortal_AcceptsMaximumEnergy` | `NewExtractionPortal` | GREEN | inclusive configured factory draw |
 | EXTRACTION-006 | TTL 30..60 | BAL | `TestNewExtractionPortal_AcceptsMinimumTTL`, `TestNewExtractionPortal_AcceptsMaximumTTL` | `NewExtractionPortal` | GREEN | inclusive configured whole-second TTL draw |
 | EXTRACTION-007 | Sync 5 sec | BEH | `TestResolveExtractionSynchronization_BeforeDeadlineChangesNothing`, `TestResolveExtractionSynchronization_AtDeadlineCompletes`, `TestResolveExtractionSynchronization_LateResolutionUsesSemanticDeadline` | `ResolveExtractionSynchronization`, `Portal.ExtractionSynchronizedAt` | GREEN | half-open five-second sync uses semantic deadline and terminal no-op |
-| EXTRACTION-008 | First auto-return | BEH | — | — | PLANNED | |
+| EXTRACTION-008 | First auto-return | BEH | `TestResolveExtractionSynchronization_StartsLongestWaitingReturn`, `TestResolveExtractionSynchronization_OriginalLongestGoneSelectsNextWaiting`, `TestResolveExtractionSynchronization_UsesSyncDeadlineAsPhaseStart`, `TestResolveExtractionSynchronization_DrawsTransitDurationExactlyOnce` | `ResolveExtractionSynchronization`, `RecallObserver`, `Observer.StartReturning` | GREEN | sync reselects current longest waiter and atomically starts one semantic-time transit |
 | EXTRACTION-009 | Only one automatic | BEH | `TestResolveExtractionSynchronization_AtDeadlineCompletes` | `Portal.ExtractionSynchronizedAt`, `ResolveExtractionSynchronization` | PARTIAL | one-shot marker exists; automatic return and replay coverage complete in checkpoints E/F |
 | EXTRACTION-010 | Further returns manual | BEH | — | — | PLANNED | |
 

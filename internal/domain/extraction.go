@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -166,9 +167,27 @@ func ResolveExtractionSynchronization(
 	if now.Before(syncAt) {
 		return 0, false, nil
 	}
-	next := *portal
-	next.ExtractionSynchronizedAt = &syncAt
-	next.UpdatedAt = syncAt
-	*portal = next
-	return 0, true, nil
+	nextPortal := *portal
+	nextPortal.ExtractionSynchronizedAt = &syncAt
+	nextPortal.UpdatedAt = syncAt
+	nextObservers := append([]Observer(nil), observers...)
+
+	_, waiting, err := LongestWaitingObserverIndex(nextObservers, plane.ID)
+	if err != nil {
+		return 0, false, err
+	}
+	if waiting && rnd == nil {
+		return 0, false, ErrExtractionInvariant
+	}
+	observerID, err := RecallObserver(&nextPortal, plane, nextObservers, syncAt, false, rnd, cfg)
+	if errors.Is(err, ErrNoWaitingObserver) {
+		*portal = nextPortal
+		return 0, true, nil
+	}
+	if err != nil {
+		return 0, false, err
+	}
+	*portal = nextPortal
+	copy(observers, nextObservers)
+	return observerID, true, nil
 }
