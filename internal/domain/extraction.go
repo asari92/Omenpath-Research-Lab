@@ -137,8 +137,7 @@ func validateExtractionPortalCollection(portals []Portal, newID int64, maxSlots 
 }
 
 // ResolveExtractionSynchronization completes an Extraction portal's one-shot
-// synchronization at its semantic deadline. Automatic return is added by the
-// next TDD checkpoint.
+// synchronization and automatic return attempt at its semantic deadline.
 func ResolveExtractionSynchronization(
 	portal *Portal,
 	plane *Plane,
@@ -150,9 +149,6 @@ func ResolveExtractionSynchronization(
 	if portal == nil || plane == nil || portal.Kind != PortalKindExtraction ||
 		portal.DestinationPlaneID != plane.ID || cfg.ExtractionSync <= 0 {
 		return 0, false, ErrExtractionInvariant
-	}
-	if err := validateObserverRoster(observers, now); err != nil {
-		return 0, false, err
 	}
 	if portal.IsTerminal() {
 		return 0, false, nil
@@ -166,6 +162,9 @@ func ResolveExtractionSynchronization(
 	}
 	if now.Before(syncAt) {
 		return 0, false, nil
+	}
+	if err := validateObserverRoster(observers, now); err != nil {
+		return 0, false, err
 	}
 	nextPortal := *portal
 	nextPortal.ExtractionSynchronizedAt = &syncAt
