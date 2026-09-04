@@ -240,8 +240,10 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | API-001..011 | REST endpoints, confirm flow, 409 | BEH | — | — | PLANNED | детализация Stage 12 |
-| WS-001..003 | /ws/lab, ~1/sec snapshot, immediate after action | BEH | — | — | PLANNED | детализация Stage 13 |
-| UI-001..007 | Dashboard/Details/Log/Worklog contracts | UI | — | — | PLANNED | детализация Stage 15–21 |
+| WS-001, WS-003 | `/ws/lab` and immediate post-action snapshot | BEH | — | — | PLANNED | transport work remains Stage 13 |
+| WS-002 | Broadcast authoritative snapshot ~1/sec | BEH | — | — | PLANNED | Stage 8 supplies only a pure deterministic domain step; ticker/broadcast ownership remains Stages 11/13 |
+| UI-001..006 | Dashboard/Details/Log/Worklog contracts except attention selection | UI | — | — | PLANNED | frontend work remains Stages 15–21 |
+| UI-007 | Needs Attention selects one priority Portal without exposing risk number | UI | `TestNeedsAttentionPortalIndex_SelectsHighestRiskScore`, `TestSimulationTick_NeedsAttentionUsesPostSpawnState` | `NeedsAttentionPortalIndex`, `SimulationTickResult.NeedsAttentionPortalID` | PARTIAL | backend selection identity is GREEN; frontend rendering and hidden-number contract remain Stages 15/16 |
 | PERSIST-001..004 | SQLite tables, no per-sec writes, recovery | BEH | — | — | PLANNED | детализация Stage 10 |
 
 ---

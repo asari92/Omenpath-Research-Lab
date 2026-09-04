@@ -726,3 +726,116 @@ terminal/pre-deadline no-op теперь проверяются до roster vali
   LabManager dependencies.
 
 Stage 8 не начат.
+
+## Stage 8 — Simulation Engine via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Реализация выполнена строго по
+  `10_STAGE_08_SIMULATION_TDD.md` поверх завершённого Stage 7.
+- Рабочая ветка начата от чистого `main` на `d161442`. Baseline
+  `gofmt`/vet/test/race прошёл; `go build ./...` в sandbox внешнего worktree
+  не смог прочитать Git VCS metadata, а тот же build с разрешённым доступом
+  завершился с exit 0. Это была особенность sandbox, не ошибка проекта.
+- Блокирующих противоречий между Stage 8 plan, approved design и Final Spec
+  §§3, 5–13, 22, 31–34, 37 не найдено. Сохранены утверждённые правила:
+  inclusive delay 0..20 sec, максимум один Natural spawn за тик, hard cap
+  семь OPEN Portals и fresh delay после освобождения Slot.
+- Реализован только Stage 8 pure domain scope. Stage 9 Events, persistence,
+  реальный ticker, LabManager/mutex, transport, snapshots и frontend не
+  начинались.
+
+### Что реализовано
+
+- Добавлены `SimulationState`, `NaturalSpawnState`, `NaturalSpawnResult`,
+  `SimulationTickResult`, `ErrSimulationInvariant`, `NewNaturalSpawnState`,
+  `ResolveNaturalSpawn`, `NeedsAttentionPortalIndex` и
+  `SimulationState.ResolveTick`.
+- Natural Generator использует inclusive целосекундный delay 0..20, считает
+  только OPEN Portals, при 7/7 очищает timer и ставится на паузу. Первый тик
+  после освобождения Slot только рисует fresh delay; даже delay 0 не создаёт
+  Portal до более позднего тика. Один тик создаёт максимум один Portal.
+- Due spawn повторно проверяет cap, берёт первый свободный regular Slot,
+  выбирает destination index из всех 85 Planes, допускает повторный Plane,
+  использует `NextPortalID` и существующий `NewNaturalPortal` без изменения
+  factory ranges/draw order. Исторические terminal записи и порядок слайсов
+  сохраняются.
+- Tick работает copy-then-commit и выполняет стадии строго в порядке:
+  Portal lifecycle → Observer lifecycle по ID → Extraction synchronization
+  по Portal ID → Natural spawn → Needs Attention по финальному состоянию.
+  Cross-Portal Collapse применяется по semantic `ClosedAt`, затем Portal ID,
+  поэтому slice order не влияет на последний Leyline reset.
+- Due Observer phases разрешены structural preflight и догоняются существующим
+  `ResolveObserverLifecycle`; Portal termination раньше transit корректно даёт
+  LOST, а успешный return исследует Plane в semantic deadline.
+- Extraction сохраняет Stage 7 one-shot marker и на sync заново выбирает
+  текущего longest-waiting Observer. Research completion в этот же timestamp
+  может сразу попасть в auto-return; первоначально ожидавшийся, но уже ушедший
+  Observer не резервируется.
+- Same-timestamp replay является неизменяющим и draw-free; reverse time,
+  malformed aggregate или обязательная конфигурация отклоняются до мутаций и
+  randomness. Derived Lab/Portal Energy, creatures и risk не сохраняются.
+- Needs Attention выбирает только OPEN Portal по цепочке: максимальный current
+  risk score → UNSTABLE → меньший effective lifetime → более старый opened_at
+  → меньший Portal ID. Возвращается исходный slice index; сортировки/мутации
+  нет, numeric risk в tick result не публикуется.
+- Добавлено 162 top-level Stage 8 теста в восьми `simulation*_test.go` файлах.
+  Автоматический audit обязательных test names checkpoints A–H не нашёл
+  пропусков.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — state/scheduler invariants | `6c6f494` — отсутствовали simulation types/API/error | `bd9b40a` |
+| B — Needs Attention | `2dd00dc` — отсутствовал selector | `e4c0f23` |
+| C — pause/resume scheduler | `ea4a8ff` — отсутствовал Natural scheduler resolver | `4037a09` |
+| D — due Natural spawn | `bb15047` — due branch не создавал Portal | `403ab4e` |
+| E — Portal tick | `0326d80` — tick не разрешал Portal lifecycle/Collapse | `a27caf3` |
+| F — Observer tick | `8891861` — tick не продвигал Observer phases | `695bc11` |
+| G — Extraction tick | `461a01e` — sync оставался pending | `ea6e8c8` |
+| H — full regressions | все 22 обязательных теста сразу GREEN characterization | `6d4df54` |
+| Corrective — config preflight | `7be2f0e` — malformed required config проходил и мог расходовать random | `1e58efe` |
+
+Checkpoint H намеренно не получил искусственный RED: полный порядок стадий,
+cap, replay, large jumps, atomic failure и post-spawn Attention уже следовали
+из checkpoints A–G. Финальный self-review затем нашёл отдельный реальный
+config-preflight defect; он зафиксирован собственной RED/GREEN парой.
+
+### Решения, ошибки и corrective passes
+
+- Для checkpoint A `ResolveTick` был введён как validation/no-op shell, чтобы
+  state invariants имели вызываемую public boundary; реальное поведение
+  добавлялось checkpoints E–G.
+- До RED-коммитов были исправлены только дефекты тестовых fixtures: конфликт
+  helper names с тестами Stage 3 и два nil-pointer assertion path. В Git
+  сохранены чистые behavioral RED, а не compile/panic noise.
+- Финальный review обнаружил, что tick проверял spawn config, но не все
+  Stage 2–7 диапазоны и подавлял ошибку Attention derivation. Добавлен
+  `validSimulationConfig`; malformed Portal/Observer/Extraction/Emergency/Risk
+  config теперь отклоняется атомарно до draw.
+- Production randomness order закреплён тестами: Extraction transit draw
+  предшествует Natural destination; затем без изменений идут Natural factory
+  draws; fresh spawn delay рисуется последним. При 7-м OPEN Portal следующий
+  delay не рисуется.
+
+### Traceability и verification
+
+- В requirements catalog добавлены `SPAWN-001..006`,
+  `SIMULATION-001..004`, `ATTENTION-001..007` как прямые отображения Final
+  Spec без изменения product semantics.
+- `SPAWN-001..006`, `SIMULATION-002..004`, `ATTENTION-001..007`, `SLOT-006`
+  и `PLANE-003` имеют GREEN. `SIMULATION-001` остаётся PARTIAL: domain step
+  завершён, настоящий one-second ticker принадлежит Stage 11.
+- `PLANE-004`, `PORTAL-001/002`, `SLOT-004` и `UI-007` остаются PARTIAL на
+  явно описанных будущих границах. `WS-002`, `EVENT-001..005` и `PERSIST-*`
+  остаются PLANNED.
+- Финальный scope scan production `simulation*.go` не нашёл wall clock,
+  ticker/sleep, HTTP/database/mutex/WebSocket, Event/ACTION_REJECTED или
+  persistence dependencies. `internal/engine/manager.go` и
+  `internal/domain/event.go` не менялись.
+- После checkpoint H и corrective GREEN выполнены `gofmt -l .` (пусто),
+  `go vet ./...`, `go build ./...`, `go test -count=1 ./...` и
+  `go test -race -count=1 ./...`; все завершились с exit 0.
+
+Stage 9 не начат.
