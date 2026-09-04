@@ -17,15 +17,65 @@ import (
 func TestManagerRun_ConsumesInjectedTicksUntilContextCancel(t *testing.T) {
 	base := testutil.BaseTime
 	manager, _ := newTestManager(t, managerSnapshot(base), base)
+	ticks := make(chan time.Time)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- manager.Run(ctx, ticks) }()
+
+	ticks <- base.Add(time.Second)
+	select {
+	case <-manager.Updates():
+	case <-time.After(time.Second):
+		t.Fatal("manager did not consume injected tick")
+	}
+	cancel()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("manager did not stop promptly after context cancellation")
+	}
+	require.Equal(t, base.Add(time.Second), *manager.snapshot.Simulation.LastTickAt)
+}
+
+func TestManagerRun_StaleTickIsNoOpAndLaterTickRuns(t *testing.T) {
+	base := testutil.BaseTime
+	latest := base.Add(2 * time.Second)
+	snapshot := managerSnapshot(base)
+	snapshot.Simulation.LastTickAt = &latest
+	manager, repo := newTestManager(t, snapshot, latest)
 	ticks := make(chan time.Time, 2)
 	ticks <- base.Add(time.Second)
-	ticks <- base.Add(2 * time.Second)
+	ticks <- base.Add(3 * time.Second)
 	close(ticks)
 
 	err := manager.Run(context.Background(), ticks)
 
 	require.NoError(t, err)
-	require.Equal(t, base.Add(2*time.Second), *manager.snapshot.Simulation.LastTickAt)
+	require.Equal(t, base.Add(3*time.Second), *manager.snapshot.Simulation.LastTickAt)
+	require.Empty(t, repo.commits)
+	require.Len(t, manager.updates, 1, "only the later valid tick may signal")
+}
+
+func TestManagerTick_StaleClockIsNoOpWithoutSignal(t *testing.T) {
+	base := testutil.BaseTime
+	latest := base.Add(2 * time.Second)
+	snapshot := managerSnapshot(base)
+	snapshot.Simulation.LastTickAt = &latest
+	manager, repo := newTestManager(t, snapshot, base.Add(time.Second))
+	want := cloneTestSnapshot(manager.snapshot)
+
+	err := manager.Tick(context.Background())
+
+	require.NoError(t, err)
+	require.Equal(t, want, manager.snapshot)
+	require.Empty(t, repo.commits)
+	select {
+	case <-manager.Updates():
+		t.Fatal("stale tick must not signal")
+	default:
+	}
 }
 
 func TestManagerTick_SignalsEvenWithoutMeaningfulDatabaseWrite(t *testing.T) {
