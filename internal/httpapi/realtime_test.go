@@ -27,6 +27,7 @@ type realtimeManager struct {
 	events   []domain.Event
 	updates  chan struct{}
 	reject   error
+	states   int
 }
 
 func newRealtimeManager() *realtimeManager {
@@ -36,6 +37,7 @@ func newRealtimeManager() *realtimeManager {
 func (m *realtimeManager) State(context.Context) (persistence.Snapshot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.states++
 	return m.snapshot, nil
 }
 
@@ -83,6 +85,12 @@ func (m *realtimeManager) RecallObserver(context.Context, int64, bool) error {
 	return m.command()
 }
 func (m *realtimeManager) OpenExtraction(context.Context, int64) error { return m.command() }
+
+func (m *realtimeManager) stateCalls() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.states
+}
 
 func realtimeURL(serverURL string) string {
 	return "ws" + strings.TrimPrefix(serverURL, "http") + "/ws/lab"
@@ -151,4 +159,43 @@ func TestWebSocket_RejectedDomainActionBroadcastsPersistedEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, domain.EventActionRejected, events[0].EventType)
+}
+
+func TestRouterClose_OwnsWebSocketLifecycle(t *testing.T) {
+	manager := newRealtimeManager()
+	router, err := NewRouter(manager, config.Default())
+	require.NoError(t, err)
+	server := httptest.NewServer(router)
+	t.Cleanup(server.Close)
+	conn := connectRouterWebSocket(t, server.URL)
+	_ = receiveRouterSnapshot(t, conn)
+
+	closer, ok := any(router).(interface{ Close() })
+	require.True(t, ok, "router must expose lifecycle ownership")
+	if !ok {
+		return
+	}
+	require.NotPanics(t, func() {
+		closer.Close()
+		closer.Close()
+	})
+
+	readCtx, cancelRead := context.WithTimeout(context.Background(), time.Second)
+	defer cancelRead()
+	var snapshot transport.StateSnapshot
+	require.Error(t, wsjson.Read(readCtx, conn, &snapshot), "Close must promptly disconnect an active client")
+
+	readsAfterClose := manager.stateCalls()
+	manager.updates <- struct{}{}
+	require.Never(t, func() bool { return manager.stateCalls() != readsAfterClose }, 100*time.Millisecond, 10*time.Millisecond)
+
+	dialCtx, cancelDial := context.WithTimeout(context.Background(), time.Second)
+	defer cancelDial()
+	reconnected, response, err := websocket.Dial(dialCtx, realtimeURL(server.URL), nil)
+	if reconnected != nil {
+		_ = reconnected.CloseNow()
+	}
+	require.Error(t, err)
+	require.NotNil(t, response)
+	require.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
 }
