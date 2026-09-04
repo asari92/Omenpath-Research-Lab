@@ -622,9 +622,9 @@ Stage 10 не запускает ticker, HTTP server или WebSocket.
 
 ### Checkpoint 11A — ownership, resolve-first, atomic commit
 
-- [ ] Заменить skeleton `manager.go`; добавить `repository.go` и
+- [x] Заменить skeleton `manager.go`; добавить `repository.go` и
   `manager_commands.go`.
-- [ ] Создать controllable fake repository и tests:
+- [x] Создать controllable fake repository и tests:
   `TestNewLabManager_LoadsPersistedSnapshot`,
   `TestManagerTick_CommitsStateAndEventsAtomically`,
   `TestManagerTick_PersistenceFailureKeepsMemoryUnchanged`,
@@ -635,17 +635,17 @@ Stage 10 не запускает ticker, HTTP server или WebSocket.
   `TestManagerMalformedTransportIsOutsideDomainBoundary`,
   `TestManagerState_ReturnsDeepCopy`,
   `TestManagerPortal_ReturnsFilteredSharedHistory`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage11): RED manager ownership and resolve-first transactions`.
-- [ ] Реализовать clone/apply/commit/publish template и все команды.
-- [ ] Не откатывать catch-up state при domain rejection; возвращать исходную
+- [x] Реализовать clone/apply/commit/publish template и все команды.
+- [x] Не откатывать catch-up state при domain rejection; возвращать исходную
   domain error после успешного persistence.
-- [ ] Commit GREEN:
+- [x] Commit GREEN:
   `feat(stage11): GREEN manager ownership and resolve-first transactions`.
 
 ### Checkpoint 11B — ticker, signals и races
 
-- [ ] Добавить tests:
+- [x] Добавить tests:
   `TestManagerRun_ConsumesInjectedTicksUntilContextCancel`,
   `TestManagerTick_SignalsEvenWithoutMeaningfulDatabaseWrite`,
   `TestManagerAction_SignalsAfterSuccessAndRejection`,
@@ -654,17 +654,17 @@ Stage 10 не запускает ticker, HTTP server или WebSocket.
   `TestManagerConcurrentTicks_DoNotDuplicateEvents`,
   `TestManagerConcurrentOpenings_KeepUniqueIDsAndSlots`,
   `TestManagerConcurrentReadsAndWrites_ReturnConsistentSnapshots`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage11): RED manager ticker updates and concurrency`.
-- [ ] Реализовать `Run`, coalescing signal и synchronization.
-- [ ] Запустить:
+- [x] Реализовать `Run`, coalescing signal и synchronization.
+- [x] Запустить:
   `go test -count=1 ./internal/engine`,
   `go test -race -count=1 ./internal/engine`,
   `go test -count=1 ./...`.
-- [ ] `EVENT-001`, `EVENT-003`, `EVENT-010`, `PERSIST-003`, `PERSIST-004`,
+- [x] `EVENT-001`, `EVENT-003`, `EVENT-010`, `PERSIST-003`, `PERSIST-004`,
   `SIMULATION-001`, `PORTAL-001`, `PORTAL-002`, `WS-002` backend boundary
   обновить до фактически доказанного GREEN/PARTIAL.
-- [ ] Worklog + GREEN commit:
+- [x] Worklog + GREEN commit:
   `feat(stage11): GREEN serialized lab manager and simulation loop`.
 
 Stage 11 не содержит HTTP status codes или JSON DTO.
@@ -1006,7 +1006,7 @@ git status --short
   drafts доказаны tests.
 - [x] Stage 10: schema, 85-plane seed, atomic persistence и restart recovery
   доказаны tests.
-- [ ] Stage 11: resolve-first manager, exactly-one transitions, ticker и race
+- [x] Stage 11: resolve-first manager, exactly-one transitions, ticker и race
   safety доказаны tests.
 - [ ] Stage 12: reads/commands/errors и полная deterministic Recommendation
   decision table реализованы; значение присутствует только в Portal Details.

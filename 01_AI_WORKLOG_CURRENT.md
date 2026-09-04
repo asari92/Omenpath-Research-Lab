@@ -1142,4 +1142,60 @@ adversarial review passes дали пять отдельных RED/GREEN correct
 - `go build ./...` — exit 0.
 - `go test -count=1 ./...` — exit 0.
 
-Stage 10 завершён. Stage 11 не начат.
+Stage 10 завершён. Stage 11 на тот момент ещё не был начат.
+
+## Stage 11 — LabManager / concurrency via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Добавлен `LabManager` как единственный владелец активного snapshot:
+  constructor загружает persisted state, все reads/ticks/commands сериализованы,
+  а наружу возвращаются глубокие копии.
+- Общий resolve-first transaction template выполняет полный catch-up до команды,
+  атомарно сохраняет snapshot и Event drafts, публикует in-memory state только
+  после успешного commit и сохраняет catch-up вместе с `ACTION_REJECTED` при
+  domain rejection.
+- Реализованы manager-команды `STABILIZE`, `CLOSE`, `SEND`, `RECALL` и
+  `OPEN_EXTRACTION`, а также global Events и Portal History через единый
+  repository source.
+- `Run` потребляет supplied tick timestamps, `Updates` выдаёт неблокирующий
+  coalescing signal для tick/action. Сериализация закрепляет exactly-one outcome,
+  уникальные Portal IDs/slots и согласованные snapshots при конкурентном доступе.
+- Persistence failure не меняет память и восстанавливает checkpoint random
+  source, поэтому повтор команды воспроизводит те же state/events. Ожидающий
+  ownership caller может отмениться через context.
+- Stage 11 не добавляет HTTP/JSON/WebSocket transport: фактический WebSocket
+  broadcast и проверка malformed HTTP остаются Stages 12–13.
+
+### RED / GREEN evidence
+
+| Checkpoint / corrective pass | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 11A ownership / resolve-first / atomic manager commit | `0707336` | отсутствовали manager repository boundary, constructor и command orchestration APIs | `3279a34` |
+| 11B supplied ticks / signals / concurrency | `5aa4211` | `Tick` брал clock до manager lock и не обеспечивал требуемый serialized signal boundary | `5ff4388` |
+| stale ticks / cancellation | `0305cbe` | stale tick завершал `Run` ошибкой, а отмена не прерывала уже выбранный tick, ожидающий ownership | `bdba6bf` |
+| cancellable ownership / random rollback | `693320c` | ожидающие reads/commands не учитывали context; failed commit необратимо потреблял random draw | `cdc0b16` |
+| random restore failure visibility | `647538b` | cancellation path мог скрыть ошибку восстановления random checkpoint | `38cf7f8` |
+
+Checkpoint 11A и 11B прошли spec review. Code-quality review выявил три группы
+ошибок: stale tick/cancellation semantics, неотменяемое ожидание manager lock и
+неатомарное потребление random, затем маскировку random restore failure. Каждая
+группа закреплена отдельной RED/GREEN парой; итоговый review одобрил Stage 11
+без оставшихся замечаний.
+
+### Requirements и verification
+
+- `EVENT-001`, `EVENT-003`, `PERSIST-003`, `PERSIST-004`, `SIMULATION-001`,
+  `PORTAL-001`, `PORTAL-002` — GREEN на реализованной manager boundary.
+- `EVENT-010` — PARTIAL: manager отделяет и сохраняет domain rejection, но
+  HTTP parsing/method/route boundary будет доказана Stage 12.
+- `WS-002` — PARTIAL: coalescing update edge от supplied ticks/actions готов,
+  authoritative DTO и WebSocket broadcast относятся к Stage 13.
+- Focused engine suite, focused engine race suite и полный обычный suite —
+  exit 0.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+
+Stage 11 завершён. Stage 12 не начат.
