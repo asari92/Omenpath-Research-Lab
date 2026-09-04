@@ -99,6 +99,37 @@ func TestStoreOpen_SharedMemoryURIWorksAcrossConnectionsAndThenVanishes(t *testi
 	require.Error(t, err, "named memory database must disappear after its last connection closes")
 }
 
+func TestStoreOpen_AdversarialURIPragmaCannotOverrideMandatorySettings(t *testing.T) {
+	ctx := context.Background()
+	uri := "file:" + filepath.Join(t.TempDir(), "adversarial") +
+		"?mode=memory&cache=shared&_pragma=main.busy_timeout%281%29&_pragma=foreign_keys%280%29"
+	dsn, err := sqliteDSN(uri)
+	require.NoError(t, err)
+	parsed, err := url.Parse(dsn)
+	require.NoError(t, err)
+	require.Equal(t, "memory", parsed.Query().Get("mode"))
+	require.Equal(t, "shared", parsed.Query().Get("cache"))
+
+	store, err := Open(ctx, uri)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	store.db.SetMaxIdleConns(0)
+
+	assertMandatorySettings := func() {
+		conn, connErr := store.db.Conn(ctx)
+		require.NoError(t, connErr)
+		var foreignKeys, busyTimeout int
+		require.NoError(t, conn.QueryRowContext(ctx, `PRAGMA foreign_keys`).Scan(&foreignKeys))
+		require.NoError(t, conn.QueryRowContext(ctx, `PRAGMA busy_timeout`).Scan(&busyTimeout))
+		require.Equal(t, 1, foreignKeys)
+		require.Equal(t, 5000, busyTimeout)
+		require.NoError(t, conn.Close())
+	}
+
+	assertMandatorySettings()
+	assertMandatorySettings()
+}
+
 func TestStoreCommit_RejectsStructurallyImpossibleSnapshots(t *testing.T) {
 	now := time.Date(2026, 9, 4, 15, 0, 0, 0, time.UTC)
 
