@@ -78,6 +78,19 @@ func TestManagerTick_StaleClockIsNoOpWithoutSignal(t *testing.T) {
 	}
 }
 
+func TestManagerTick_StaleClockDoesNotHideOtherSimulationInvariant(t *testing.T) {
+	base := testutil.BaseTime
+	latest := base.Add(2 * time.Second)
+	snapshot := managerSnapshot(base)
+	snapshot.Simulation.LastTickAt = &latest
+	snapshot.Simulation.Planes = snapshot.Simulation.Planes[:84]
+	manager, _ := newTestManager(t, snapshot, base.Add(time.Second))
+
+	err := manager.Tick(context.Background())
+
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+}
+
 func TestManagerTick_SignalsEvenWithoutMeaningfulDatabaseWrite(t *testing.T) {
 	base := testutil.BaseTime
 	clk := testutil.NewFakeClock(base)

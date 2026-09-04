@@ -151,6 +151,14 @@ func (m *LabManager) Updates() <-chan struct{} {
 }
 
 func (m *LabManager) resolveLocked(ctx context.Context, now time.Time, signal bool) error {
+	if lastTickAt := m.snapshot.Simulation.LastTickAt; !now.IsZero() && lastTickAt != nil && now.Before(*lastTickAt) {
+		// A tick may have been captured before a newer command acquired the
+		// manager lock. Validate the current aggregate at its committed time so
+		// stale delivery is the only ignored error condition.
+		validationCopy := cloneSnapshot(m.snapshot)
+		_, err := validationCopy.Simulation.ResolveTick(*lastTickAt, m.random, m.cfg)
+		return err
+	}
 	before := cloneSnapshot(m.snapshot)
 	working := cloneSnapshot(m.snapshot)
 	result, err := working.Simulation.ResolveTick(now, m.random, m.cfg)
