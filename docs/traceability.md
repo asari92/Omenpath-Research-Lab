@@ -204,13 +204,13 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| ATTENTION-001 | Highest risk_score | BEH | — | — | PLANNED | Stage 8 |
-| ATTENTION-002 | Risk tie prefers UNSTABLE | BEH | — | — | PLANNED | Stage 8 |
-| ATTENTION-003 | Then lower effective_lifetime | BEH | — | — | PLANNED | Stage 8 |
-| ATTENTION-004 | Then older opened_at | BEH | — | — | PLANNED | Stage 8 |
-| ATTENTION-005 | OPEN candidates only | INV | — | — | PLANNED | Stage 8 |
-| ATTENTION-006 | Complete tie uses lower Portal ID | INV | — | — | PLANNED | technical deterministic tie |
-| ATTENTION-007 | No sorting or mutation | INV | — | — | PLANNED | Stage 8 |
+| ATTENTION-001 | Highest risk_score | BEH | `TestNeedsAttentionPortalIndex_SelectsHighestRiskScore`, `TestNeedsAttentionPortalIndex_RiskScoreBeatsInstabilityTieBreaker`, `TestNeedsAttentionPortalIndex_UsesCurrentTimeDerivedRisk` | `NeedsAttentionPortalIndex`, `attentionBefore` | GREEN | current derived score is the first comparison |
+| ATTENTION-002 | Risk tie prefers UNSTABLE | BEH | `TestNeedsAttentionPortalIndex_ExactRiskTiePrefersUnstable` | `attentionBefore` | GREEN | applies only after exact numeric score tie |
+| ATTENTION-003 | Then lower effective_lifetime | BEH | `TestNeedsAttentionPortalIndex_ExactRiskAndStabilityTiePrefersLowerLifetime` | `attentionBefore` | GREEN | current derived lifetime |
+| ATTENTION-004 | Then older opened_at | BEH | `TestNeedsAttentionPortalIndex_LifetimeTiePrefersOlderOpening` | `attentionBefore` | GREEN | stable timestamp comparison |
+| ATTENTION-005 | OPEN candidates only | INV | `TestNeedsAttentionPortalIndex_ReturnsNoneWithoutOpenPortals`, `TestNeedsAttentionPortalIndex_IgnoresClosedPortal`, `TestNeedsAttentionPortalIndex_IgnoresCollapsedPortal` | `NeedsAttentionPortalIndex` | GREEN | terminal portals are excluded |
+| ATTENTION-006 | Complete tie uses lower Portal ID | INV | `TestNeedsAttentionPortalIndex_CompleteTiePrefersLowerPortalID` | `attentionBefore` | GREEN | final deterministic tie only |
+| ATTENTION-007 | No sorting or mutation | INV | `TestNeedsAttentionPortalIndex_ReturnsOriginalSliceIndex`, `TestNeedsAttentionPortalIndex_DoesNotReorderInput`, `TestNeedsAttentionPortalIndex_DoesNotMutatePortals` | `NeedsAttentionPortalIndex` | GREEN | returns original index and leaves slice unchanged |
 
 ## EVENT
 
