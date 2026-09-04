@@ -30,7 +30,10 @@ type fakeManager struct {
 	commandErr  error
 	commandHook func(action string, id int64, confirm bool) error
 	commands    []commandCall
+	updates     chan struct{}
 }
+
+var inertManagerUpdates = make(chan struct{})
 
 type commandCall struct {
 	action  string
@@ -41,6 +44,12 @@ type commandCall struct {
 func (m *fakeManager) State(context.Context) (persistence.Snapshot, error) {
 	m.stateCalls++
 	return m.snapshot, m.stateErr
+}
+func (m *fakeManager) Updates() <-chan struct{} {
+	if m.updates != nil {
+		return m.updates
+	}
+	return inertManagerUpdates
 }
 func (m *fakeManager) Portal(_ context.Context, id int64) (domain.Portal, []domain.Event, error) {
 	m.portalReads++
@@ -193,6 +202,7 @@ func (m *coherenceManager) State(context.Context) (persistence.Snapshot, error) 
 	m.stateCalls++
 	return m.staleSnapshot, nil
 }
+func (m *coherenceManager) Updates() <-chan struct{} { return inertManagerUpdates }
 func (m *coherenceManager) Portal(context.Context, int64) (domain.Portal, []domain.Event, error) {
 	m.portalCalls++
 	return m.atomicSnapshot.Simulation.Portals[0], m.atomicHistory[:1], nil

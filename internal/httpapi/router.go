@@ -16,11 +16,13 @@ import (
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/internal/engine"
 	"omenpath-lab/internal/persistence"
+	"omenpath-lab/internal/realtime"
 	"omenpath-lab/internal/transport"
 )
 
 type Manager interface {
 	State(context.Context) (persistence.Snapshot, error)
+	Updates() <-chan struct{}
 	Portal(context.Context, int64) (domain.Portal, []domain.Event, error)
 	PortalState(context.Context, int64) (persistence.Snapshot, []domain.Event, error)
 	Events(context.Context) ([]domain.Event, error)
@@ -59,6 +61,11 @@ func NewRouter(manager Manager, cfg config.Config) (http.Handler, error) {
 	router.Post("/api/portals/{id}/send-observer", api.sendObserver)
 	router.Post("/api/portals/{id}/recall-observer", api.recallObserver)
 	router.Post("/api/extraction/open", api.openExtraction)
+	hub, err := realtime.NewHub(manager, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("new router: realtime: %w", err)
+	}
+	router.Handle("/ws/lab", hub)
 	return router, nil
 }
 
