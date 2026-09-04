@@ -673,9 +673,9 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
 
 ### Checkpoint 12A — authoritative read DTOs
 
-- [ ] Подключить chi v5.
-- [ ] Создать `internal/transport/dto.go`, DTO tests и read handlers.
-- [ ] Tests:
+- [x] Подключить chi v5.
+- [x] Создать `internal/transport/dto.go`, DTO tests и read handlers.
+- [x] Tests:
   `TestBuildStateSnapshot_AlwaysReturnsSevenFixedSlots`,
   `TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt`,
   `TestBuildStateSnapshot_DoesNotExposeHiddenFields`,
@@ -686,13 +686,13 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
   `TestGetPortal_ReturnsDetailsOr404`,
   `TestGetEvents_ReturnsChronologicalGlobalLog`,
   `TestReadEndpoints_DoNotAdvanceTutorial`.
-- [ ] RED commit: `test(stage12): RED REST reads and public DTO contract`.
-- [ ] Реализовать DTO builder/router/read handlers.
-- [ ] GREEN commit: `feat(stage12): GREEN REST reads and public DTO contract`.
+- [x] RED commit: `test(stage12): RED REST reads and public DTO contract`.
+- [x] Реализовать DTO builder/router/read handlers.
+- [x] GREEN commit: `feat(stage12): GREEN REST reads and public DTO contract`.
 
 ### Checkpoint 12B — deterministic Recommendation Engine
 
-- [ ] Создать `internal/domain/recommendation_test.go` как table-driven suite:
+- [x] Создать `internal/domain/recommendation_test.go` как table-driven suite:
   `TestRecommendation_TerminalHasNoValue`,
   `TestRecommendation_ExtractionBeforeSyncLeavesOpen`,
   `TestRecommendation_ActiveSafeTransitLeavesOpen`,
@@ -713,30 +713,30 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
   `TestRecommendation_DoesNotConsumeRandom`,
   `TestRecommendation_HiddenCollapseTimestampDoesNotAffectResult`,
   `TestRecommendation_DoesNotRestrictDomainCommands`.
-- [ ] Добавить REST assertions: Details возвращает enum/null; state/slots не
+- [x] Добавить REST assertions: Details возвращает enum/null; state/slots не
   содержат JSON key `recommendation`.
-- [ ] Запустить
+- [x] Запустить
   `go test -count=1 ./internal/domain ./internal/transport ./internal/httpapi -run 'TestRecommendation|TestBuildPortalDetails'`
   и получить RED по отсутствующему domain type/function/DTO field.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage12): RED safe mission recommendation decision table`.
-- [ ] Реализовать exact priority table из Final Spec §23.1 чистыми helpers:
+- [x] Реализовать exact priority table из Final Spec §23.1 чистыми helpers:
   entity lookup, portal/observer horizon, hypothetical Stabilize eligibility и
   close fallback. Не вызывать command на реальном aggregate.
-- [ ] Добавить `recommendation *domain.Recommendation` только в Details DTO.
-- [ ] Повторить focused command; expected PASS.
-- [ ] GREEN commit:
+- [x] Добавить `recommendation *domain.Recommendation` только в Details DTO.
+- [x] Повторить focused command; expected PASS.
+- [x] GREEN commit:
   `feat(stage12): GREEN deterministic recommendation engine`.
 
 ### Checkpoint 12C — commands, strict JSON и errors
 
-- [ ] Реализуемые routes Stage 12:
+- [x] Реализуемые routes Stage 12:
   `POST /api/portals/{id}/stabilize`, `/close`, `/send-observer`,
   `/recall-observer`, `POST /api/extraction/open`.
-- [ ] Bodies: `{}` или `{"confirm": boolean}` для portal commands;
+- [x] Bodies: `{}` или `{"confirm": boolean}` для portal commands;
   `{"plane_id": integer}` для extraction. Unknown fields и второй JSON value
   отклоняются как 400.
-- [ ] Tests:
+- [x] Tests:
   `TestPortalCommandRoutes_ReturnFreshState`,
   `TestCloseConfirmationFlow_Returns409ThenSucceeds`,
   `TestDomainConflictMapping`,
@@ -746,14 +746,14 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
   `TestMalformedRequest_DoesNotCreateActionRejected`,
   `TestWrongMethod_Returns405`,
   `TestInternalFailure_ReturnsOpaque500`.
-- [ ] RED commit: `test(stage12): RED REST commands and domain errors`.
-- [ ] Реализовать handlers/error mapper без дублирования domain rules.
-- [ ] Проверить `go test -count=1 ./internal/transport ./internal/httpapi`
+- [x] RED commit: `test(stage12): RED REST commands and domain errors`.
+- [x] Реализовать handlers/error mapper без дублирования domain rules.
+- [x] Проверить `go test -count=1 ./internal/transport ./internal/httpapi`
   и весь suite.
-- [ ] API-001..008, API-010, API-011 → GREEN; API-009/API-012 остаются PLANNED
+- [x] API-001..008, API-010, API-011 → GREEN; API-009/API-012 остаются PLANNED
   до Stage 14. RECOMMENDATION-001,002,004..012 → GREEN;
   RECOMMENDATION-003 остаётся PARTIAL до фактического rendering в Stage 17.
-- [ ] Worklog + GREEN commit:
+- [x] Worklog + GREEN commit:
   `feat(stage12): GREEN REST reads commands and error mapping`.
 
 Stage 12 не реализует Tutorial commands и WebSocket.
@@ -1008,7 +1008,7 @@ git status --short
   доказаны tests.
 - [x] Stage 11: resolve-first manager, exactly-one transitions, ticker и race
   safety доказаны tests.
-- [ ] Stage 12: reads/commands/errors и полная deterministic Recommendation
+- [x] Stage 12: reads/commands/errors и полная deterministic Recommendation
   decision table реализованы; значение присутствует только в Portal Details.
 - [ ] Stage 13: authoritative initial/tick/action snapshots, reconnect и
   backpressure доказаны tests.

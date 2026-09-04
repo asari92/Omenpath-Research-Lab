@@ -1198,4 +1198,62 @@ Checkpoint 11A и 11B прошли spec review. Code-quality review выявил
 - `go build ./...` — exit 0.
 - `go test -count=1 ./...` — exit 0.
 
-Stage 11 завершён. Stage 12 не начат.
+Stage 11 завершён. Stage 12 на тот момент ещё не был начат.
+
+## Stage 12 — REST API and Recommendation via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Добавлен общий public DTO layer для REST и будущего WebSocket: семь
+  фиксированных slots, derived values на authoritative snapshot timestamp,
+  Portal Details с history/risk/recommendation и без hidden domain fields.
+- Реализованы `GET /api/state`, `GET /api/portals/{id}` и `GET /api/events`.
+  Portal Details получает snapshot и history через единый manager boundary,
+  поэтому не смешивает состояния разных моментов времени.
+- Реализована полная deterministic Recommendation decision table Final Spec
+  §23.1: безопасность Observer имеет приоритет, horizon comparisons строгие,
+  hypothetical Stabilize работает на копиях, random/hidden collapse time не
+  используются, а recommendation не ограничивает domain commands.
+- Реализованы пять Stage 12 command routes, строгий JSON object decoder,
+  confirmation retry, стабильные 404/409 domain responses и opaque 500 для
+  infrastructure/invariant/composite failures.
+- Malformed body, wrong method, unknown route и syntactically invalid Portal ID
+  отсекаются до manager, поэтому не могут создать `ACTION_REJECTED`.
+- Tutorial endpoints/signals не реализовывались; WebSocket не начинался.
+
+### RED / GREEN evidence
+
+| Checkpoint / corrective pass | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 12A REST reads / public DTO | `3574dc8` | отсутствовали `transport` DTO builders и HTTP router/read endpoints | `67ae898` |
+| 12B Recommendation decision table | `1b19e91` | отсутствовали Recommendation type/function и Portal Details field | `a7fc674` |
+| 12C commands / strict JSON / domain errors | `fabfb12` | отсутствовали command handlers/routes и HTTP error mapping | `f8e2c75` |
+| coherent reads / exact command JSON | `2b3e231` | Details собирался из раздельных reads, DTO использовал отдельный clock, decoder принимал неканоничные bodies | `1afe935` |
+| opaque composite errors / router validation | `8c3f5ef` | joined infrastructure errors ошибочно раскрывали domain mapping; router принимал nil manager/invalid config | `e389819` |
+| single-cause joined domain mapping | `a8be2ff` | `errors.Join` с одной чистой domain cause ошибочно превращался в opaque 500 | `e4d5144` |
+
+Дополнительный coverage-only commit `9931d1e` закрепил отсутствовавшее прямое
+доказательство transport boundary: unknown route и invalid/overflow Portal IDs
+не вызывают ни command, ни read manager APIs.
+
+Все три плановых checkpoint прошли spec review. Последующий code-quality review
+выявил incoherent read/time boundary, слишком мягкий JSON decoder, небезопасную
+классификацию composite errors и отсутствие constructor validation. Исправления
+прошли отдельными RED/GREEN-парами; финальный review не оставил замечаний для
+Stage 12 boundary.
+
+### Requirements и verification
+
+- `API-001..008`, `API-010`, `API-011`, `EVENT-010`,
+  `RECOMMENDATION-001`, `RECOMMENDATION-002`, `RECOMMENDATION-004..012` —
+  GREEN.
+- `API-009`, `API-012` — PLANNED до Tutorial Stage 14.
+- `RECOMMENDATION-003` — PARTIAL: backend включает поле только в Portal Details,
+  но фактическое frontend rendering относится к Stage 17.
+- Focused domain/transport/httpapi suites и полный обычный suite — exit 0.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+
+Stage 12 завершён. Stage 13 не начат.
