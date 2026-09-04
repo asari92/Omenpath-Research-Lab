@@ -32,13 +32,6 @@ func decodeTime(value int64) time.Time {
 	return time.Unix(0, value).UTC()
 }
 
-func decodeRequiredTime(value int64, field string) (time.Time, error) {
-	if value == 0 {
-		return time.Time{}, fmt.Errorf("%s must be a non-zero Unix nanosecond timestamp", field)
-	}
-	return decodeTime(value), nil
-}
-
 func decodeOptionalTime(value sql.NullInt64) *time.Time {
 	if !value.Valid {
 		return nil
