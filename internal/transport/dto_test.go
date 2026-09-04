@@ -89,6 +89,14 @@ func TestBuildPortalDetails_OpenIncludesRiskAndHistory(t *testing.T) {
 	require.Equal(t, int64(1), got.Destination.PlaneID)
 }
 
+func TestBuildPortalDetails_OpenIncludesRecommendation(t *testing.T) {
+	state := dtoSnapshot(testutil.BaseTime)
+	got, err := BuildPortalDetails(state, 1, nil, testutil.BaseTime, config.Default())
+	require.NoError(t, err)
+	require.NotNil(t, got.Recommendation)
+	require.Equal(t, domain.RecommendationSendObserver, *got.Recommendation)
+}
+
 func TestBuildPortalDetails_TerminalHasNullRisk(t *testing.T) {
 	state := dtoSnapshot(testutil.BaseTime)
 	closed := testutil.BaseTime
@@ -98,6 +106,7 @@ func TestBuildPortalDetails_TerminalHasNullRisk(t *testing.T) {
 	got, err := BuildPortalDetails(state, 1, nil, testutil.BaseTime, config.Default())
 	require.NoError(t, err)
 	require.Nil(t, got.RiskLevel)
+	require.Nil(t, got.Recommendation)
 }
 
 func TestBuildStateSnapshot_SlotsNeverContainRecommendation(t *testing.T) {
