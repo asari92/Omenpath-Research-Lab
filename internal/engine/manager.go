@@ -96,7 +96,7 @@ func (m *LabManager) Run(ctx context.Context, ticks <-chan time.Time) error {
 				return nil
 			}
 			if err := m.tickAt(ctx, at.UTC()); err != nil {
-				if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+				if isPureRunCancellation(err, ctx.Err()) {
 					return nil
 				}
 				return err
@@ -229,9 +229,29 @@ func (tx *randomTransaction) finish(operationErr error) error {
 		return operationErr
 	}
 	if err := tx.source.UnmarshalBinary(tx.checkpoint); err != nil {
-		return errors.Join(operationErr, fmt.Errorf("restore random state: %w", err))
+		return errors.Join(operationErr, &randomRestoreError{cause: err})
 	}
 	return operationErr
+}
+
+type randomRestoreError struct {
+	cause error
+}
+
+func (e *randomRestoreError) Error() string {
+	return fmt.Sprintf("restore random state: %v", e.cause)
+}
+
+func (e *randomRestoreError) Unwrap() error {
+	return e.cause
+}
+
+func isPureRunCancellation(err, canceled error) bool {
+	if canceled == nil || !errors.Is(err, canceled) {
+		return false
+	}
+	var restoreFailure *randomRestoreError
+	return !errors.As(err, &restoreFailure)
 }
 
 func meaningfulSnapshotChange(before, after persistence.Snapshot) bool {
