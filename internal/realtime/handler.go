@@ -9,6 +9,10 @@ import (
 )
 
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.isClosed() {
+		http.Error(w, "realtime unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		return
@@ -37,4 +41,10 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+func (h *Hub) isClosed() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.closed
 }

@@ -38,7 +38,27 @@ type API struct {
 	cfg     config.Config
 }
 
-func NewRouter(manager Manager, cfg config.Config) (http.Handler, error) {
+// Router owns both HTTP routing and the realtime resources created alongside
+// it. Close must be called by the composition root during graceful shutdown.
+type Router struct {
+	handler http.Handler
+	hub     *realtime.Hub
+}
+
+func (r *Router) ServeHTTP(w http.ResponseWriter, request *http.Request) {
+	r.handler.ServeHTTP(w, request)
+}
+
+// Close is idempotent and disconnects active WebSocket clients while stopping
+// the manager update bridge.
+func (r *Router) Close() {
+	if r == nil || r.hub == nil {
+		return
+	}
+	r.hub.Close()
+}
+
+func NewRouter(manager Manager, cfg config.Config) (*Router, error) {
 	if managerIsNil(manager) {
 		return nil, fmt.Errorf("new router: nil manager")
 	}
@@ -66,7 +86,7 @@ func NewRouter(manager Manager, cfg config.Config) (http.Handler, error) {
 		return nil, fmt.Errorf("new router: realtime: %w", err)
 	}
 	router.Handle("/ws/lab", hub)
-	return router, nil
+	return &Router{handler: router, hub: hub}, nil
 }
 
 func managerIsNil(manager Manager) bool {
