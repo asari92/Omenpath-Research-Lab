@@ -828,6 +828,28 @@ created_at
 
 Risk event only when level changes.
 
+### 26.1 Семантика событий
+
+- Открытие Extraction Portal создаёт только `EXTRACTION_PORTAL_OPENED`, без
+  дополнительного `PORTAL_OPENED`.
+- Когда Observer завершает исходящий переход через обычный Portal и прибывает
+  в Plane назначения, один переход создаёт оба события: `OBSERVER_ARRIVED` и
+  `RESEARCH_STARTED`. Возврат в лабораторию создаёт отдельное
+  `OBSERVER_RETURNED`.
+- Каждый успешный Collapse запускает Leyline Override и создаёт новый
+  `LEYLINE_OVERRIDE_STARTED`, в том числе при перезапуске уже активного окна.
+- `LEYLINE_OVERRIDE_ENDED` создаётся ровно один раз при первом разрешении
+  состояния после текущего deadline.
+- Если одно разрешение состояния перескочило несколько числовых границ Risk,
+  создаётся одно `RISK_LEVEL_CHANGED` от предыдущего уровня к итоговому.
+  Открытие и terminal close/collapse сами по себе это событие не создают.
+- Каждый отклонённый domain command создаёт `ACTION_REJECTED`, включая ответ с
+  требованием подтверждения. Некорректный transport input и неизвестный route
+  domain-событий не создают.
+- Global Event Log и Portal History возвращают общий источник событий в
+  хронологическом порядке. В MVP возвращается вся подходящая история без
+  пагинации.
+
 ## 27. Empty State
 
 When 0 OPEN Portals:
@@ -866,6 +888,30 @@ Steps:
 7. Successful return → Plane EXPLORED.
 8. Open Event Log.
 9. Training Complete → Start Live.
+
+### 28.1 Семантика исполнения Tutorial
+
+- Step 0 виден до первого simulation tick. Первый тик создаёт подготовленный
+  Tutorial Portal и переводит state machine на Step 1.
+- Открытие Portal Details и Event Log передаётся явными UI-сигналами в
+  `POST /api/tutorial/signal`; read-only GET никогда не меняют Tutorial state.
+- Step 2 завершается ожиданием очистки corridor. Намеренно вызывать
+  отклонённый SEND не требуется.
+- Если подготовленный timed Tutorial Portal истёк или иначе разрушил активный
+  сценарий, Tutorial автоматически создаёт эквивалентный Portal с новым ID и
+  повторяет текущий step.
+- Если Observer стал LOST во время упражнения на возврат, Tutorial возвращается
+  к Step 6 и повторяет маршрут с другим доступным Observer.
+- `POST /api/tutorial/start` идемпотентно запускает или продолжает Tutorial.
+- `POST /api/tutorial/reset` полностью начинает Tutorial заново: Energy = 100,
+  все Observers = AVAILABLE, все Planes = UNEXPLORED, прежние Tutorial Portals
+  и Events удаляются.
+- `POST /api/live/start` разрешён только после достижения Step 9. Оставшиеся
+  Tutorial Portals закрываются системой без списания Energy. Текущие Energy,
+  Event Log, Observer state и Plane exploration сохраняются; Live начинается
+  без OPEN Portals.
+- Истёкшие подготовленные timed Portals пересоздаются, поэтому корректность не
+  зависит от выполнения шага в короткое wall-clock окно.
 
 ## 29. UI actions / errors
 
@@ -1026,8 +1072,17 @@ POST /api/portals/{id}/recall-observer
 POST /api/extraction/open
 POST /api/tutorial/start
 POST /api/tutorial/reset
+POST /api/tutorial/signal
 POST /api/live/start
 ```
+
+Тело Tutorial signal:
+```json
+{"signal": "PORTAL_DETAILS_OPENED"}
+```
+
+Допустимые значения: `PORTAL_DETAILS_OPENED` и `EVENT_LOG_OPENED`. Сигнал
+продвигает Tutorial только при совпадении с текущим ожидаемым step и target.
 
 WebSocket:
 ```text

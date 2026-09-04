@@ -245,6 +245,12 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | EVENT-003 | BEH | Отклонённое действие создаёт ACTION_REJECTED | §26 |
 | EVENT-004 | BEH | Portal History = Events, отфильтрованные по `portal_id` | §25 |
 | EVENT-005 | INV | Global Event Log использует тот же источник событий | §26 |
+| EVENT-006 | BEH | Extraction opening создаёт только `EXTRACTION_PORTAL_OPENED`, без дублирующего `PORTAL_OPENED` | §26.1 |
+| EVENT-007 | BEH | При завершении outbound transit в Plane создаются `OBSERVER_ARRIVED` и `RESEARCH_STARTED`; возврат создаёт `OBSERVER_RETURNED` | §26.1 |
+| EVENT-008 | BEH | Каждый Collapse создаёт `LEYLINE_OVERRIDE_STARTED`; окончание текущего окна создаётся ровно один раз | §26.1 |
+| EVENT-009 | BEH | Перескок нескольких Risk-границ создаёт одно изменение previous→current; open/terminal transition сами его не создают | §26.1 |
+| EVENT-010 | BEH | Все domain-отказы, включая confirmation-required, создают `ACTION_REJECTED`; transport parsing/route errors — нет | §26.1 |
+| EVENT-011 | BEH | Event Log и Portal History хронологические и без пагинации в MVP | §26.1 |
 
 ## TUTORIAL
 
@@ -258,6 +264,13 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | TUTORIAL-006 | BEH | Critical step завершается именно rejected SEND | §28 |
 | TUTORIAL-007 | BEH | Exploration только после успешного return (шаг 7) | §28 |
 | TUTORIAL-008 | BEH | Tutorial Energy не сбрасывается при переходе в Live | §28 |
+| TUTORIAL-009 | BEH | Step 0 существует до первого тика; первый тик создаёт prepared Portal и переводит к Step 1 | §28.1 |
+| TUTORIAL-010 | BEH | Details/Event Log продвигают Tutorial только через явный signal command; GET не мутирует state | §28.1, §35 |
+| TUTORIAL-011 | BEH | Step 2 завершается ожиданием очистки corridor без обязательного rejected SEND | §28.1 |
+| TUTORIAL-012 | BEH | Истёкший/сломанный prepared Portal автоматически заменяется эквивалентным с новым ID | §28.1 |
+| TUTORIAL-013 | BEH | LOST на return exercise возвращает Tutorial к Step 6 для повтора другим Observer | §28.1 |
+| TUTORIAL-014 | BEH | Tutorial start идемпотентен; reset полностью восстанавливает исходный Tutorial и удаляет его прежнюю историю | §28.1 |
+| TUTORIAL-015 | BEH | Live разрешён только после Step 9; Tutorial Portals закрываются бесплатно, continuity сохраняется, OPEN Portals = 0 | §28.1 |
 
 ---
 
@@ -278,6 +291,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | API-009 | BEH | `POST /api/tutorial/start`, `POST /api/tutorial/reset`, `POST /api/live/start` | §35 |
 | API-010 | BEH | Confirmation flow: повтор того же endpoint с `{"confirm": true}` | §29 |
 | API-011 | BEH | Backend возвращает domain errors; типичный conflict — `409` | §29 |
+| API-012 | BEH | `POST /api/tutorial/signal` принимает закрытый enum UI-сигналов и не смешивает reads с mutations | §28.1, §35 |
 
 ### WS
 

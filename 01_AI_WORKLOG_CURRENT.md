@@ -932,3 +932,22 @@ Stage 9 не начат.
   явными будущими gates.
 
 Stage 9 всё ещё не начат: эта запись фиксирует только изменение процесса.
+
+## Block C — product amendments перед planning (2026-09-04)
+
+- Пользователь подтвердил точные event triggers для Stage 9: отдельное
+  Extraction opening event; пара `OBSERVER_ARRIVED` + `RESEARCH_STARTED` при
+  прибытии Observer именно в Plane назначения; start/restart/end семантика
+  Leyline Override; одно Risk event на итоговую смену level; domain boundary
+  для `ACTION_REJECTED`; единая хронологическая история без пагинации.
+- Пользователь подтвердил Tutorial semantics для Stage 14: явные UI signals,
+  Step 0 до первого тика, ожидание corridor на Step 2, автоматическое
+  пересоздание timed scenario, retry после LOST, полный reset, idempotent start
+  и continuity/gate при переходе в Live.
+- Решения внесены в Final Spec §§26.1, 28.1 и §35 до составления execution-plan.
+  Добавлены requirement IDs `EVENT-006..011`, `TUTORIAL-009..015`, `API-012`;
+  они остаются PLANNED до соответствующей реализации Block C.
+- Recommendation decision table не определена и не входит в эти amendments;
+  её product gate для Block D остаётся без изменений.
+
+Stage 9 implementation по-прежнему не начат.

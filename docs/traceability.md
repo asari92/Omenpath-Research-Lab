@@ -236,6 +236,12 @@
 | EVENT-003 | Rejected action → ACTION_REJECTED | BEH | — | — | PLANNED | |
 | EVENT-004 | Portal history filters portal_id | BEH | — | — | PLANNED | |
 | EVENT-005 | Global log same source | INV | — | — | PLANNED | |
+| EVENT-006 | Открытие Extraction создаёт одно специальное событие | BEH | — | — | PLANNED | |
+| EVENT-007 | Прибытие в Plane создаёт arrived + research started | BEH | — | — | PLANNED | |
+| EVENT-008 | Кардинальность событий start/restart/end Override | BEH | — | — | PLANNED | |
+| EVENT-009 | Перескок Risk создаёт одно событие previous→current | BEH | — | — | PLANNED | |
+| EVENT-010 | Граница domain rejection | BEH | — | — | PLANNED | |
+| EVENT-011 | Хронологические event reads без пагинации | BEH | — | — | PLANNED | |
 
 ## TUTORIAL
 
@@ -249,12 +255,19 @@
 | TUTORIAL-006 | Critical step expects rejected SEND | BEH | — | — | PLANNED | |
 | TUTORIAL-007 | Exploration after return only | BEH | — | — | PLANNED | |
 | TUTORIAL-008 | Energy not reset entering Live | BEH | — | — | PLANNED | |
+| TUTORIAL-009 | Первый тик завершает Empty State и готовит Step 1 | BEH | — | — | PLANNED | |
+| TUTORIAL-010 | UI signals меняют progress; GET не меняет | BEH | — | — | PLANNED | |
+| TUTORIAL-011 | Ожидание corridor завершает Step 2 | BEH | — | — | PLANNED | |
+| TUTORIAL-012 | Сломанный prepared scenario получает новый эквивалентный Portal | BEH | — | — | PLANNED | |
+| TUTORIAL-013 | LOST на возврате повторяет Step 6 с другим Observer | BEH | — | — | PLANNED | |
+| TUTORIAL-014 | Идемпотентный start и полный reset | BEH | — | — | PLANNED | |
+| TUTORIAL-015 | Live gate, бесплатная очистка и continuity | BEH | — | — | PLANNED | |
 
 ## API / WS / UI / PERSIST
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| API-001..011 | REST endpoints, confirm flow, 409 | BEH | — | — | PLANNED | детализация Stage 12 |
+| API-001..012 | REST endpoints, confirm flow, 409, Tutorial signal | BEH | — | — | PLANNED | детализация Stages 12/14 |
 | WS-001, WS-003 | `/ws/lab` and immediate post-action snapshot | BEH | — | — | PLANNED | transport work remains Stage 13 |
 | WS-002 | Broadcast authoritative snapshot ~1/sec | BEH | — | — | PLANNED | Stage 8 supplies only a pure deterministic domain step; ticker/broadcast ownership remains Stages 11/13 |
 | UI-001..006 | Dashboard/Details/Log/Worklog contracts except attention selection | UI | — | — | PLANNED | frontend work remains Stages 15–21 |
