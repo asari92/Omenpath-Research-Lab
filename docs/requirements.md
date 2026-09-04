@@ -235,6 +235,14 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | RECOMMENDATION-002 | INV | Допустим только закрытый enum: LEAVE OPEN, WAIT FOR CORRIDOR, STABILIZE, CLOSE, SEND OBSERVER, RECALL OBSERVER | §23 |
 | RECOMMENDATION-003 | UI | Recommendation показывается только в Portal Details | §23–25 |
 | RECOMMENDATION-004 | INV | Recommendation является информационной подсказкой и не вводит hard restriction | §23 |
+| RECOMMENDATION-005 | INV | Terminal Portal не имеет Recommendation; engine не использует hidden collapse timestamp и random | §23.1 |
+| RECOMMENDATION-006 | BEH | Безопасность движения определяется консервативным временным горизонтом transit/corridor/research | §23.1 |
+| RECOMMENDATION-007 | BEH | Активный transit нельзя рекомендовать прервать CLOSE; Stabilize предлагается только если делает путь безопасным | §23.1 |
+| RECOMMENDATION-008 | BEH | WAITING_RETURN имеет приоритет: RECALL/WAIT/STABILIZE по безопасности и direction | §23.1 |
+| RECOMMENDATION-009 | BEH | EXPLORING Observer учитывается для сохранения пригодного INBOUND Portal до возврата | §23.1 |
+| RECOMMENDATION-010 | BEH | Новый SEND предлагается только для UNEXPLORED Plane без Observer и при безопасном horizon | §23.1 |
+| RECOMMENDATION-011 | BEH | EXPLORED Plane без Observer рекомендует CLOSE; опасный Portal без безопасной mission action также закрывается | §23.1 |
+| RECOMMENDATION-012 | INV | Hypothetical Stabilize не мутирует state и учитывает command eligibility/Laboratory Energy | §23.1 |
 
 ## EVENT
 

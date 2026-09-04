@@ -717,6 +717,67 @@ Recommendation shown only in Portal Details.
 
 Recommendation is not a hard restriction.
 
+### 23.1 Recommendation decision table
+
+Цели в порядке приоритета:
+
+1. безопасное перемещение и сохранение Observer;
+2. предотвращение Collapse и обнуления Laboratory Energy;
+3. исследование UNEXPLORED Plane;
+4. отсутствие бесполезных действий с уже EXPLORED Plane.
+
+Recommendation вычисляется только для OPEN Portal. Terminal Portal возвращает
+`null`. Engine не использует hidden instability timestamp и не расходует
+random. Recommendation не меняет доступность commands.
+
+Безопасный новый SEND/RECALL требует, чтобы STABLE Portal имел
+`effective_lifetime > ObserverTransitMax`. Для ожидания corridor требуется
+`creature_clearance_remaining + ObserverTransitMax`. Для активного transit
+используется известный `observer.phase_ends_at`; для будущего возврата
+EXPLORING Observer — `research_remaining + ObserverTransitMax`.
+
+Сравнение строгое: при точном совпадении deadline Portal lifecycle разрешается
+раньше Observer lifecycle, поэтому Observer был бы LOST.
+
+Stabilize считается подходящим только когда command допустим с текущей
+Laboratory Energy (или бесплатен при Leyline Override), а состояние Portal
+после детерминированного hypothetical Stabilize обеспечивает требуемый запас.
+Hypothetical calculation не мутирует state.
+
+Decision table применяется сверху вниз:
+
+1. Extraction до завершения synchronization → `LEAVE OPEN`.
+2. Observer уже в transit через этот Portal:
+   - текущий путь безопасен → `LEAVE OPEN`;
+   - Stabilize сделает его безопасным → `STABILIZE`;
+   - иначе → `LEAVE OPEN`, потому что CLOSE гарантирует LOST.
+3. В destination Plane есть WAITING_RETURN Observer и flow допускает INBOUND:
+   - безопасный свободный corridor → `RECALL OBSERVER`;
+   - creatures блокируют corridor, но после очистки запаса хватит →
+     `WAIT FOR CORRIDOR`;
+   - Stabilize сделает return безопасным → `STABILIZE`.
+4. В destination Plane есть EXPLORING Observer и flow допускает будущий
+   INBOUND:
+   - Portal безопасно доживёт до research completion и return → `LEAVE OPEN`;
+   - Stabilize создаст этот запас → `STABILIZE`.
+5. Plane UNEXPLORED и в нём нет Observer и к нему не движется OUTBOUND
+   Observer:
+   - безопасный свободный corridor и есть AVAILABLE Observer →
+     `SEND OBSERVER`;
+   - creatures блокируют SEND, но после очистки запаса хватит →
+     `WAIT FOR CORRIDOR`;
+   - Stabilize сделает SEND безопасным → `STABILIZE`.
+6. Plane EXPLORED и в нём нет Observer → `CLOSE`, если Close допустим, иначе
+   `LEAVE OPEN`.
+7. Если безопасная mission action невозможна и Risk HIGH/CRITICAL → `CLOSE`,
+   если Close допустим, иначе `LEAVE OPEN`.
+8. Во всех остальных случаях → `LEAVE OPEN`.
+
+При `ObserverFlow = NONE` возврат WAITING_RETURN Observer имеет приоритет над
+отправкой нового. Portal с OUTBOUND flow не сохраняется ради будущего RECALL.
+Recommendation `CLOSE` может потребовать обычное UI confirmation; это не делает
+её hard restriction или автоматическим действием.
+
 ## 24. Dashboard
 
 Summary:

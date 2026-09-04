@@ -218,14 +218,21 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | RECOMMENDATION-001 | Deterministic, no runtime LLM | INV | — | — | PLANNED | Final Spec задаёт ограничение, но не алгоритм выбора |
-| RECOMMENDATION-002 | Closed recommendation enum | INV | — | — | PLANNED | допустимые значения известны; decision table для выбора отсутствует |
+| RECOMMENDATION-002 | Closed recommendation enum | INV | — | — | PLANNED | enum и decision table определены в Final Spec §23.1; implementation Stage 12 |
 | RECOMMENDATION-003 | Portal Details only | UI | — | — | PLANNED | реализация относится к frontend stages |
 | RECOMMENDATION-004 | Informational, not a hard restriction | INV | — | — | PLANNED | command eligibility не должна зависеть от рекомендации |
+| RECOMMENDATION-005 | Terminal null; no hidden timestamp/random | INV | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-006 | Conservative movement horizons | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-007 | Active transit preservation | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-008 | WAITING_RETURN priority | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-009 | EXPLORING Observer preservation | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-010 | Useful safe SEND only | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-011 | Explored/dangerous close fallback | BEH | — | — | PLANNED | Stage 12 |
+| RECOMMENDATION-012 | Pure eligible hypothetical Stabilize | INV | — | — | PLANNED | Stage 12 |
 
-> Product gate: в Final Spec отсутствует decision table выбора Recommendation.
-> Реализация RECOMMENDATION-001..004 в Stage 12/17 заблокирована до явного
-> product amendment в `00_FINAL_SPEC_v5.md`; corrective pass Stage 8 алгоритм
-> не изобретает.
+> Product gate снят пользовательским решением перед Block C: Final Spec §23.1
+> теперь содержит полную deterministic decision table. Backend implementation
+> относится к Stage 12; отображение только в Portal Details — к Stage 17.
 
 ## EVENT
 

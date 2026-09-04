@@ -963,3 +963,20 @@ Stage 9 implementation по-прежнему не начат.
 
 До пользовательского утверждения execution-plan production implementation
 Stage 9 не начинается.
+
+## Recommendation Engine product decision (2026-09-04)
+
+- Пользователь напомнил, что Recommendation algorithm был отложен до конкретной
+  стадии, а не до frontend автоматически. Исправлено: backend decision table
+  принадлежит Stage 12 Block C; Stage 17 только отображает результат.
+- Согласован приоритет: безопасное перемещение Observer → предотвращение
+  Collapse/Lab Energy loss → исследование UNEXPLORED Plane → исключение
+  бесполезных действий с EXPLORED Plane.
+- Алгоритм учитывает WAITING_RETURN/EXPLORING/active transit Observers, Portal
+  flow, creatures, Risk, current Laboratory Energy и conservative time horizon.
+  Hidden collapse timestamp и random не используются.
+- Добавлены Final Spec §23.1 и requirements `RECOMMENDATION-005..012`.
+  Все Recommendation rows остаются PLANNED до Stage 12 implementation.
+
+Block C plan требует отдельной корректировки после утверждения written design;
+Stage 9 production implementation не начат.
