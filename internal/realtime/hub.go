@@ -47,9 +47,23 @@ type Hub struct {
 	bridgeCancel context.CancelFunc
 	bridgeDone   chan struct{}
 	closed       bool
+	handlers     sync.WaitGroup
 
 	snapshotMu sync.Mutex
 	sequence   uint64
+}
+
+// beginHandler serializes handler admission with Close. This prevents a
+// positive WaitGroup.Add from racing with the shutdown Wait after the count
+// has reached zero.
+func (h *Hub) beginHandler() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed {
+		return false
+	}
+	h.handlers.Add(1)
+	return true
 }
 
 func NewHub(source StateSource, cfg config.Config) (*Hub, error) {
@@ -224,4 +238,5 @@ func (h *Hub) Close() {
 	if done != nil {
 		<-done
 	}
+	h.handlers.Wait()
 }
