@@ -153,9 +153,12 @@ func resolvePortalStage(state *SimulationState, now time.Time, cfg config.Config
 
 func resolveObserverStage(state *SimulationState, now time.Time, cfg config.Config) error {
 	planeIndexByID := make(map[int64]int, len(state.Planes))
+	initiallyUnexplored := make(map[int64]bool, len(state.Planes))
 	for i := range state.Planes {
 		planeIndexByID[state.Planes[i].ID] = i
+		initiallyUnexplored[state.Planes[i].ID] = !state.Planes[i].Explored
 	}
+	earliestReturnByPlane := make(map[int64]time.Time)
 	portalIndexByID := make(map[int64]int, len(state.Portals))
 	for i := range state.Portals {
 		portalIndexByID[state.Portals[i].ID] = i
@@ -173,6 +176,15 @@ func resolveObserverStage(state *SimulationState, now time.Time, cfg config.Conf
 		observer := &state.Observers[index]
 		var plane *Plane
 		var portal *Portal
+		beforeStatus := observer.Status
+		var returnPlaneID int64
+		var returnedAt time.Time
+		hasReturnCandidate := beforeStatus == ObserverReturning &&
+			observer.CurrentPlaneID != nil && observer.PhaseEndsAt != nil
+		if hasReturnCandidate {
+			returnPlaneID = *observer.CurrentPlaneID
+			returnedAt = *observer.PhaseEndsAt
+		}
 
 		if observer.CurrentPlaneID != nil {
 			planeIndex, ok := planeIndexByID[*observer.CurrentPlaneID]
@@ -199,6 +211,18 @@ func resolveObserverStage(state *SimulationState, now time.Time, cfg config.Conf
 		if err := ResolveObserverLifecycle(observer, plane, portal, now, cfg); err != nil {
 			return err
 		}
+		if hasReturnCandidate && observer.Status == ObserverAvailable && initiallyUnexplored[returnPlaneID] {
+			current, exists := earliestReturnByPlane[returnPlaneID]
+			if !exists || returnedAt.Before(current) {
+				earliestReturnByPlane[returnPlaneID] = returnedAt
+			}
+		}
+	}
+	for planeID, exploredAt := range earliestReturnByPlane {
+		index := planeIndexByID[planeID]
+		state.Planes[index].Explored = true
+		at := exploredAt
+		state.Planes[index].ExploredAt = &at
 	}
 	return nil
 }
