@@ -164,8 +164,27 @@ func TestStoreListEvents_RejectsCorruptRequiredTimestamp(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = store.db.Exec(`UPDATE events SET created_at = 0`)
+	_, err = store.db.Exec(`UPDATE events SET created_at = 'broken'`)
 	require.NoError(t, err)
 	_, err = store.ListEvents(ctx, nil)
 	require.Error(t, err)
+}
+
+func TestStoreCommitAndListEvents_RoundTripsUnixEpochTimestamp(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	now := time.Date(2026, 9, 4, 14, 0, 0, 0, time.UTC)
+	snapshot := completeSnapshot(now)
+	portalID := int64(7)
+	epoch := time.Unix(0, 0).UTC()
+	draft := eventDraft(epoch, domain.EventPortalOpened, &portalID)
+
+	persisted, err := store.Commit(ctx, snapshot, []domain.EventDraft{draft})
+	require.NoError(t, err)
+	require.Len(t, persisted, 1)
+
+	events, err := store.ListEvents(ctx, nil)
+	require.NoError(t, err)
+	require.Equal(t, persisted, events)
+	require.Equal(t, epoch, events[0].CreatedAt)
 }
