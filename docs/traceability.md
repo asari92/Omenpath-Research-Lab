@@ -45,7 +45,7 @@
 | SLOT-003 | First free slot | BEH | `TestFirstFreeSlot_FillsGap` | `FirstFreeSlot` | GREEN | |
 | SLOT-004 | Portal keeps slot for lifecycle | INV | `TestFirstFreeSlot_DoesNotMutateInput` | pure helper | PARTIAL | helper не мутирует вход / не пересортирует; инвариант целиком (хранение slot_index у живого портала) — LabManager Stage 11 |
 | SLOT-005 | Terminal releases slot | BEH | `TestFirstFreeSlot_TerminalPortalsDoNotOccupy` | `FirstFreeSlot` | GREEN | |
-| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen` | `FirstFreeSlot` | PARTIAL | helper детектирует 7/7 (нет слота); поведение генератора «ждёт и возобновляется» — Stage 8 |
+| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen`, `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules` | `FirstFreeSlot`, `ResolveNaturalSpawn` | PARTIAL | generator pause/resume scheduling is proven; due Portal creation after resumed delay arrives in checkpoint D |
 | SLOT-007 | Extraction uses regular slot | BEH | `TestOpenExtractionPortal_UsesFirstFreeRegularSlot`, `TestOpenExtractionPortal_ReusesTerminalPortalSlot`, `TestOpenExtractionPortal_RejectsAllSevenSlotsOccupied` | `OpenExtractionPortal`, `FirstFreeSlot` | GREEN | same first-free pool and terminal release rules as Natural portals |
 
 ## ENERGY
@@ -186,10 +186,10 @@
 |---|---|---|---|---|---|---|
 | SPAWN-001 | Inclusive random delay 0..20 sec | BAL | `TestNewNaturalSpawnState_AcceptsZeroDelay`, `TestNewNaturalSpawnState_AcceptsMaximumDelay`, `TestNewNaturalSpawnState_DrawsExactlyOnce` | `NewNaturalSpawnState` | GREEN | inclusive whole-second scheduler draw from config |
 | SPAWN-002 | Fresh delay after successful spawn | BEH | — | — | PLANNED | Stage 8 |
-| SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | — | — | PLANNED | Stage 8 |
+| SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FullCapacityConsumesNoRandom`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay` | `ResolveNaturalSpawn`, `resolveNaturalSpawnPrepared` | PARTIAL | pause and fresh schedule are complete; post-delay creation is checkpoint D |
 | SPAWN-004 | Random destination among 85 Planes | BEH | — | — | PLANNED | Stage 8 |
 | SPAWN-005 | Repeated Plane destinations allowed | BEH | — | — | PLANNED | Stage 8 |
-| SPAWN-006 | At most one spawn per tick | BEH | — | — | PLANNED | delay 0 waits a later tick |
+| SPAWN-006 | At most one spawn per tick | BEH | `TestResolveNaturalSpawn_AtSchedulingOriginIsNoOpForZeroDelay`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay` | `naturalSpawnDue`, `ResolveNaturalSpawn` | PARTIAL | zero-delay same-tick suppression proven; successful-spawn one-per-tick behavior is checkpoint D |
 
 ## SIMULATION
 

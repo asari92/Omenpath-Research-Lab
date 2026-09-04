@@ -61,6 +61,13 @@ func validSpawnDelayConfig(cfg config.Config) bool {
 		cfg.SpawnDelayMin%time.Second == 0 && cfg.SpawnDelayMax%time.Second == 0
 }
 
+func cloneSimulationState(state SimulationState) SimulationState {
+	state.Portals = append([]Portal(nil), state.Portals...)
+	state.Planes = append([]Plane(nil), state.Planes...)
+	state.Observers = append([]Observer(nil), state.Observers...)
+	return state
+}
+
 // ResolveTick initially exposes the approved aggregate validation boundary.
 // Ordered lifecycle behavior is added checkpoint-by-checkpoint.
 func (state *SimulationState) ResolveTick(now time.Time, _ random.Random, cfg config.Config) (SimulationTickResult, error) {
