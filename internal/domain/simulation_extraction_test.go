@@ -137,6 +137,28 @@ func TestSimulationTick_MultipleExtractionsReturnDifferentObservers(t *testing.T
 	require.Equal(t, domain.ObserverReturning, state.Observers[1].Status)
 }
 
+func TestSimulationTick_MultipleLateExtractionsDoNotRejectDueTransitCreatedInSameStage(t *testing.T) {
+	state := extractionTickState(
+		[]domain.Portal{
+			tickExtractionPortal(1, 1, 1, testutil.BaseTime),
+			tickExtractionPortal(2, 1, 2, testutil.BaseTime),
+		},
+		tickWaitingObserver(1, -time.Minute),
+		tickWaitingObserver(2, -30*time.Second),
+	)
+	rnd := testutil.NewFakeRandom().QueueInt(5, 6)
+
+	_, err := state.ResolveTick(testutil.BaseTime.Add(20*time.Second), rnd, config.Default())
+
+	require.NoError(t, err)
+	require.Equal(t, domain.ObserverReturning, state.Observers[0].Status)
+	require.Equal(t, domain.ObserverReturning, state.Observers[1].Status)
+	require.Equal(t, int64(1), *state.Observers[0].ActivePortalID)
+	require.Equal(t, int64(2), *state.Observers[1].ActivePortalID)
+	require.Equal(t, testutil.BaseTime.Add(10*time.Second), *state.Observers[0].PhaseEndsAt)
+	require.Equal(t, testutil.BaseTime.Add(11*time.Second), *state.Observers[1].PhaseEndsAt)
+}
+
 func TestSimulationTick_ExtractionDrawsTransitDurationBeforeNaturalSpawn(t *testing.T) {
 	state := extractionTickState([]domain.Portal{tickExtractionPortal(1, 1, 1, testutil.BaseTime)}, tickWaitingObserver(1, 0))
 	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, 5*time.Second)
