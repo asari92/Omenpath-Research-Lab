@@ -26,6 +26,7 @@ type fakeManager struct {
 	eventsErr   error
 	stateCalls  int
 	portalReads int
+	eventsReads int
 	commandErr  error
 	commandHook func(action string, id int64, confirm bool) error
 	commands    []commandCall
@@ -66,7 +67,10 @@ func (m *fakeManager) PortalState(_ context.Context, id int64) (persistence.Snap
 	}
 	return persistence.Snapshot{}, nil, engine.ErrPortalNotFound
 }
-func (m *fakeManager) Events(context.Context) ([]domain.Event, error) { return m.events, m.eventsErr }
+func (m *fakeManager) Events(context.Context) ([]domain.Event, error) {
+	m.eventsReads++
+	return m.events, m.eventsErr
+}
 func (m *fakeManager) runCommand(action string, id int64, confirm bool) error {
 	m.commands = append(m.commands, commandCall{action: action, id: id, confirm: confirm})
 	if m.commandHook != nil {

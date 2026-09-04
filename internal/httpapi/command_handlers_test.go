@@ -165,6 +165,31 @@ func TestWrongMethod_Returns405(t *testing.T) {
 	require.Empty(t, manager.commands)
 }
 
+func TestNonDomainRoutingFailuresDoNotReachManager(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		path   string
+		status int
+	}{
+		{"unknown route", "/api/not-a-route", http.StatusNotFound},
+		{"nonnumeric portal id", "/api/portals/not-a-number/close", http.StatusBadRequest},
+		{"zero portal id", "/api/portals/0/close", http.StatusBadRequest},
+		{"negative portal id", "/api/portals/-1/close", http.StatusBadRequest},
+		{"overflow portal id", "/api/portals/9223372036854775808/close", http.StatusBadRequest},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime)}
+			rr := perform(manager, http.MethodPost, tc.path, `{}`)
+
+			require.Equal(t, tc.status, rr.Code)
+			require.Empty(t, manager.commands)
+			require.Zero(t, manager.stateCalls)
+			require.Zero(t, manager.portalReads)
+			require.Zero(t, manager.eventsReads)
+		})
+	}
+}
+
 func TestInternalFailure_ReturnsOpaque500(t *testing.T) {
 	manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime), commandErr: errors.New("database password secret")}
 	rr := perform(manager, http.MethodPost, "/api/portals/1/stabilize", `{}`)
