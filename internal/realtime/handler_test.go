@@ -37,6 +37,48 @@ type blockingShutdownSource struct {
 	exited   chan struct{}
 }
 
+type blockingInitialSource struct {
+	snapshot persistence.Snapshot
+	updates  chan struct{}
+	mu       sync.Mutex
+	calls    int
+	entered  chan struct{}
+	canceled chan struct{}
+	release  chan struct{}
+	exited   chan struct{}
+}
+
+func newBlockingInitialSource(snapshot persistence.Snapshot) *blockingInitialSource {
+	return &blockingInitialSource{
+		snapshot: snapshot,
+		updates:  make(chan struct{}, 1),
+		entered:  make(chan struct{}),
+		canceled: make(chan struct{}),
+		release:  make(chan struct{}),
+		exited:   make(chan struct{}),
+	}
+}
+
+func (s *blockingInitialSource) State(ctx context.Context) (persistence.Snapshot, error) {
+	s.mu.Lock()
+	s.calls++
+	s.mu.Unlock()
+	close(s.entered)
+	<-ctx.Done()
+	close(s.canceled)
+	<-s.release
+	close(s.exited)
+	return persistence.Snapshot{}, ctx.Err()
+}
+
+func (s *blockingInitialSource) Updates() <-chan struct{} { return s.updates }
+
+func (s *blockingInitialSource) callCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls
+}
+
 func newBlockingShutdownSource(snapshot persistence.Snapshot) *blockingShutdownSource {
 	return &blockingShutdownSource{
 		snapshot: snapshot,
@@ -435,4 +477,68 @@ func TestHub_CloseWaitsForBridgeExit(t *testing.T) {
 	}
 	require.Equal(t, calls, source.callCount(), "closed hub must not call State again")
 	require.NotPanics(t, hub.Close)
+}
+
+func TestHub_CloseWaitsForBlockedInitialSnapshotHandler(t *testing.T) {
+	source := newBlockingInitialSource(realtimeSnapshot(testutil.BaseTime))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	server := httptest.NewServer(hub)
+	t.Cleanup(server.Close)
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(source.release) }) }
+	t.Cleanup(func() {
+		release()
+		hub.Close()
+	})
+
+	dialCtx, cancelDial := context.WithTimeout(context.Background(), time.Second)
+	defer cancelDial()
+	conn, _, err := websocket.Dial(dialCtx, websocketURL(server.URL), nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.CloseNow() })
+	select {
+	case <-source.entered:
+	case <-time.After(time.Second):
+		t.Fatal("handler did not enter the controlled initial State call")
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		hub.Close()
+		close(closed)
+	}()
+	select {
+	case <-source.canceled:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not cancel the blocked handler context")
+	}
+	select {
+	case <-closed:
+		t.Fatal("Close returned while initial snapshot handler was still active")
+	default:
+	}
+
+	release()
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not return after the handler exited")
+	}
+	select {
+	case <-source.exited:
+	default:
+		t.Fatal("Close returned before the blocking State call exited")
+	}
+
+	readCtx, cancelRead := context.WithTimeout(context.Background(), time.Second)
+	defer cancelRead()
+	var snapshot transport.StateSnapshot
+	require.Error(t, wsjson.Read(readCtx, conn, &snapshot))
+	calls := source.callCount()
+	source.updates <- struct{}{}
+	select {
+	case <-time.After(50 * time.Millisecond):
+	}
+	require.Equal(t, calls, source.callCount(), "closed hub must not start later State calls")
 }
