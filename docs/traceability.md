@@ -164,9 +164,9 @@
 | EXTRACTION-004 | Stable/INBOUND/creatures0 | BEH | `TestNewExtractionPortal_IsStableWithoutHiddenCollapse`, `TestNewExtractionPortal_StartsInbound`, `TestNewExtractionPortal_HasNoCreatures` | `NewExtractionPortal` | GREEN | canonical Extraction creation state |
 | EXTRACTION-005 | Energy 60..100 | BAL | `TestNewExtractionPortal_AcceptsMinimumEnergy`, `TestNewExtractionPortal_AcceptsMaximumEnergy` | `NewExtractionPortal` | GREEN | inclusive configured factory draw |
 | EXTRACTION-006 | TTL 30..60 | BAL | `TestNewExtractionPortal_AcceptsMinimumTTL`, `TestNewExtractionPortal_AcceptsMaximumTTL` | `NewExtractionPortal` | GREEN | inclusive configured whole-second TTL draw |
-| EXTRACTION-007 | Sync 5 sec | BEH | — | — | PLANNED | |
+| EXTRACTION-007 | Sync 5 sec | BEH | `TestResolveExtractionSynchronization_BeforeDeadlineChangesNothing`, `TestResolveExtractionSynchronization_AtDeadlineCompletes`, `TestResolveExtractionSynchronization_LateResolutionUsesSemanticDeadline` | `ResolveExtractionSynchronization`, `Portal.ExtractionSynchronizedAt` | GREEN | half-open five-second sync uses semantic deadline and terminal no-op |
 | EXTRACTION-008 | First auto-return | BEH | — | — | PLANNED | |
-| EXTRACTION-009 | Only one automatic | BEH | — | — | PLANNED | |
+| EXTRACTION-009 | Only one automatic | BEH | `TestResolveExtractionSynchronization_AtDeadlineCompletes` | `Portal.ExtractionSynchronizedAt`, `ResolveExtractionSynchronization` | PARTIAL | one-shot marker exists; automatic return and replay coverage complete in checkpoints E/F |
 | EXTRACTION-010 | Further returns manual | BEH | — | — | PLANNED | |
 
 ## EMERGENCY
