@@ -401,6 +401,89 @@ func TestSimulationState_RejectsFutureSpawnScheduleOrigin(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
 }
 
+func TestSimulationState_RejectsNonCanonicalObserverFields(t *testing.T) {
+	now := testutil.BaseTime.Add(5 * time.Second)
+	tests := []struct {
+		name     string
+		observer func() domain.Observer
+		flow     domain.PortalFlow
+		mutate   func(*domain.Observer)
+	}{
+		{"created after now", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowOutbound, func(o *domain.Observer) {
+			o.CreatedAt = now.Add(time.Second)
+		}},
+		{"updated before creation", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowOutbound, func(o *domain.Observer) {
+			o.UpdatedAt = o.CreatedAt.Add(-time.Second)
+		}},
+		{"updated after now", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowOutbound, func(o *domain.Observer) {
+			o.UpdatedAt = now.Add(time.Second)
+		}},
+		{"phase starts after now", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowOutbound, func(o *domain.Observer) {
+			start := now.Add(time.Second)
+			end := start.Add(time.Second)
+			o.PhaseStartedAt = &start
+			o.PhaseEndsAt = &end
+		}},
+		{"outbound through none flow", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowNone, func(*domain.Observer) {}},
+		{"outbound through inbound flow", func() domain.Observer {
+			return tickOutboundObserver(1, 10*time.Second)
+		}, domain.PortalFlowInbound, func(*domain.Observer) {}},
+		{"returning through none flow", func() domain.Observer {
+			return tickReturningObserver(1, 10*time.Second)
+		}, domain.PortalFlowNone, func(*domain.Observer) {}},
+		{"returning through outbound flow", func() domain.Observer {
+			return tickReturningObserver(1, 10*time.Second)
+		}, domain.PortalFlowOutbound, func(*domain.Observer) {}},
+		{"returning plane differs from portal destination", func() domain.Observer {
+			return tickReturningObserver(1, 10*time.Second)
+		}, domain.PortalFlowInbound, func(o *domain.Observer) {
+			planeID := int64(2)
+			o.CurrentPlaneID = &planeID
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := observerPortal()
+			p.ObserverFlow = tt.flow
+			state := observerTickState(p, tt.observer())
+			tt.mutate(&state.Observers[0])
+			before := state
+			rnd := &countingRandom{}
+
+			err := resolveStateForValidation(&state, now, rnd, config.Default())
+
+			require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+			require.Equal(t, before, state)
+			require.Zero(t, rnd.intCalls)
+			require.Zero(t, rnd.floatCalls)
+		})
+	}
+}
+
+func TestSimulationState_AllowsDueObserverPhaseForTickCatchUp(t *testing.T) {
+	state := observerTickState(observerPortal(), tickOutboundObserver(1, 5*time.Second))
+
+	err := resolveStateForValidation(
+		&state,
+		testutil.BaseTime.Add(6*time.Second),
+		nil,
+		config.Default(),
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, domain.ObserverExploring, state.Observers[0].Status)
+}
+
 func TestSimulationState_InvalidAggregateDoesNotConsumeRandom(t *testing.T) {
 	state := simulationState(testutil.BaseTime)
 	state.Planes = nil
