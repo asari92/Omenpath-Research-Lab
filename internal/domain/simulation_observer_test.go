@@ -155,17 +155,22 @@ func TestSimulationTick_PortalLifecycleRunsBeforeObserverLifecycle(t *testing.T)
 	require.Equal(t, domain.ObserverLost, state.Observers[0].Status)
 }
 
-func TestSimulationTick_ObserversAreVisitedByID(t *testing.T) {
+func TestSimulationTick_EarliestSuccessfulReturnSetsExploredAtRegardlessOfObserverID(t *testing.T) {
 	p := observerPortal()
 	p.ObserverFlow = domain.PortalFlowInbound
-	lower := tickReturningObserver(1, 7*time.Second)
-	higher := tickReturningObserver(2, 5*time.Second)
-	state := observerTickState(p, lower, higher)
+	lowerIDLater := tickReturningObserver(1, 7*time.Second)
+	higherIDEarlier := tickReturningObserver(2, 5*time.Second)
+	state := observerTickState(p, lowerIDLater, higherIDEarlier)
 	state.Observers[0], state.Observers[1] = state.Observers[1], state.Observers[0]
+
 	_, err := state.ResolveTick(testutil.BaseTime.Add(7*time.Second), nil, config.Default())
+
 	require.NoError(t, err)
+	require.True(t, state.Planes[0].Explored)
 	require.NotNil(t, state.Planes[0].ExploredAt)
-	require.Equal(t, testutil.BaseTime.Add(7*time.Second), *state.Planes[0].ExploredAt)
+	require.Equal(t, testutil.BaseTime.Add(5*time.Second), *state.Planes[0].ExploredAt)
+	require.Equal(t, domain.ObserverAvailable, state.Observers[0].Status)
+	require.Equal(t, domain.ObserverAvailable, state.Observers[1].Status)
 }
 
 func TestSimulationTick_ObserverTraversalDoesNotReorderSlice(t *testing.T) {
