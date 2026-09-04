@@ -212,7 +212,10 @@ func (s *Store) ListEvents(ctx context.Context, portalID *int64) ([]domain.Event
 		event.PortalID = decodeOptionalInt64(portal)
 		event.ObserverID = decodeOptionalInt64(observer)
 		event.PlaneID = decodeOptionalInt64(plane)
-		event.CreatedAt = decodeTime(createdAt)
+		event.CreatedAt, err = decodeRequiredTime(createdAt, "event.created_at")
+		if err != nil {
+			return nil, fmt.Errorf("invalid persisted event %d: %w", event.ID, err)
+		}
 		if err := event.ValidatePersisted(); err != nil {
 			return nil, fmt.Errorf("invalid persisted event %d: %w", event.ID, err)
 		}

@@ -59,9 +59,9 @@ CREATE TABLE IF NOT EXISTS events (
         'EXTRACTION_PORTAL_OPENED', 'EXTRACTION_SYNCHRONIZED',
         'LEYLINE_OVERRIDE_STARTED', 'LEYLINE_OVERRIDE_ENDED', 'ACTION_REJECTED'
     )),
-    portal_id INTEGER REFERENCES portals(id),
-    observer_id INTEGER REFERENCES observers(id),
-    plane_id INTEGER REFERENCES planes(id),
+    portal_id INTEGER,
+    observer_id INTEGER,
+    plane_id INTEGER,
     message TEXT NOT NULL CHECK (length(trim(message)) > 0),
     payload_json TEXT NOT NULL CHECK (json_valid(payload_json) AND json_type(payload_json) = 'object'),
     created_at INTEGER NOT NULL
