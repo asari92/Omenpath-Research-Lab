@@ -217,7 +217,9 @@ func TestTutorial_CriticalRejectedSendCommitsActionRejectedAndStep6(t *testing.T
 	require.ErrorIs(t, err, domain.ErrPortalCriticalRisk)
 	require.Equal(t, 6, manager.snapshot.App.TutorialStep)
 	require.Equal(t, domain.TutorialPhaseSendReplacement, manager.snapshot.App.TutorialPhase)
-	require.Equal(t, domain.EventActionRejected, repo.events[len(repo.events)-1].EventType)
+	require.Equal(t, []domain.EventType{domain.EventActionRejected, domain.EventPortalOpened}, eventTypes(repo.events))
+	require.Equal(t, portal.ID, *repo.events[0].PortalID)
+	require.Equal(t, *manager.snapshot.App.TutorialPortalID, *repo.events[1].PortalID)
 }
 
 func TestTutorial_WrongReversibleActionKeepsStep(t *testing.T) {

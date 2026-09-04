@@ -204,6 +204,13 @@ func (m *LabManager) executeCommand(ctx context.Context, command managerCommand)
 			return eventErr
 		}
 		drafts = append(drafts, rejected)
+		commandDrafts, eventErr := domain.EventsForStateTransition(
+			resolved.Simulation, working.Simulation, now, now, m.cfg,
+		)
+		if eventErr != nil {
+			return eventErr
+		}
+		drafts = append(drafts, commandDrafts...)
 	}
 
 	if _, err := m.repo.Commit(ctx, cloneSnapshot(working), cloneDrafts(drafts)); err != nil {

@@ -111,6 +111,32 @@ func (m *LabManager) StartLive(ctx context.Context) (err error) {
 			return err
 		}
 	}
+	for i := range working.Simulation.Observers {
+		observer := &working.Simulation.Observers[i]
+		if observer.Status != domain.ObserverOutbound && observer.Status != domain.ObserverReturning {
+			continue
+		}
+		if observer.ActivePortalID == nil {
+			return domain.ErrSimulationInvariant
+		}
+		portalAt, ok := portalIndex(working.Simulation.Portals, *observer.ActivePortalID)
+		if !ok {
+			return domain.ErrSimulationInvariant
+		}
+		planeAt, ok := planeIndex(working.Simulation.Planes, working.Simulation.Portals[portalAt].DestinationPlaneID)
+		if !ok {
+			return domain.ErrSimulationInvariant
+		}
+		if err := domain.ResolveObserverLifecycle(
+			observer,
+			&working.Simulation.Planes[planeAt],
+			&working.Simulation.Portals[portalAt],
+			now,
+			m.cfg,
+		); err != nil {
+			return err
+		}
+	}
 	closeDrafts, err := domain.EventsForStateTransition(beforeClose.Simulation, working.Simulation, now, now, m.cfg)
 	if err != nil {
 		return err
