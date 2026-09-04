@@ -1056,3 +1056,30 @@ destination-linked transit loss и first-tick baseline; исправления �
 - `go test -count=1 ./...` — exit 0.
 
 Stage 9 завершён. Stage 10 не начат.
+
+### Stage 9 corrective review pass
+
+- Quality review выявил cadence-dependent `RESEARCH_COMPLETED`: late
+  `OUTBOUND → WAITING_RETURN` сохранял исходный `portal_id`, а два обычных
+  tick перехода `OUTBOUND → EXPLORING → WAITING_RETURN` создавали completion с
+  `portal_id = nil`. Canonical результат теперь одинаков в обоих режимах:
+  `RESEARCH_COMPLETED` относится к Observer/Plane и не содержит Portal ID.
+- `eventsForPlanes` одинаково отклоняет duplicate и non-positive Plane IDs в
+  обоих snapshots до генерации событий, поэтому malformed input не может
+  создать duplicate `PLANE_EXPLORED`.
+- `NewActionRejectedEvent` читает `cause.Error()` ровно один раз; message и
+  payload гарантированно содержат один и тот же текст даже для stateful error.
+- Прямыми tests закреплены semantic timestamp и Portal/Observer/Plane IDs для
+  `PORTAL_STABILIZED` и `OBSERVER_DISPATCHED`.
+
+Corrective TDD evidence:
+
+| RED | Наблюдаемый RED | GREEN |
+|---|---|---|
+| `5e4f822` | late completion имел `portal_id=1`, split completion — `nil`; stateful cause читался дважды; malformed Plane snapshots принимались | `d2fe178` |
+
+- Corrective focused/domain suites — exit 0.
+- `go vet ./...`, `go build ./...`, `go test -count=1 ./...` — exit 0.
+- `go test -race -count=1 ./...` — exit 0.
+
+Stage 10 по-прежнему не начат.
