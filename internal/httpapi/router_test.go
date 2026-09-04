@@ -19,12 +19,21 @@ import (
 )
 
 type fakeManager struct {
-	snapshot   persistence.Snapshot
-	events     []domain.Event
-	stateErr   error
-	portalErr  error
-	eventsErr  error
-	stateCalls int
+	snapshot    persistence.Snapshot
+	events      []domain.Event
+	stateErr    error
+	portalErr   error
+	eventsErr   error
+	stateCalls  int
+	commandErr  error
+	commandHook func(action string, id int64, confirm bool) error
+	commands    []commandCall
+}
+
+type commandCall struct {
+	action  string
+	id      int64
+	confirm bool
 }
 
 func (m *fakeManager) State(context.Context) (persistence.Snapshot, error) {
@@ -42,12 +51,29 @@ func (m *fakeManager) Portal(_ context.Context, id int64) (domain.Portal, []doma
 	}
 	return domain.Portal{}, nil, engine.ErrPortalNotFound
 }
-func (m *fakeManager) Events(context.Context) ([]domain.Event, error)    { return m.events, m.eventsErr }
-func (m *fakeManager) Stabilize(context.Context, int64) error            { return nil }
-func (m *fakeManager) ClosePortal(context.Context, int64, bool) error    { return nil }
-func (m *fakeManager) SendObserver(context.Context, int64, bool) error   { return nil }
-func (m *fakeManager) RecallObserver(context.Context, int64, bool) error { return nil }
-func (m *fakeManager) OpenExtraction(context.Context, int64) error       { return nil }
+func (m *fakeManager) Events(context.Context) ([]domain.Event, error) { return m.events, m.eventsErr }
+func (m *fakeManager) runCommand(action string, id int64, confirm bool) error {
+	m.commands = append(m.commands, commandCall{action: action, id: id, confirm: confirm})
+	if m.commandHook != nil {
+		return m.commandHook(action, id, confirm)
+	}
+	return m.commandErr
+}
+func (m *fakeManager) Stabilize(_ context.Context, id int64) error {
+	return m.runCommand("STABILIZE", id, false)
+}
+func (m *fakeManager) ClosePortal(_ context.Context, id int64, confirm bool) error {
+	return m.runCommand("CLOSE", id, confirm)
+}
+func (m *fakeManager) SendObserver(_ context.Context, id int64, confirm bool) error {
+	return m.runCommand("SEND", id, confirm)
+}
+func (m *fakeManager) RecallObserver(_ context.Context, id int64, confirm bool) error {
+	return m.runCommand("RECALL", id, confirm)
+}
+func (m *fakeManager) OpenExtraction(_ context.Context, id int64) error {
+	return m.runCommand("OPEN_EXTRACTION", id, false)
+}
 
 func httpSnapshot(now time.Time) persistence.Snapshot {
 	planes := make([]domain.Plane, 85)
