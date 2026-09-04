@@ -289,6 +289,9 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 		len(state.Observers) != cfg.ObserverCount || state.NextPortalID <= 0 {
 		return ErrSimulationInvariant
 	}
+	if err := validateSimulationStructure(state, now); err != nil {
+		return ErrSimulationInvariant
+	}
 	if _, err := prepareLabEnergySpend(&state.Lab, now, 0, cfg); err != nil {
 		return ErrSimulationInvariant
 	}
@@ -342,13 +345,6 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 	return validateSimulationObservers(state.Observers, planeIDs, portalIDs, state.Portals, now)
 }
 
-// ValidateSimulationState checks the complete simulation aggregate without
-// advancing it. Persistence and orchestration boundaries use the same
-// invariants as ResolveTick so malformed snapshots cannot bypass domain rules.
-func ValidateSimulationState(state SimulationState, now time.Time, cfg config.Config) error {
-	return validateSimulationState(&state, now, cfg)
-}
-
 func validSimulationConfig(cfg config.Config) bool {
 	return cfg.MaxActivePortals == 7 &&
 		validSpawnDelayConfig(cfg) &&
@@ -383,24 +379,8 @@ func validNaturalSpawnState(spawn NaturalSpawnState, now time.Time) bool {
 }
 
 func validSimulationPortal(portal *Portal, now time.Time, cfg config.Config) bool {
-	if portal == nil ||
-		portal.SlotIndex < 1 || portal.SlotIndex > cfg.MaxActivePortals ||
-		portal.OpenedAt.IsZero() || portal.CreatedAt.IsZero() ||
-		portal.EnergyBaseAt.IsZero() || portal.UpdatedAt.IsZero() ||
-		portal.OpenedAt.After(now) ||
-		!portal.ScheduledCloseAt.After(portal.OpenedAt) ||
-		portal.CreatedAt.After(portal.OpenedAt) ||
-		portal.EnergyBaseAt.Before(portal.OpenedAt) ||
-		portal.EnergyBaseAt.After(portal.UpdatedAt) ||
-		portal.EnergyBaseAt.After(now) ||
-		portal.UpdatedAt.Before(portal.OpenedAt) ||
-		portal.UpdatedAt.Before(portal.CreatedAt) ||
-		portal.UpdatedAt.After(now) ||
-		math.IsNaN(portal.EnergyBase) || math.IsInf(portal.EnergyBase, 0) ||
-		math.IsNaN(portal.EnergyDecayRate) || math.IsInf(portal.EnergyDecayRate, 0) ||
-		portal.EnergyBase < 0 ||
-		portal.EnergyDecayRate <= 0 ||
-		portal.CreaturesInitial < 0 || portal.CreaturesInitial > cfg.CreatureMax {
+	if !validStructuralPortal(portal, now) ||
+		portal.SlotIndex > cfg.MaxActivePortals || portal.CreaturesInitial > cfg.CreatureMax {
 		return false
 	}
 	maxEnergy := math.Max(
@@ -410,22 +390,12 @@ func validSimulationPortal(portal *Portal, now time.Time, cfg config.Config) boo
 	if portal.EnergyBase > maxEnergy {
 		return false
 	}
-	if portal.ObserverFlow != PortalFlowNone &&
-		portal.ObserverFlow != PortalFlowOutbound &&
-		portal.ObserverFlow != PortalFlowInbound {
-		return false
-	}
-
 	switch portal.Stability {
 	case PortalStable:
-		if portal.InstabilityCollapseAt != nil {
-			return false
-		}
 	case PortalUnstable:
-		if portal.InstabilityCollapseAt == nil ||
-			portal.InstabilityCollapseAt.Before(
-				portal.OpenedAt.Add(cfg.InstabilityMinLifetime),
-			) ||
+		if portal.InstabilityCollapseAt.Before(
+			portal.OpenedAt.Add(cfg.InstabilityMinLifetime),
+		) ||
 			portal.InstabilityCollapseAt.After(
 				portal.ScheduledCloseAt.Add(-cfg.InstabilityCloseMargin),
 			) {
@@ -437,15 +407,7 @@ func validSimulationPortal(portal *Portal, now time.Time, cfg config.Config) boo
 
 	switch portal.Kind {
 	case PortalKindNatural:
-		if portal.ExtractionSynchronizedAt != nil {
-			return false
-		}
 	case PortalKindExtraction:
-		if portal.Stability != PortalStable ||
-			portal.ObserverFlow != PortalFlowInbound ||
-			portal.CreaturesInitial != 0 {
-			return false
-		}
 		if portal.ExtractionSynchronizedAt != nil {
 			syncAt := portal.OpenedAt.Add(cfg.ExtractionSync)
 			if !portal.ExtractionSynchronizedAt.Equal(syncAt) ||
@@ -457,15 +419,7 @@ func validSimulationPortal(portal *Portal, now time.Time, cfg config.Config) boo
 		return false
 	}
 
-	switch portal.Status {
-	case PortalStatusOpen:
-		return portal.ClosedAt == nil &&
-			portal.TerminationReason == TerminationNone
-	case PortalStatusClosed, PortalStatusCollapsed:
-		return validSimulationTerminalPortal(portal, now)
-	default:
-		return false
-	}
+	return true
 }
 
 func validSimulationTerminalPortal(portal *Portal, now time.Time) bool {

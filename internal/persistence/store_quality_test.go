@@ -7,7 +7,6 @@ import (
 	"math"
 	"net/url"
 	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -52,17 +51,20 @@ func TestStoreCommitAndLoad_AcceptsCommandUpdatesAfterLastTick(t *testing.T) {
 
 func TestSQLiteDSN_PreservesMemoryURIAndMergesConnectionSettings(t *testing.T) {
 	name := filepath.Join(t.TempDir(), "shared memory")
-	raw := "file:" + name + "?mode=memory&cache=shared"
+	raw := "file:" + name + "?mode=memory&cache=shared&_fk=0&_timeout=1"
 
 	dsn, err := sqliteDSN(raw)
 	require.NoError(t, err)
-	require.True(t, strings.HasPrefix(dsn, "file:"+name+"?"), dsn)
 	parsed, err := url.Parse(dsn)
 	require.NoError(t, err)
+	require.Equal(t, "file", parsed.Scheme)
+	require.Equal(t, name, parsed.Path)
 	require.Equal(t, "memory", parsed.Query().Get("mode"))
 	require.Equal(t, "shared", parsed.Query().Get("cache"))
 	require.Equal(t, "1", parsed.Query().Get("_foreign_keys"))
 	require.Equal(t, "5000", parsed.Query().Get("_busy_timeout"))
+	require.Empty(t, parsed.Query().Get("_fk"))
+	require.Empty(t, parsed.Query().Get("_timeout"))
 }
 
 func TestStoreOpen_SharedMemoryURIWorksAcrossConnectionsAndThenVanishes(t *testing.T) {

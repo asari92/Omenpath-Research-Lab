@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -131,10 +130,9 @@ func validateSnapshot(snapshot Snapshot) error {
 			}
 		}
 	}
-	if err := domain.ValidateSimulationState(
+	if err := domain.ValidateSimulationStructure(
 		snapshot.Simulation,
 		snapshotValidationTime(snapshot.Simulation),
-		config.Default(),
 	); err != nil {
 		return fmt.Errorf("invalid simulation snapshot: %w", err)
 	}
@@ -142,9 +140,6 @@ func validateSnapshot(snapshot Snapshot) error {
 }
 
 func snapshotValidationTime(state domain.SimulationState) time.Time {
-	if state.LastTickAt != nil {
-		return *state.LastTickAt
-	}
 	latest := state.Lab.EnergyBaseAt
 	advance := func(candidate time.Time) {
 		if candidate.After(latest) {
@@ -153,6 +148,9 @@ func snapshotValidationTime(state domain.SimulationState) time.Time {
 	}
 	if state.NaturalSpawn.ScheduledAt != nil {
 		advance(*state.NaturalSpawn.ScheduledAt)
+	}
+	if state.LastTickAt != nil {
+		advance(*state.LastTickAt)
 	}
 	for i := range state.Planes {
 		if state.Planes[i].ExploredAt != nil {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -48,18 +49,41 @@ func Open(ctx context.Context, path string) (*Store, error) {
 }
 
 func sqliteDSN(path string) (string, error) {
-	query := url.Values{
-		"_busy_timeout": {"5000"},
-		"_foreign_keys": {"1"},
-	}.Encode()
+	settings := func(query url.Values) string {
+		query.Del("_fk")
+		query.Del("_timeout")
+		pragmas := query["_pragma"][:0]
+		for _, pragma := range query["_pragma"] {
+			normalized := strings.ToLower(strings.TrimSpace(pragma))
+			if strings.HasPrefix(normalized, "busy_timeout") ||
+				strings.HasPrefix(normalized, "foreign_keys") {
+				continue
+			}
+			pragmas = append(pragmas, pragma)
+		}
+		if len(pragmas) == 0 {
+			query.Del("_pragma")
+		} else {
+			query["_pragma"] = pragmas
+		}
+		query.Set("_busy_timeout", "5000")
+		query.Set("_foreign_keys", "1")
+		return query.Encode()
+	}
 	if path == ":memory:" {
-		return path + "?" + query, nil
+		return path + "?" + settings(url.Values{}), nil
+	}
+	if parsed, err := url.Parse(path); err != nil {
+		return "", fmt.Errorf("parse database URI: %w", err)
+	} else if parsed.Scheme == "file" {
+		parsed.RawQuery = settings(parsed.Query())
+		return parsed.String(), nil
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("resolve database path: %w", err)
 	}
-	return (&url.URL{Scheme: "file", Path: absolute, RawQuery: query}).String(), nil
+	return (&url.URL{Scheme: "file", Path: absolute, RawQuery: settings(url.Values{})}).String(), nil
 }
 
 func (s *Store) Close() error {
