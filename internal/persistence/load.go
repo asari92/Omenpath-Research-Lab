@@ -12,10 +12,16 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	if s == nil || s.db == nil {
 		return Snapshot{}, fmt.Errorf("load: nil store")
 	}
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("begin snapshot load: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	var snapshot Snapshot
 	var energyAt int64
 	var overrideUntil sql.NullInt64
-	if err := s.db.QueryRowContext(ctx, `SELECT energy_base, energy_base_at, override_until
+	if err := tx.QueryRowContext(ctx, `SELECT energy_base, energy_base_at, override_until
 		FROM lab_state WHERE id = 1`).Scan(
 		&snapshot.Simulation.Lab.EnergyBase, &energyAt, &overrideUntil,
 	); err != nil {
@@ -26,7 +32,7 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 
 	var mode string
 	var scheduledAt, dueAt, lastTickAt sql.NullInt64
-	if err := s.db.QueryRowContext(ctx, `SELECT mode, tutorial_step, next_portal_id,
+	if err := tx.QueryRowContext(ctx, `SELECT mode, tutorial_step, next_portal_id,
 		spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at
 		FROM app_state WHERE id = 1`).Scan(
 		&mode, &snapshot.App.TutorialStep, &snapshot.Simulation.NextPortalID,
@@ -39,15 +45,15 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	snapshot.Simulation.NaturalSpawn.DueAt = decodeOptionalTime(dueAt)
 	snapshot.Simulation.LastTickAt = decodeOptionalTime(lastTickAt)
 
-	planes, err := s.loadPlanes(ctx)
+	planes, err := loadPlanes(ctx, tx)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	portals, err := s.loadPortals(ctx)
+	portals, err := loadPortals(ctx, tx)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	observers, err := s.loadObservers(ctx)
+	observers, err := loadObservers(ctx, tx)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -57,11 +63,18 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	if err := validateSnapshot(snapshot); err != nil {
 		return Snapshot{}, fmt.Errorf("validate loaded snapshot: %w", err)
 	}
+	if err := tx.Commit(); err != nil {
+		return Snapshot{}, fmt.Errorf("commit snapshot load: %w", err)
+	}
 	return snapshot, nil
 }
 
-func (s *Store) loadPlanes(ctx context.Context) ([]domain.Plane, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, aliases_json, catalog_tier, explored, explored_at
+type snapshotReader interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func loadPlanes(ctx context.Context, reader snapshotReader) ([]domain.Plane, error) {
+	rows, err := reader.QueryContext(ctx, `SELECT id, name, aliases_json, catalog_tier, explored, explored_at
 		FROM planes ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("query planes: %w", err)
@@ -91,8 +104,8 @@ func (s *Store) loadPlanes(ctx context.Context) ([]domain.Plane, error) {
 	return planes, nil
 }
 
-func (s *Store) loadPortals(ctx context.Context) ([]domain.Portal, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, slot_index, kind, destination_plane_id,
+func loadPortals(ctx context.Context, reader snapshotReader) ([]domain.Portal, error) {
+	rows, err := reader.QueryContext(ctx, `SELECT id, name, slot_index, kind, destination_plane_id,
 		energy_base, energy_base_at, energy_decay_rate, stability, opened_at,
 		scheduled_close_at, instability_collapse_at, creatures_initial, observer_flow,
 		extraction_synchronized_at, status, termination_reason, closed_at, created_at, updated_at
@@ -139,8 +152,8 @@ func (s *Store) loadPortals(ctx context.Context) ([]domain.Portal, error) {
 	return portals, nil
 }
 
-func (s *Store) loadObservers(ctx context.Context) ([]domain.Observer, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, status, current_plane_id, active_portal_id,
+func loadObservers(ctx context.Context, reader snapshotReader) ([]domain.Observer, error) {
+	rows, err := reader.QueryContext(ctx, `SELECT id, status, current_plane_id, active_portal_id,
 		phase_started_at, phase_ends_at, created_at, updated_at FROM observers ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("query observers: %w", err)

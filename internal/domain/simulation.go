@@ -342,6 +342,13 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 	return validateSimulationObservers(state.Observers, planeIDs, portalIDs, state.Portals, now)
 }
 
+// ValidateSimulationState checks the complete simulation aggregate without
+// advancing it. Persistence and orchestration boundaries use the same
+// invariants as ResolveTick so malformed snapshots cannot bypass domain rules.
+func ValidateSimulationState(state SimulationState, now time.Time, cfg config.Config) error {
+	return validateSimulationState(&state, now, cfg)
+}
+
 func validSimulationConfig(cfg config.Config) bool {
 	return cfg.MaxActivePortals == 7 &&
 		validSpawnDelayConfig(cfg) &&

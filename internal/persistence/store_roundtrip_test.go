@@ -30,7 +30,7 @@ func completeSnapshot(now time.Time) Snapshot {
 	openedAt := now.Add(-30 * time.Second)
 	energyAt := now.Add(-10 * time.Second)
 	instabilityAt := now.Add(20 * time.Second)
-	syncAt := now.Add(-20 * time.Second)
+	syncAt := openedAt.Add(5 * time.Second)
 	closedAt := now.Add(-5 * time.Second)
 	portals := []domain.Portal{
 		{
@@ -157,6 +157,8 @@ func TestStoreLoad_RecoversOverdueStateWithoutResolvingIt(t *testing.T) {
 	store := openMigratedStore(t)
 	want := completeSnapshot(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))
 	want.Simulation.Portals[0].ScheduledCloseAt = want.Simulation.LastTickAt.Add(time.Second)
+	want.Simulation.Portals[0].Stability = domain.PortalStable
+	want.Simulation.Portals[0].InstabilityCollapseAt = nil
 
 	_, err := store.Commit(ctx, want, nil)
 	require.NoError(t, err)

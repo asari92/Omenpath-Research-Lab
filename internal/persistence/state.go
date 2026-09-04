@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"time"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -129,7 +131,41 @@ func validateSnapshot(snapshot Snapshot) error {
 			}
 		}
 	}
+	if err := domain.ValidateSimulationState(
+		snapshot.Simulation,
+		snapshotValidationTime(snapshot.Simulation),
+		config.Default(),
+	); err != nil {
+		return fmt.Errorf("invalid simulation snapshot: %w", err)
+	}
 	return nil
+}
+
+func snapshotValidationTime(state domain.SimulationState) time.Time {
+	if state.LastTickAt != nil {
+		return *state.LastTickAt
+	}
+	latest := state.Lab.EnergyBaseAt
+	advance := func(candidate time.Time) {
+		if candidate.After(latest) {
+			latest = candidate
+		}
+	}
+	if state.NaturalSpawn.ScheduledAt != nil {
+		advance(*state.NaturalSpawn.ScheduledAt)
+	}
+	for i := range state.Planes {
+		if state.Planes[i].ExploredAt != nil {
+			advance(*state.Planes[i].ExploredAt)
+		}
+	}
+	for i := range state.Portals {
+		advance(state.Portals[i].UpdatedAt)
+	}
+	for i := range state.Observers {
+		advance(state.Observers[i].UpdatedAt)
+	}
+	return latest
 }
 
 func persistSnapshot(ctx context.Context, tx *sql.Tx, snapshot Snapshot) error {

@@ -3,9 +3,11 @@ package persistence
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"math"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,6 +16,8 @@ import (
 
 	"omenpath-lab/internal/domain"
 )
+
+var loadBarrierSequence atomic.Uint64
 
 func TestStoreCommit_RejectsStructurallyImpossibleSnapshots(t *testing.T) {
 	now := time.Date(2026, 9, 4, 15, 0, 0, 0, time.UTC)
@@ -137,9 +141,13 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	dbPath := filepath.Join(t.TempDir(), "consistent.sqlite")
 	loadReachedApp := make(chan struct{})
 	releaseLoad := make(chan struct{})
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(releaseLoad) }) }
+	t.Cleanup(release)
 	var blockOnce sync.Once
+	barrierName := fmt.Sprintf("stage10_load_app_barrier_%d", loadBarrierSequence.Add(1))
 	require.NoError(t, sqlite.RegisterScalarFunction(
-		"stage10_load_app_barrier", 0,
+		barrierName, 0,
 		func(_ *sqlite.FunctionContext, _ []driver.Value) (driver.Value, error) {
 			blockOnce.Do(func() {
 				close(loadReachedApp)
@@ -162,12 +170,12 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	require.Equal(t, "wal", journalMode)
 	_, err = store.db.ExecContext(ctx, `ALTER TABLE app_state RENAME TO app_state_rows`)
 	require.NoError(t, err)
-	_, err = store.db.ExecContext(ctx, `CREATE VIEW app_state AS
+	_, err = store.db.ExecContext(ctx, fmt.Sprintf(`CREATE VIEW app_state AS
 		SELECT id,
-			CASE stage10_load_app_barrier() WHEN 1 THEN mode ELSE mode END AS mode,
+			CASE %s() WHEN 1 THEN mode ELSE mode END AS mode,
 			tutorial_step, next_portal_id, spawn_scheduled_at, spawn_due_at,
 			spawn_paused, last_tick_at
-		FROM app_state_rows`)
+		FROM app_state_rows`, barrierName))
 	require.NoError(t, err)
 
 	writer, err := Open(ctx, dbPath)
@@ -187,7 +195,7 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	<-loadReachedApp
 	_, err = writer.db.ExecContext(ctx, `UPDATE planes SET name = 'concurrent version' WHERE id = 1`)
 	require.NoError(t, err)
-	close(releaseLoad)
+	release()
 
 	result := <-loaded
 	require.NoError(t, result.err)
