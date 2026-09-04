@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -235,6 +236,138 @@ func TestSimulationState_RejectsTerminalPortalWithoutClosedAt(t *testing.T) {
 	state.NextPortalID = 2
 	err := resolveStateForValidation(&state, testutil.BaseTime, nil, config.Default())
 	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+}
+
+func makeTerminalPortal(
+	p *domain.Portal,
+	status domain.PortalStatus,
+	reason domain.TerminationReason,
+	closedAt time.Time,
+) {
+	p.Status = status
+	p.TerminationReason = reason
+	p.ClosedAt = &closedAt
+	p.UpdatedAt = closedAt
+}
+
+func TestSimulationState_RejectsNonCanonicalPortalFields(t *testing.T) {
+	cfg := config.Default()
+	now := testutil.BaseTime.Add(10 * time.Second)
+	tests := []struct {
+		name   string
+		mutate func(*domain.Portal)
+	}{
+		{"terminal slot outside range", func(p *domain.Portal) {
+			makeTerminalPortal(p, domain.PortalStatusClosed, domain.TerminationManualClose, testutil.BaseTime.Add(time.Second))
+			p.SlotIndex = 0
+		}},
+		{"non-positive lifecycle", func(p *domain.Portal) {
+			p.ScheduledCloseAt = p.OpenedAt
+		}},
+		{"negative energy", func(p *domain.Portal) { p.EnergyBase = -1 }},
+		{"energy above one hundred", func(p *domain.Portal) { p.EnergyBase = 101 }},
+		{"not-a-number energy", func(p *domain.Portal) { p.EnergyBase = math.NaN() }},
+		{"infinite decay", func(p *domain.Portal) { p.EnergyDecayRate = math.Inf(1) }},
+		{"non-positive decay", func(p *domain.Portal) { p.EnergyDecayRate = 0 }},
+		{"negative creatures", func(p *domain.Portal) { p.CreaturesInitial = -1 }},
+		{"creatures above configured maximum", func(p *domain.Portal) {
+			p.CreaturesInitial = cfg.CreatureMax + 1
+		}},
+		{"stable with hidden collapse", func(p *domain.Portal) {
+			at := p.OpenedAt.Add(6 * time.Second)
+			p.InstabilityCollapseAt = &at
+		}},
+		{"unstable without hidden collapse", func(p *domain.Portal) {
+			p.Stability = domain.PortalUnstable
+		}},
+		{"unstable hidden collapse before legal window", func(p *domain.Portal) {
+			p.Stability = domain.PortalUnstable
+			at := p.OpenedAt.Add(cfg.InstabilityMinLifetime - time.Nanosecond)
+			p.InstabilityCollapseAt = &at
+		}},
+		{"natural with extraction marker", func(p *domain.Portal) {
+			at := p.OpenedAt.Add(cfg.ExtractionSync)
+			p.ExtractionSynchronizedAt = &at
+		}},
+		{"extraction with outbound flow", func(p *domain.Portal) {
+			p.Kind = domain.PortalKindExtraction
+			p.ObserverFlow = domain.PortalFlowOutbound
+		}},
+		{"extraction with creatures", func(p *domain.Portal) {
+			p.Kind = domain.PortalKindExtraction
+			p.ObserverFlow = domain.PortalFlowInbound
+			p.CreaturesInitial = 1
+		}},
+		{"extraction unstable", func(p *domain.Portal) {
+			p.Kind = domain.PortalKindExtraction
+			p.ObserverFlow = domain.PortalFlowInbound
+			p.Stability = domain.PortalUnstable
+			at := p.OpenedAt.Add(6 * time.Second)
+			p.InstabilityCollapseAt = &at
+		}},
+		{"extraction marker differs from deadline", func(p *domain.Portal) {
+			p.Kind = domain.PortalKindExtraction
+			p.ObserverFlow = domain.PortalFlowInbound
+			at := p.OpenedAt.Add(cfg.ExtractionSync + time.Second)
+			p.ExtractionSynchronizedAt = &at
+		}},
+		{"created after opening", func(p *domain.Portal) {
+			p.CreatedAt = p.OpenedAt.Add(time.Second)
+		}},
+		{"energy baseline before opening", func(p *domain.Portal) {
+			p.EnergyBaseAt = p.OpenedAt.Add(-time.Second)
+		}},
+		{"energy baseline after now", func(p *domain.Portal) {
+			p.EnergyBaseAt = now.Add(time.Second)
+		}},
+		{"update before creation", func(p *domain.Portal) {
+			p.UpdatedAt = p.CreatedAt.Add(-time.Second)
+		}},
+		{"update after now", func(p *domain.Portal) {
+			p.UpdatedAt = now.Add(time.Second)
+		}},
+		{"closed before opening", func(p *domain.Portal) {
+			makeTerminalPortal(p, domain.PortalStatusClosed, domain.TerminationManualClose, p.OpenedAt.Add(-time.Second))
+		}},
+		{"closed after now", func(p *domain.Portal) {
+			makeTerminalPortal(p, domain.PortalStatusClosed, domain.TerminationManualClose, now.Add(time.Second))
+		}},
+		{"natural close with wrong semantic timestamp", func(p *domain.Portal) {
+			makeTerminalPortal(p, domain.PortalStatusClosed, domain.TerminationNaturalClose, p.OpenedAt.Add(5*time.Second))
+		}},
+		{"energy collapse with wrong semantic timestamp", func(p *domain.Portal) {
+			makeTerminalPortal(p, domain.PortalStatusCollapsed, domain.TerminationEnergyDepleted, p.OpenedAt.Add(5*time.Second))
+		}},
+		{"instability collapse with wrong semantic timestamp", func(p *domain.Portal) {
+			p.Stability = domain.PortalUnstable
+			hidden := p.OpenedAt.Add(6 * time.Second)
+			p.InstabilityCollapseAt = &hidden
+			makeTerminalPortal(p, domain.PortalStatusCollapsed, domain.TerminationInstability, hidden.Add(time.Second))
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := simulationState(now)
+			p := tickNaturalClosePortal(1, 1, time.Minute)
+			tt.mutate(&p)
+			state.Portals = []domain.Portal{p}
+			state.NextPortalID = 2
+			before := state
+			rnd := &countingRandom{}
+
+			err := resolveStateForValidation(&state, now, rnd, cfg)
+
+			require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+			if math.IsNaN(before.Portals[0].EnergyBase) {
+				require.True(t, math.IsNaN(state.Portals[0].EnergyBase))
+				before.Portals[0].EnergyBase = 0
+				state.Portals[0].EnergyBase = 0
+			}
+			require.Equal(t, before, state)
+			require.Zero(t, rnd.intCalls)
+			require.Zero(t, rnd.floatCalls)
+		})
+	}
 }
 
 func TestSimulationState_RejectsInvalidNextPortalID(t *testing.T) {
