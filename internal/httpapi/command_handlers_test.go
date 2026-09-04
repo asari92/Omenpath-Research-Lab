@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -54,9 +55,9 @@ func TestPortalCommandResponse_DerivesDTOAtResolvedSnapshotTimestamp(t *testing.
 	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
 	manager := &fakeManager{snapshot: snapshot}
 	rr := httptest.NewRecorder()
-	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(2*time.Second))).ServeHTTP(
-		rr, httptest.NewRequest(http.MethodPost, "/api/portals/1/close", strings.NewReader(`{}`)),
-	)
+	router, err := NewRouter(manager, config.Default())
+	require.NoError(t, err)
+	router.ServeHTTP(rr, httptest.NewRequest(http.MethodPost, "/api/portals/1/close", strings.NewReader(`{}`)))
 	require.Equal(t, http.StatusOK, rr.Code)
 	var body struct {
 		GeneratedAt time.Time `json:"generated_at"`
@@ -169,4 +170,49 @@ func TestInternalFailure_ReturnsOpaque500(t *testing.T) {
 	rr := perform(manager, http.MethodPost, "/api/portals/1/stabilize", `{}`)
 	require.Equal(t, 500, rr.Code)
 	require.NotContains(t, rr.Body.String(), "database password secret")
+}
+
+func TestCompositeInfrastructureErrorsAreOpaque500(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{"domain conflict plus restore failure", errors.Join(domain.ErrConfirmationRequired, errors.New("rng restore secret"))},
+		{"not found plus persistence failure", errors.Join(engine.ErrPortalNotFound, errors.New("database secret"))},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime), commandErr: tc.err}
+			rr := perform(manager, http.MethodPost, "/api/portals/1/close", `{}`)
+			require.Equal(t, http.StatusInternalServerError, rr.Code)
+			require.JSONEq(t, `{"error":{"code":"INTERNAL_ERROR","message":"internal server error","confirmable":false}}`, rr.Body.String())
+			require.NotContains(t, rr.Body.String(), "secret")
+			require.NotContains(t, rr.Body.String(), "confirmation required")
+		})
+	}
+}
+
+func TestCleanWrappedDomainErrorsPreserveMapping(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		err    error
+		status int
+		body   string
+	}{
+		{
+			"confirmation", fmt.Errorf("command context: %w", domain.ErrConfirmationRequired), http.StatusConflict,
+			`{"error":{"code":"CONFIRMATION_REQUIRED","message":"confirmation required","confirmable":true}}`,
+		},
+		{
+			"portal not found", fmt.Errorf("command context: %w", engine.ErrPortalNotFound), http.StatusNotFound,
+			`{"error":{"code":"PORTAL_NOT_FOUND","message":"portal not found","confirmable":false}}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime), commandErr: tc.err}
+			rr := perform(manager, http.MethodPost, "/api/portals/1/close", `{}`)
+			require.Equal(t, tc.status, rr.Code)
+			require.JSONEq(t, tc.body, rr.Body.String())
+			require.NotContains(t, rr.Body.String(), "command context")
+		})
+	}
 }

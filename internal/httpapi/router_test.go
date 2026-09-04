@@ -106,8 +106,39 @@ func httpSnapshot(now time.Time) persistence.Snapshot {
 	}, App: domain.AppState{Mode: domain.ModeTutorial}}
 }
 
-func newReadRouter(manager *fakeManager, now time.Time) http.Handler {
-	return NewRouter(manager, config.Default(), testutil.NewFakeClock(now))
+func newReadRouter(manager *fakeManager, _ time.Time) http.Handler {
+	router, err := NewRouter(manager, config.Default())
+	if err != nil {
+		panic(err)
+	}
+	return router
+}
+
+func TestNewRouter_RejectsNilManagerAndInvalidConfigAtConstruction(t *testing.T) {
+	valid := config.Default()
+	var typedNil *fakeManager
+	invalidSlots := valid
+	invalidSlots.MaxActivePortals = 0
+	invalidTransit := valid
+	invalidTransit.CreatureTransit = 0
+	for _, tc := range []struct {
+		name    string
+		manager Manager
+		cfg     config.Config
+	}{
+		{"nil manager", nil, valid},
+		{"typed nil manager", typedNil, valid},
+		{"invalid slots", &fakeManager{}, invalidSlots},
+		{"invalid creature transit", &fakeManager{}, invalidTransit},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				router, err := NewRouter(tc.manager, tc.cfg)
+				require.Error(t, err)
+				require.Nil(t, router)
+			})
+		})
+	}
 }
 
 func TestGetState_ReturnsAuthoritativeSnapshot(t *testing.T) {
@@ -126,9 +157,9 @@ func TestGetState_DerivesDTOAtSnapshotCatchUpTimestamp(t *testing.T) {
 	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
 	manager := &fakeManager{snapshot: snapshot}
 	rr := httptest.NewRecorder()
-	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(2*time.Second))).ServeHTTP(
-		rr, httptest.NewRequest(http.MethodGet, "/api/state", nil),
-	)
+	router, err := NewRouter(manager, config.Default())
+	require.NoError(t, err)
+	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/state", nil))
 	require.Equal(t, http.StatusOK, rr.Code)
 	var body struct {
 		GeneratedAt time.Time `json:"generated_at"`
@@ -190,9 +221,9 @@ func TestGetPortal_UsesOneResolvedSnapshotHistoryBoundary(t *testing.T) {
 		staleSnapshot:  closed,
 	}
 	rr := httptest.NewRecorder()
-	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(5*time.Minute))).ServeHTTP(
-		rr, httptest.NewRequest(http.MethodGet, "/api/portals/1", nil),
-	)
+	router, err := NewRouter(manager, config.Default())
+	require.NoError(t, err)
+	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/portals/1", nil))
 	require.Equal(t, http.StatusOK, rr.Code)
 	var body struct {
 		GeneratedAt time.Time `json:"generated_at"`
