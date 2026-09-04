@@ -249,8 +249,7 @@ func deriveSimulationTickResult(state SimulationState, now time.Time, cfg config
 }
 
 func validateSimulationState(state *SimulationState, now time.Time, cfg config.Config) error {
-	if state == nil || cfg.MaxActivePortals != 7 || cfg.ObserverCount <= 0 ||
-		!validSpawnDelayConfig(cfg) || len(state.Planes) != 85 ||
+	if state == nil || !validSimulationConfig(cfg) || len(state.Planes) != 85 ||
 		len(state.Observers) != cfg.ObserverCount || state.NextPortalID <= 0 {
 		return ErrSimulationInvariant
 	}
@@ -304,6 +303,30 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 		return ErrSimulationInvariant
 	}
 	return validateSimulationObservers(state.Observers, planeIDs, portalIDs, state.Portals)
+}
+
+func validSimulationConfig(cfg config.Config) bool {
+	return cfg.MaxActivePortals == 7 &&
+		validSpawnDelayConfig(cfg) &&
+		cfg.NaturalTTLMin > 0 && cfg.NaturalTTLMin <= cfg.NaturalTTLMax &&
+		cfg.NaturalTTLMin%time.Second == 0 && cfg.NaturalTTLMax%time.Second == 0 &&
+		cfg.PortalEnergyMin >= 0 && cfg.PortalEnergyMin <= cfg.PortalEnergyMax &&
+		cfg.PortalDecayMin > 0 && cfg.PortalDecayMin <= cfg.PortalDecayMax &&
+		cfg.UnstableProbability >= 0 && cfg.UnstableProbability <= 1 &&
+		cfg.InstabilityMinLifetime > 0 && cfg.InstabilityCloseMargin > 0 &&
+		cfg.NaturalTTLMin >= cfg.InstabilityMinLifetime+cfg.InstabilityCloseMargin &&
+		cfg.CreatureMax >= 0 && cfg.CreatureTransit > 0 && cfg.CreatureClearanceMargin >= 0 &&
+		cfg.ObserverCount > 0 && cfg.ObserverTransitMin > 0 &&
+		cfg.ObserverTransitMin <= cfg.ObserverTransitMax &&
+		cfg.ObserverTransitMin%time.Second == 0 && cfg.ObserverTransitMax%time.Second == 0 &&
+		cfg.ResearchDuration > 0 &&
+		cfg.LabEnergyMax > 0 && cfg.LabRegenPerSec >= 0 &&
+		cfg.CloseCost >= 0 && cfg.StabilizeCost >= 0 && cfg.ExtractionCost >= 0 &&
+		cfg.StabilizeBoost >= 0 && cfg.StabilizeMaxStartEnergy >= 0 &&
+		validExtractionConfig(cfg) &&
+		cfg.ExtractionTTLMin%time.Second == 0 && cfg.ExtractionTTLMax%time.Second == 0 &&
+		cfg.EmergencyDuration > 0 &&
+		cfg.RiskSafeHorizon > 0 && cfg.RiskInstabilityPenalty >= 0
 }
 
 func validNaturalSpawnState(spawn NaturalSpawnState) bool {
