@@ -132,6 +132,39 @@ func TestSimulationState_RejectsDuplicatePlaneIDs(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
 }
 
+func TestSimulationState_RejectsNonCanonicalPlaneExploration(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*domain.Plane)
+	}{
+		{"explored without timestamp", func(p *domain.Plane) { p.Explored = true }},
+		{"unexplored with timestamp", func(p *domain.Plane) {
+			at := testutil.BaseTime
+			p.ExploredAt = &at
+		}},
+		{"future exploration", func(p *domain.Plane) {
+			at := testutil.BaseTime.Add(time.Second)
+			p.Explored = true
+			p.ExploredAt = &at
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := simulationState(testutil.BaseTime)
+			tt.mutate(&state.Planes[0])
+			before := state
+			rnd := &countingRandom{}
+
+			err := resolveStateForValidation(&state, testutil.BaseTime, rnd, config.Default())
+
+			require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+			require.Equal(t, before, state)
+			require.Zero(t, rnd.intCalls)
+			require.Zero(t, rnd.floatCalls)
+		})
+	}
+}
+
 func TestSimulationState_RejectsDuplicatePortalIDs(t *testing.T) {
 	state := simulationState(testutil.BaseTime)
 	p1 := testutil.NewPortalBuilder().Build()
@@ -223,6 +256,15 @@ func TestSimulationState_RejectsMalformedSpawnSchedule(t *testing.T) {
 	state := simulationState(testutil.BaseTime)
 	state.NaturalSpawn.DueAt = nil
 	err := resolveStateForValidation(&state, testutil.BaseTime, nil, config.Default())
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+}
+
+func TestSimulationState_RejectsFutureSpawnScheduleOrigin(t *testing.T) {
+	state := simulationState(testutil.BaseTime)
+	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime.Add(time.Second), time.Second)
+
+	err := resolveStateForValidation(&state, testutil.BaseTime, nil, config.Default())
+
 	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
 }
 
