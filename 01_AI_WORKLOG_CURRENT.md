@@ -839,3 +839,80 @@ config-preflight defect; он зафиксирован собственной RE
   `go test -race -count=1 ./...`; все завершились с exit 0.
 
 Stage 9 не начат.
+
+## Corrective pass после сверки Blocks A/B (2026-09-04)
+
+### Причина и граница
+
+- После общего аудита Final Spec, реализованных Stages 0–8 и traceability
+  подтверждены три интеграционных дефекта Stage 8: зависимость первого
+  `Plane.ExploredAt` от Observer ID при позднем тике, отказ второй due
+  Extraction-синхронизации из-за transit первой и неполный aggregate preflight.
+- Исправления выполнены без Events, persistence, LabManager, ticker,
+  transport, frontend и Recommendation algorithm. Публичные command-path
+  semantics Stages 4/7 и порядок стадий Stage 8 сохранены.
+
+### Что исправлено
+
+- `resolveObserverStage` собирает для каждого изначально UNEXPLORED Plane
+  самый ранний semantic deadline среди успешных возвратов текущего тика.
+  Observer ID остаётся только детерминированным порядком обхода. Для уже
+  EXPLORED Plane исходный `ExploredAt` не меняется.
+- Simulation Extraction stage использует внутренний prepared resolver после
+  единого aggregate preflight. Несколько due Portals последовательно заново
+  выбирают текущего longest-waiting Observer и не считают transit,
+  созданный предыдущим Portal этой же стадии, stale входом. Публичные
+  `RecallObserver` и `ResolveExtractionSynchronization` сохраняют строгую
+  прямую валидацию.
+- `validateSimulationState` теперь проверяет согласованность Plane exploration,
+  origin Natural scheduler, канонические Portal Slot/kind/status/stability/
+  flow/termination, numeric baselines, lifecycle timestamps, Extraction marker,
+  terminal semantic outcome, а также Observer timestamps, status fields,
+  references и transit flow. Due Observer phase остаётся допустимой для
+  catch-up.
+- Hidden instability timestamp валиден только внутри полного окна:
+  `[OpenedAt + InstabilityMinLifetime, ScheduledCloseAt - InstabilityCloseMargin]`.
+- Старые synthetic fixtures приведены к уже существующим domain-инвариантам;
+  invalid Extraction aggregate теперь отклоняется общим preflight как
+  `ErrSimulationInvariant` до частичной обработки.
+
+### RED / GREEN evidence
+
+| Исправление | RED | GREEN |
+|---|---|---|
+| Самый ранний exploration timestamp | `4a192a4` | `5cb75b6` |
+| Несколько late Extraction sync | `ac042db` | `048e00e` |
+| Plane и scheduler invariants | `38d7561` | `e0cb9bb` |
+| Portal aggregate invariants | `ab3a3b9` | `5519ea5` |
+| Observer aggregate invariants | `0d27feb` | `68e8879` |
+| Верхняя граница instability window | `702d8df` | `bb4f443` |
+
+### Requirements, traceability и product gate
+
+- `EXTRACTION-002` уточнён как глобальное наличие WAITING_RETURN Observer;
+  новый `EXTRACTION-011` отдельно фиксирует обязательную eligibility выбранного
+  Plane и имеет GREEN evidence.
+- `PLANE-002` переведён из PLANNED в PARTIAL с domain evidence и честно
+  отложенной Stage 10 persistence-границей.
+- `PLANE-009`, `EXTRACTION-008`, `SIMULATION-002` и `SIMULATION-003` дополнены
+  corrective regression mappings.
+- Добавлены `RECOMMENDATION-001..004` со статусом PLANNED. Final Spec задаёт
+  deterministic/no-LLM, закрытый enum, Portal Details visibility и
+  informational-only semantics, но не задаёт decision table выбора. Реализация
+  Recommendation в Stage 12/17 заблокирована до явного product amendment;
+  алгоритм в corrective pass не придумывался.
+
+### Итоговая verification
+
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+- `go test -race -count=1 ./...` — exit 0.
+- Автоматическая проверка traceability: 377 уникальных test references,
+  отсутствующих — 0.
+- Diff относительно `9cd6db6` не меняет `internal/domain/event.go` и
+  `internal/engine/manager.go`; scope scan не нашёл Stage 9, persistence,
+  transport или ticker symbols в изменённых production-файлах.
+
+Stage 9 не начат.

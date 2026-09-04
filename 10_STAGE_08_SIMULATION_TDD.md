@@ -335,7 +335,7 @@ snapshot types to these structures.
 
 # 7. State invariants
 
-`SimulationState` is valid only when:
+`SimulationState` считается валидным только при выполнении всех условий:
 
 ```text
 state is non-nil
@@ -344,18 +344,25 @@ spawn delay bounds are non-negative, whole-second and ordered
 all Stage 2–7 duration/range values required by a tick are valid
 Lab baseline is canonical at now
 there are exactly 85 Planes with unique positive IDs
+Plane.Explored согласован с наличием ExploredAt; ExploredAt не позже now
 Portal IDs are unique and positive
 every Portal destination references one of those Planes
-every OPEN Portal slot is unique and inside 1..7
-Portal kind/status/stability/flow enums and lifecycle timestamps are canonical
-OPEN Portals have no terminal fields; terminal Portals have ClosedAt/reason
+каждый Portal, включая terminal history, сохраняет Slot внутри 1..7;
+OPEN Slots уникальны
+Portal kind/status/stability/flow/termination enums, energy/decay/creatures и
+creation/open/baseline/update timestamps каноничны
+STABLE/UNSTABLE согласованы с hidden collapse; NATURAL не имеет Extraction
+marker; EXTRACTION всегда STABLE/INBOUND/creatures=0 и marker равен sync deadline
+OPEN Portal не имеет terminal fields; terminal Portal имеет согласованные
+status/reason/semantic ClosedAt
 NextPortalID is positive and greater than every existing Portal ID
-Observer IDs are unique and their status fields are canonical
+Observer IDs уникальны; status optional fields и timestamps каноничны
 Observer count equals cfg.ObserverCount (default 10)
-Observer Plane/Portal references resolve when their status requires them
+Observer Plane/Portal references разрешимы; OUTBOUND использует OUTBOUND Portal,
+RETURNING использует INBOUND Portal с тем же destination Plane
 scheduler is either scheduled (both timestamps non-nil, Paused=false)
 or paused (both timestamps nil, Paused=true)
-scheduled DueAt is not before ScheduledAt
+scheduled DueAt is not before ScheduledAt, ScheduledAt is not after now
 LastTickAt, when set, is not after requested now
 ```
 
@@ -451,15 +458,26 @@ Plane ID  → Plane slice index
 Portal ID → Portal slice index
 ```
 
-Visit Observers by ascending Observer ID. AVAILABLE/LOST need no related
-entity. EXPLORING/WAITING_RETURN resolve against their current Plane.
-OUTBOUND/RETURNING resolve against both referenced Portal and its destination
-Plane. Any unresolved reference is a preflight invariant error.
+Observers посещаются по возрастанию ID только для детерминированного обхода.
+AVAILABLE/LOST не требуют связанной сущности. EXPLORING/WAITING_RETURN
+разрешаются относительно текущего Plane. OUTBOUND/RETURNING разрешаются
+относительно активного Portal и его destination Plane. Неразрешимая ссылка —
+ошибка aggregate preflight.
 
-After all Observer phases catch up, visit OPEN Extraction Portals by ascending
-Portal ID and call `ResolveExtractionSynchronization`. This lets research that
-ends exactly at `now` produce a WAITING_RETURN candidate for same-time sync.
-Terminal Extraction Portals remain resolver no-ops.
+Для Plane, который был UNEXPLORED в начале Observer stage, `ExploredAt` равен
+минимальному semantic return deadline среди всех успешных RETURNING,
+разрешённых этим тиком. Уже исследованный Plane сохраняет исходный
+`ExploredAt`. Таким образом, Observer ID влияет только на порядок обхода, но не
+на хронологию первого исследования.
+
+После catch-up всех Observer phases Extraction Portals посещаются по
+возрастанию Portal ID. Tick вызывает внутренний prepared resolver: полный
+aggregate уже проверен один раз, поэтому transit, созданный предыдущей
+синхронизацией в той же стадии, не считается stale input для следующего
+Portal. Каждый due Portal заново выбирает текущего longest-waiting Observer.
+Public `ResolveExtractionSynchronization` сохраняет строгую command-time
+валидацию. Research, завершившийся ровно в `now`, может дать кандидата для
+same-time sync; terminal Extraction Portal остаётся draw-free no-op.
 
 ---
 
@@ -1564,7 +1582,7 @@ for _, index := range indices {
     if !ok {
         return ErrSimulationInvariant
     }
-    if _, _, err := ResolveExtractionSynchronization(
+    if _, _, err := resolveExtractionSynchronizationPrepared(
         portal,
         &state.Planes[planeIndex],
         state.Observers,
@@ -2033,6 +2051,52 @@ S8-D10  New requirement IDs map existing Final Spec rules only.
 
 The approved rationale and rejected alternatives live in
 `docs/superpowers/specs/2026-09-04-stage-8-simulation-design.md`.
+
+---
+
+# 40A. Corrective pass после сверки Blocks A/B
+
+После завершения Stage 8 аудит обнаружил три дефекта, не меняющих границу
+стадии:
+
+- поздний тик выбирал `Plane.ExploredAt` по Observer ID вместо самого раннего
+  semantic return deadline;
+- второй просроченный Extraction Portal мог отклонить весь тик из-за transit,
+  созданного первым Portal в той же Extraction stage;
+- aggregate preflight обещал более полную canonical validation, чем реально
+  выполнял для Plane, scheduler, Portal и Observer.
+
+Закреплённые regressions:
+
+```text
+TestSimulationTick_EarliestSuccessfulReturnSetsExploredAtRegardlessOfObserverID
+TestSimulationTick_MultipleLateExtractionsDoNotRejectDueTransitCreatedInSameStage
+TestSimulationState_RejectsNonCanonicalPlaneExploration
+TestSimulationState_RejectsFutureSpawnScheduleOrigin
+TestSimulationState_RejectsNonCanonicalPortalFields
+TestSimulationState_RejectsNonCanonicalObserverFields
+TestSimulationState_AllowsDueObserverPhaseForTickCatchUp
+```
+
+RED/GREEN evidence:
+
+```text
+4a192a4 → 5cb75b6  chronological Plane exploration
+ac042db → 048e00e  multiple late Extraction synchronization
+38d7561 → e0cb9bb  Plane/scheduler invariants
+ab3a3b9 → 5519ea5  Portal aggregate invariants
+0d27feb → 68e8879  Observer aggregate invariants
+702d8df → bb4f443  upper bound hidden instability window
+```
+
+Подробное решение находится в
+`docs/superpowers/specs/2026-09-04-stage8-corrective-design.md`, а пошаговый
+TDD-план — в
+`docs/superpowers/plans/2026-09-04-stage8-corrective.md`.
+
+Recommendation Engine не реализован: Final Spec фиксирует ограничения и enum,
+но не содержит decision table выбора. До product amendment соответствующие
+requirements остаются `PLANNED`.
 
 ---
 

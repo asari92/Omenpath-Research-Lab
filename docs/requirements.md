@@ -182,6 +182,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | EXTRACTION-008 | BEH | После sync longest-waiting Observer автоматически начинает RETURNING | §20 |
 | EXTRACTION-009 | BEH | Только первый возврат автоматический | §20 |
 | EXTRACTION-010 | BEH | Дальнейшие Observers — только manual RECALL | §20 |
+| EXTRACTION-011 | INV | Выбранный Plane должен содержать хотя бы одного WAITING_RETURN Observer; иначе Plane недоступен для открытия Extraction Portal | §20 |
 
 ## EMERGENCY
 
@@ -225,6 +226,15 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | ATTENTION-005 | INV | Only OPEN Portals participate | §6, §13 |
 | ATTENTION-006 | INV | Complete technical tie uses lower Portal ID | §6, Stage 8 design S8-D8 |
 | ATTENTION-007 | INV | Selection does not sort or mutate stored Portals | §5, §6 |
+
+## RECOMMENDATION
+
+| ID | Type | Rule | Spec |
+|---|---|---|---|
+| RECOMMENDATION-001 | INV | Recommendation Engine детерминирован; runtime LLM не используется | §23 |
+| RECOMMENDATION-002 | INV | Допустим только закрытый enum: LEAVE OPEN, WAIT FOR CORRIDOR, STABILIZE, CLOSE, SEND OBSERVER, RECALL OBSERVER | §23 |
+| RECOMMENDATION-003 | UI | Recommendation показывается только в Portal Details | §23–25 |
+| RECOMMENDATION-004 | INV | Recommendation является информационной подсказкой и не вводит hard restriction | §23 |
 
 ## EVENT
 
