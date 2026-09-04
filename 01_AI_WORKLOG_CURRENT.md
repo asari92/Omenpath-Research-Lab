@@ -1013,3 +1013,46 @@ Production implementation Stage 9 всё ещё не начат.
 
 Stage 9 production implementation не начат; изменение касается только
 execution documentation.
+
+## Stage 9 — Event system via TDD (2026-09-04)
+
+### Реализованный scope
+
+- `EventDraft`, closed `EventType` validation и persisted Event validation
+  требуют JSON object payload, непустой message, positive entity/Event IDs и
+  nonzero UTC timestamp.
+- `PortalHistory` фильтрует общий Event source по точному `portal_id`,
+  сортирует `created_at ASC, id ASC` и возвращает глубокие копии pointer fields.
+- `EventsForStateTransition` создаёт deterministic drafts для Portal,
+  Observer, Plane, Extraction, Leyline Override и Risk transitions. Late tick
+  восстанавливает пересечённые observer phases по semantic deadlines; tie order
+  соответствует Final Spec §26.1.
+- `SimulationState.ResolveTick` возвращает `[]EventDraft` без persistence/ID.
+  Same-`now` replay возвращает пустой stream; первый tick использует
+  `Lab.EnergyBaseAt` как предыдущую boundary при отсутствии `LastTickAt`.
+- `NewActionRejectedEvent` кодирует action и domain cause, но его обязательный
+  вызов для всех manager-команд остаётся Stage 11.
+- SQLite, `database/sql`, engine orchestration, HTTP и WebSocket не начаты.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 9A model/validation/history | `d9ec172` | `go test -count=1 ./internal/domain -run 'Test(Event\|PortalHistory\|NewActionRejected)'`: отсутствуют `EventDraft`, `IsEventType` и новые APIs | `cf5371f` |
+| 9B deterministic transition stream | `72dc1da` | focused suite: отсутствуют `EventsForStateTransition` и `SimulationTickResult.Events` | `c0a480a` |
+
+Дополнительные pre-GREEN regressions подтвердили RED для portal-linked Override,
+destination-linked transit loss и first-tick baseline; исправления вошли в
+`c0a480a`.
+
+### Requirements и verification
+
+- `EVENT-002`, `EVENT-004..009`, `EVENT-011` — GREEN на Stage 9 domain boundary.
+- `EVENT-001`, `EVENT-003`, `EVENT-010` — PARTIAL до Stage 11 command
+  orchestration и Stage 12 transport boundary.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+
+Stage 9 завершён. Stage 10 не начат.
