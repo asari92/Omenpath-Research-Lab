@@ -15,8 +15,13 @@ import (
 )
 
 type AppDTO struct {
-	Mode         domain.AppMode `json:"mode"`
-	TutorialStep int            `json:"tutorial_step"`
+	Mode               domain.AppMode                 `json:"mode"`
+	TutorialStep       int                            `json:"tutorial_step"`
+	TutorialPhase      domain.TutorialPhase           `json:"tutorial_phase"`
+	TutorialPortalID   *int64                         `json:"tutorial_portal_id"`
+	TutorialPlaneID    *int64                         `json:"tutorial_plane_id"`
+	TutorialObserverID *int64                         `json:"tutorial_observer_id"`
+	ExpectedAction     *domain.TutorialExpectedAction `json:"expected_action"`
 }
 
 type LabDTO struct {
@@ -151,7 +156,11 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 	planes := make(map[int64]domain.Plane, len(snapshot.Simulation.Planes))
 	result := StateSnapshot{
 		GeneratedAt: now,
-		App:         AppDTO{Mode: snapshot.App.Mode, TutorialStep: snapshot.App.TutorialStep},
+		App: AppDTO{
+			Mode: snapshot.App.Mode, TutorialStep: snapshot.App.TutorialStep,
+			TutorialPhase: snapshot.App.TutorialPhase, TutorialPortalID: cloneInt64(snapshot.App.TutorialPortalID),
+			TutorialPlaneID: cloneInt64(snapshot.App.TutorialPlaneID), TutorialObserverID: cloneInt64(snapshot.App.TutorialObserverID),
+		},
 		Lab: LabDTO{
 			CurrentEnergy: snapshot.Simulation.Lab.CurrentEnergy(now, cfg), MaximumEnergy: cfg.LabEnergyMax,
 			LeylineOverrideActive: snapshot.Simulation.Lab.LeylineOverrideActive(now, cfg),
@@ -161,6 +170,13 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 		Portals:     PortalCountsDTO{Maximum: cfg.MaxActivePortals},
 		Slots:       make([]SlotDTO, cfg.MaxActivePortals),
 		Planes:      make([]PlaneDTO, 0, len(snapshot.Simulation.Planes)),
+	}
+	if snapshot.App.Mode == domain.ModeTutorial {
+		expected, err := domain.ExpectedTutorialAction(snapshot.App)
+		if err != nil {
+			return StateSnapshot{}, err
+		}
+		result.App.ExpectedAction = &expected
 	}
 	for i, plane := range snapshot.Simulation.Planes {
 		if plane.ID <= 0 {

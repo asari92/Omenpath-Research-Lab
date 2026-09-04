@@ -85,6 +85,12 @@ func (m *realtimeManager) RecallObserver(context.Context, int64, bool) error {
 	return m.command()
 }
 func (m *realtimeManager) OpenExtraction(context.Context, int64) error { return m.command() }
+func (m *realtimeManager) StartTutorial(context.Context) error         { return m.command() }
+func (m *realtimeManager) ResetTutorial(context.Context) error         { return m.command() }
+func (m *realtimeManager) TutorialSignal(context.Context, domain.TutorialSignal, *int64) error {
+	return m.command()
+}
+func (m *realtimeManager) StartLive(context.Context) error { return m.command() }
 
 func (m *realtimeManager) stateCalls() int {
 	m.mu.Lock()

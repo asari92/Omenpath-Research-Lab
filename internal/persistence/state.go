@@ -53,6 +53,42 @@ func (s *Store) Commit(
 	return events, nil
 }
 
+// ResetTutorial replaces all mutable state and removes prior history in one
+// transaction. The supplied canonical snapshot is validated before deletion.
+func (s *Store) ResetTutorial(ctx context.Context, snapshot Snapshot) error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("reset tutorial: nil store")
+	}
+	if err := validateSnapshot(snapshot); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tutorial reset: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM events`); err != nil {
+		return fmt.Errorf("clear tutorial events: %w", err)
+	}
+	// Active Observer rows may reference Portals. Persist the canonical
+	// AVAILABLE roster first so foreign-key enforcement remains enabled.
+	for _, observer := range snapshot.Simulation.Observers {
+		if err := persistObserver(ctx, tx, observer); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM portals`); err != nil {
+		return fmt.Errorf("clear tutorial portals: %w", err)
+	}
+	if err := persistSnapshot(ctx, tx, snapshot); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tutorial reset: %w", err)
+	}
+	return nil
+}
+
 func validateSnapshot(snapshot Snapshot) error {
 	if len(snapshot.Simulation.Planes) != 85 || len(snapshot.Simulation.Observers) != 10 ||
 		snapshot.Simulation.NextPortalID <= 0 || !validAppMode(snapshot.App.Mode) || snapshot.App.TutorialStep < 0 ||

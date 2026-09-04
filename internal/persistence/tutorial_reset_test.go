@@ -12,7 +12,7 @@ import (
 
 func resetSnapshot(now time.Time) Snapshot {
 	snapshot := completeSnapshot(now)
-	snapshot.Simulation.Portals = nil
+	snapshot.Simulation.Portals = []domain.Portal{}
 	snapshot.Simulation.NextPortalID = 1
 	snapshot.Simulation.NaturalSpawn = domain.NaturalSpawnState{Paused: true}
 	snapshot.Simulation.LastTickAt = nil

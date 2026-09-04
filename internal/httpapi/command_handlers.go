@@ -22,6 +22,11 @@ type extractionBody struct {
 	PlaneID int64 `json:"plane_id"`
 }
 
+type tutorialSignalBody struct {
+	Signal   domain.TutorialSignal
+	PortalID *int64
+}
+
 func (api *API) stabilize(w http.ResponseWriter, r *http.Request) {
 	api.portalCommand(w, r, func(id int64, _ bool) error { return api.manager.Stabilize(r.Context(), id) })
 }
@@ -63,6 +68,55 @@ func (api *API) openExtraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := api.manager.OpenExtraction(r.Context(), body.PlaneID); err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	api.writeFreshState(w, r)
+}
+
+func (api *API) startTutorial(w http.ResponseWriter, r *http.Request) {
+	if err := decodeEmptyBody(w, r); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
+		return
+	}
+	if err := api.manager.StartTutorial(r.Context()); err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	api.writeFreshState(w, r)
+}
+
+func (api *API) resetTutorial(w http.ResponseWriter, r *http.Request) {
+	if err := decodeEmptyBody(w, r); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
+		return
+	}
+	if err := api.manager.ResetTutorial(r.Context()); err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	api.writeFreshState(w, r)
+}
+
+func (api *API) startLive(w http.ResponseWriter, r *http.Request) {
+	if err := decodeEmptyBody(w, r); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
+		return
+	}
+	if err := api.manager.StartLive(r.Context()); err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	api.writeFreshState(w, r)
+}
+
+func (api *API) tutorialSignal(w http.ResponseWriter, r *http.Request) {
+	body, err := decodeTutorialSignalBody(w, r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
+		return
+	}
+	if err := api.manager.TutorialSignal(r.Context(), body.Signal, body.PortalID); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -166,6 +220,52 @@ func decodeExtractionBody(w http.ResponseWriter, r *http.Request) (extractionBod
 	return body, nil
 }
 
+func decodeEmptyBody(w http.ResponseWriter, r *http.Request) error {
+	fields, err := decodeExactObject(w, r)
+	if err != nil {
+		return err
+	}
+	if len(fields) != 0 {
+		return errors.New("request body must be empty")
+	}
+	return nil
+}
+
+func decodeTutorialSignalBody(w http.ResponseWriter, r *http.Request) (tutorialSignalBody, error) {
+	fields, err := decodeExactObject(w, r)
+	if err != nil {
+		return tutorialSignalBody{}, err
+	}
+	rawSignal, ok := fields["signal"]
+	if !ok {
+		return tutorialSignalBody{}, errors.New("signal is required")
+	}
+	var signal string
+	if err := json.Unmarshal(rawSignal, &signal); err != nil || signal == "" {
+		return tutorialSignalBody{}, errors.New("signal must be a string")
+	}
+	body := tutorialSignalBody{Signal: domain.TutorialSignal(signal)}
+	if !domain.IsTutorialSignal(body.Signal) {
+		return tutorialSignalBody{}, errors.New("unknown tutorial signal")
+	}
+	rawPortalID, hasPortalID := fields["portal_id"]
+	if body.Signal == domain.TutorialSignalPortalDetailsOpened {
+		if !hasPortalID || len(fields) != 2 {
+			return tutorialSignalBody{}, errors.New("portal_id is required")
+		}
+		var id int64
+		if err := json.Unmarshal(rawPortalID, &id); err != nil || id <= 0 || bytes.Equal(rawPortalID, []byte("null")) {
+			return tutorialSignalBody{}, errors.New("portal_id must be a positive integer")
+		}
+		body.PortalID = &id
+		return body, nil
+	}
+	if hasPortalID || len(fields) != 1 {
+		return tutorialSignalBody{}, errors.New("portal_id is forbidden")
+	}
+	return body, nil
+}
+
 func writeDomainError(w http.ResponseWriter, err error) {
 	if hasCompositeCause(err) {
 		writeInternal(w)
@@ -176,6 +276,10 @@ func writeDomainError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "PORTAL_NOT_FOUND", "portal not found", false)
 	case errors.Is(err, engine.ErrPlaneNotFound):
 		writeError(w, http.StatusNotFound, "PLANE_NOT_FOUND", "plane not found", false)
+	case errors.Is(err, engine.ErrTutorialNotReady):
+		writeError(w, http.StatusConflict, "TUTORIAL_NOT_READY", "tutorial not ready", false)
+	case errors.Is(err, engine.ErrInvalidTutorialSignal):
+		writeError(w, http.StatusConflict, "INVALID_TUTORIAL_SIGNAL", "invalid tutorial signal", false)
 	case isInvariantError(err):
 		writeInternal(w)
 	default:

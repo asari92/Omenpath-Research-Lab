@@ -217,6 +217,12 @@ func (m *coherenceManager) ClosePortal(context.Context, int64, bool) error    { 
 func (m *coherenceManager) SendObserver(context.Context, int64, bool) error   { return nil }
 func (m *coherenceManager) RecallObserver(context.Context, int64, bool) error { return nil }
 func (m *coherenceManager) OpenExtraction(context.Context, int64) error       { return nil }
+func (m *coherenceManager) StartTutorial(context.Context) error               { return nil }
+func (m *coherenceManager) ResetTutorial(context.Context) error               { return nil }
+func (m *coherenceManager) TutorialSignal(context.Context, domain.TutorialSignal, *int64) error {
+	return nil
+}
+func (m *coherenceManager) StartLive(context.Context) error { return nil }
 
 func TestGetPortal_UsesOneResolvedSnapshotHistoryBoundary(t *testing.T) {
 	now := testutil.BaseTime

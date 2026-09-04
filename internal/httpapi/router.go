@@ -31,6 +31,10 @@ type Manager interface {
 	SendObserver(context.Context, int64, bool) error
 	RecallObserver(context.Context, int64, bool) error
 	OpenExtraction(context.Context, int64) error
+	StartTutorial(context.Context) error
+	ResetTutorial(context.Context) error
+	TutorialSignal(context.Context, domain.TutorialSignal, *int64) error
+	StartLive(context.Context) error
 }
 
 type API struct {
@@ -81,6 +85,10 @@ func NewRouter(manager Manager, cfg config.Config) (*Router, error) {
 	router.Post("/api/portals/{id}/send-observer", api.sendObserver)
 	router.Post("/api/portals/{id}/recall-observer", api.recallObserver)
 	router.Post("/api/extraction/open", api.openExtraction)
+	router.Post("/api/tutorial/start", api.startTutorial)
+	router.Post("/api/tutorial/reset", api.resetTutorial)
+	router.Post("/api/tutorial/signal", api.tutorialSignal)
+	router.Post("/api/live/start", api.startLive)
 	hub, err := realtime.NewHub(manager, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("new router: realtime: %w", err)

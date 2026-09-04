@@ -14,6 +14,7 @@ type Repository interface {
 	Load(context.Context) (persistence.Snapshot, error)
 	Commit(context.Context, persistence.Snapshot, []domain.EventDraft) ([]domain.Event, error)
 	ListEvents(context.Context, *int64) ([]domain.Event, error)
+	ResetTutorial(context.Context, persistence.Snapshot) error
 }
 
 // Stable engine errors intentionally carry no HTTP semantics. Stage 12 maps
