@@ -240,7 +240,7 @@ func eventsForObservers(
 			}
 			if observer.Status != ObserverExploring {
 				completedAt := arrivalAt.Add(cfg.ResearchDuration)
-				events, err = appendEvent(events, EventResearchCompleted, prior.ActivePortalID, &observer.ID, planeID,
+				events, err = appendEvent(events, EventResearchCompleted, nil, &observer.ID, planeID,
 					"Research completed", map[string]any{}, completedAt)
 				if err != nil {
 					return nil, err
@@ -323,12 +323,12 @@ func portalPlaneID(portals map[int64]Portal, portalID *int64) *int64 {
 }
 
 func eventsForPlanes(before, after []Plane) ([]EventDraft, error) {
-	beforePlanes := make(map[int64]Plane, len(before))
-	for _, plane := range before {
-		if plane.ID <= 0 {
-			return nil, ErrEventInvariant
-		}
-		beforePlanes[plane.ID] = plane
+	beforePlanes, err := planesByID(before)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := planesByID(after); err != nil {
+		return nil, err
 	}
 	events := make([]EventDraft, 0)
 	for _, plane := range after {
@@ -344,6 +344,20 @@ func eventsForPlanes(before, after []Plane) ([]EventDraft, error) {
 		}
 	}
 	return events, nil
+}
+
+func planesByID(planes []Plane) (map[int64]Plane, error) {
+	result := make(map[int64]Plane, len(planes))
+	for _, plane := range planes {
+		if plane.ID <= 0 {
+			return nil, ErrEventInvariant
+		}
+		if _, duplicate := result[plane.ID]; duplicate {
+			return nil, ErrEventInvariant
+		}
+		result[plane.ID] = plane
+	}
+	return result, nil
 }
 
 func appendEvent(

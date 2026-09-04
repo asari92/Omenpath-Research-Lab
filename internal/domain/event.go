@@ -165,9 +165,10 @@ func NewActionRejectedEvent(
 	if strings.TrimSpace(action) == "" || cause == nil {
 		return EventDraft{}, ErrEventInvariant
 	}
+	causeText := cause.Error()
 	payload, err := json.Marshal(map[string]string{
 		"action": action,
-		"cause":  cause.Error(),
+		"cause":  causeText,
 	})
 	if err != nil {
 		return EventDraft{}, ErrEventInvariant
@@ -177,7 +178,7 @@ func NewActionRejectedEvent(
 		PortalID:    cloneInt64(portalID),
 		ObserverID:  cloneInt64(observerID),
 		PlaneID:     cloneInt64(planeID),
-		Message:     "Action rejected: " + cause.Error(),
+		Message:     "Action rejected: " + causeText,
 		PayloadJSON: string(payload),
 		CreatedAt:   now,
 	}
