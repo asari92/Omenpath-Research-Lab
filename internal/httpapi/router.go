@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -20,6 +21,7 @@ import (
 type Manager interface {
 	State(context.Context) (persistence.Snapshot, error)
 	Portal(context.Context, int64) (domain.Portal, []domain.Event, error)
+	PortalState(context.Context, int64) (persistence.Snapshot, []domain.Event, error)
 	Events(context.Context) ([]domain.Event, error)
 	Stabilize(context.Context, int64) error
 	ClosePortal(context.Context, int64, bool) error
@@ -60,7 +62,12 @@ func (api *API) getState(w http.ResponseWriter, r *http.Request) {
 		writeInternal(w)
 		return
 	}
-	view, err := transport.BuildStateSnapshot(snapshot, api.clock.Now(), api.cfg)
+	resolvedAt, err := snapshotResolvedAt(snapshot)
+	if err != nil {
+		writeInternal(w)
+		return
+	}
+	view, err := transport.BuildStateSnapshot(snapshot, resolvedAt, api.cfg)
 	if err != nil {
 		writeInternal(w)
 		return
@@ -74,7 +81,7 @@ func (api *API) getPortal(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_PATH", "invalid portal id", false)
 		return
 	}
-	_, history, err := api.manager.Portal(r.Context(), id)
+	snapshot, history, err := api.manager.PortalState(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, engine.ErrPortalNotFound) {
 			writeError(w, 404, "PORTAL_NOT_FOUND", "portal not found", false)
@@ -83,17 +90,24 @@ func (api *API) getPortal(w http.ResponseWriter, r *http.Request) {
 		writeInternal(w)
 		return
 	}
-	snapshot, err := api.manager.State(r.Context())
+	resolvedAt, err := snapshotResolvedAt(snapshot)
 	if err != nil {
 		writeInternal(w)
 		return
 	}
-	view, err := transport.BuildPortalDetails(snapshot, id, history, api.clock.Now(), api.cfg)
+	view, err := transport.BuildPortalDetails(snapshot, id, history, resolvedAt, api.cfg)
 	if err != nil {
 		writeInternal(w)
 		return
 	}
 	writeJSON(w, 200, view)
+}
+
+func snapshotResolvedAt(snapshot persistence.Snapshot) (time.Time, error) {
+	if snapshot.Simulation.LastTickAt == nil || snapshot.Simulation.LastTickAt.IsZero() {
+		return time.Time{}, domain.ErrSimulationInvariant
+	}
+	return snapshot.Simulation.LastTickAt.UTC(), nil
 }
 
 func (api *API) getEvents(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -43,8 +44,8 @@ func (api *API) portalCommand(w http.ResponseWriter, r *http.Request, command fu
 		writeError(w, http.StatusBadRequest, "INVALID_PATH", "invalid portal id", false)
 		return
 	}
-	var body portalCommandBody
-	if err := decodeStrictJSON(w, r, &body); err != nil {
+	body, err := decodePortalCommandBody(w, r)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
@@ -56,8 +57,8 @@ func (api *API) portalCommand(w http.ResponseWriter, r *http.Request, command fu
 }
 
 func (api *API) openExtraction(w http.ResponseWriter, r *http.Request) {
-	var body extractionBody
-	if err := decodeStrictJSON(w, r, &body); err != nil || body.PlaneID <= 0 {
+	body, err := decodeExtractionBody(w, r)
+	if err != nil || body.PlaneID <= 0 {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
@@ -74,7 +75,12 @@ func (api *API) writeFreshState(w http.ResponseWriter, r *http.Request) {
 		writeInternal(w)
 		return
 	}
-	view, err := transport.BuildStateSnapshot(snapshot, api.clock.Now(), api.cfg)
+	resolvedAt, err := snapshotResolvedAt(snapshot)
+	if err != nil {
+		writeInternal(w)
+		return
+	}
+	view, err := transport.BuildStateSnapshot(snapshot, resolvedAt, api.cfg)
 	if err != nil {
 		writeInternal(w)
 		return
@@ -82,17 +88,82 @@ func (api *API) writeFreshState(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, view)
 }
 
-func decodeStrictJSON(w http.ResponseWriter, r *http.Request, target any) error {
+func decodeExactObject(w http.ResponseWriter, r *http.Request) (map[string]json.RawMessage, error) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(target); err != nil {
-		return err
+	token, err := decoder.Token()
+	if err != nil {
+		return nil, err
+	}
+	opening, ok := token.(json.Delim)
+	if !ok || opening != '{' {
+		return nil, errors.New("request body must be a JSON object")
+	}
+	fields := make(map[string]json.RawMessage)
+	for decoder.More() {
+		token, err = decoder.Token()
+		if err != nil {
+			return nil, err
+		}
+		name, ok := token.(string)
+		if !ok {
+			return nil, errors.New("request object field must be a string")
+		}
+		if _, duplicate := fields[name]; duplicate {
+			return nil, errors.New("duplicate request field")
+		}
+		var value json.RawMessage
+		if err := decoder.Decode(&value); err != nil {
+			return nil, err
+		}
+		fields[name] = value
+	}
+	if _, err := decoder.Token(); err != nil {
+		return nil, err
 	}
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return errors.New("request body must contain one JSON value")
+		return nil, errors.New("request body must contain one JSON value")
 	}
-	return nil
+	return fields, nil
+}
+
+func decodePortalCommandBody(w http.ResponseWriter, r *http.Request) (portalCommandBody, error) {
+	fields, err := decodeExactObject(w, r)
+	if err != nil {
+		return portalCommandBody{}, err
+	}
+	if len(fields) == 0 {
+		return portalCommandBody{}, nil
+	}
+	raw, ok := fields["confirm"]
+	if !ok || len(fields) != 1 {
+		return portalCommandBody{}, errors.New("unknown request field")
+	}
+	var body portalCommandBody
+	switch {
+	case bytes.Equal(raw, []byte("true")):
+		body.Confirm = true
+	case bytes.Equal(raw, []byte("false")):
+	default:
+		return portalCommandBody{}, errors.New("confirm must be a boolean")
+	}
+	return body, nil
+}
+
+func decodeExtractionBody(w http.ResponseWriter, r *http.Request) (extractionBody, error) {
+	fields, err := decodeExactObject(w, r)
+	if err != nil {
+		return extractionBody{}, err
+	}
+	raw, ok := fields["plane_id"]
+	if !ok || len(fields) != 1 {
+		return extractionBody{}, errors.New("plane_id is required")
+	}
+	var body extractionBody
+	if err := json.Unmarshal(raw, &body.PlaneID); err != nil || bytes.Equal(raw, []byte("null")) {
+		return extractionBody{}, errors.New("plane_id must be an integer")
+	}
+	return body, nil
 }
 
 func writeDomainError(w http.ResponseWriter, err error) {

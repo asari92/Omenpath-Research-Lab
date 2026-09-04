@@ -56,6 +56,9 @@ func (m *fakeManager) Portal(_ context.Context, id int64) (domain.Portal, []doma
 
 func (m *fakeManager) PortalState(_ context.Context, id int64) (persistence.Snapshot, []domain.Event, error) {
 	m.portalReads++
+	if m.portalErr != nil {
+		return persistence.Snapshot{}, nil, m.portalErr
+	}
 	for _, portal := range m.snapshot.Simulation.Portals {
 		if portal.ID == id {
 			return m.snapshot, domain.PortalHistory(m.events, id), nil
@@ -246,7 +249,8 @@ func TestReadEndpoints_DoNotAdvanceTutorial(t *testing.T) {
 		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, path, nil))
 		require.Equal(t, 200, rr.Code)
 	}
-	require.Equal(t, 2, m.stateCalls)
+	require.Equal(t, 1, m.stateCalls)
+	require.Equal(t, 1, m.portalReads)
 	require.Equal(t, 0, m.snapshot.App.TutorialStep)
 }
 

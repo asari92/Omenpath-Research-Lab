@@ -120,29 +120,42 @@ func (m *LabManager) State(ctx context.Context) (persistence.Snapshot, error) {
 	return cloneSnapshot(m.snapshot), nil
 }
 
-// Portal returns one detached portal and its history from the shared event
-// source, after first resolving all due lifecycle transitions.
-func (m *LabManager) Portal(ctx context.Context, id int64) (domain.Portal, []domain.Event, error) {
+// PortalState returns one detached, resolved snapshot and the portal history
+// read while the manager still owns the same state boundary.
+func (m *LabManager) PortalState(ctx context.Context, id int64) (persistence.Snapshot, []domain.Event, error) {
 	if m == nil {
-		return domain.Portal{}, nil, fmt.Errorf("portal: nil manager")
+		return persistence.Snapshot{}, nil, fmt.Errorf("portal state: nil manager")
 	}
 	if err := m.mu.LockContext(ctx); err != nil {
-		return domain.Portal{}, nil, err
+		return persistence.Snapshot{}, nil, err
 	}
 	defer m.mu.Unlock()
 	if err := m.resolveLocked(ctx, m.clock.Now().UTC(), false); err != nil {
+		return persistence.Snapshot{}, nil, err
+	}
+	_, ok := portalIndex(m.snapshot.Simulation.Portals, id)
+	if !ok {
+		return persistence.Snapshot{}, nil, ErrPortalNotFound
+	}
+	history, err := m.repo.ListEvents(ctx, &id)
+	if err != nil {
+		return persistence.Snapshot{}, nil, fmt.Errorf("portal history: %w", err)
+	}
+	return cloneSnapshot(m.snapshot), cloneEvents(history), nil
+}
+
+// Portal preserves the Stage 11 public API while sharing the coherent read
+// boundary used by Portal Details.
+func (m *LabManager) Portal(ctx context.Context, id int64) (domain.Portal, []domain.Event, error) {
+	snapshot, history, err := m.PortalState(ctx, id)
+	if err != nil {
 		return domain.Portal{}, nil, err
 	}
-	index, ok := portalIndex(m.snapshot.Simulation.Portals, id)
+	index, ok := portalIndex(snapshot.Simulation.Portals, id)
 	if !ok {
 		return domain.Portal{}, nil, ErrPortalNotFound
 	}
-	portal := clonePortal(m.snapshot.Simulation.Portals[index])
-	history, err := m.repo.ListEvents(ctx, &id)
-	if err != nil {
-		return domain.Portal{}, nil, fmt.Errorf("portal history: %w", err)
-	}
-	return portal, cloneEvents(history), nil
+	return clonePortal(snapshot.Simulation.Portals[index]), history, nil
 }
 
 // Events reads the global chronological event stream. It has no derived state
