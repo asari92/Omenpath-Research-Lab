@@ -1256,4 +1256,63 @@ Stage 12 boundary.
 - `go build ./...` — exit 0.
 - `go test -count=1 ./...` — exit 0.
 
-Stage 12 завершён. Stage 13 не начат.
+Stage 12 завершён. Stage 13 на тот момент ещё не был начат.
+
+## Stage 13 — WebSocket realtime via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Добавлен `/ws/lab` на `github.com/coder/websocket`: каждый новый клиент
+  немедленно получает authoritative snapshot того же `transport.StateSnapshot`,
+  который использует REST.
+- Один Hub bridge потребляет `LabManager.Updates()` и после tick, успешной или
+  отклонённой domain-команды публикует свежий snapshot всем клиентам. Reconnect
+  всегда начинает с latest manager state.
+- У каждого клиента capacity-one queue: новая версия заменяет непрочитанную,
+  медленный клиент не блокирует manager/bridge/других клиентов. Sequence guard
+  не допускает возврата к более старому snapshot.
+- Concurrent connect/broadcast/disconnect, disconnect cleanup и отсутствие
+  hidden realtime fields проверены под race detector.
+- Router владеет WebSocket lifecycle через idempotent `Close`. Единственный
+  bridge переживает zero-client handoff, а shutdown ждёт завершения bridge и
+  всех уже допущенных handlers, включая заблокированный initial snapshot read.
+- Frontend/UI не создавался; Stage 14 Tutorial не начинался.
+
+### RED / GREEN evidence
+
+| Checkpoint / corrective pass | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 13A initial snapshot / tick broadcast | `3a2b07f` | отсутствовали realtime Hub/handler, WebSocket dependency и initial/tick delivery | `7294706` |
+| 13B actions / reconnect / router integration | `8166256` | `/ws/lab` в общем router отвечал 404 вместо WebSocket upgrade 101 | `a3f7167` |
+| router lifecycle ownership | `452f711` | router не владел Hub shutdown: clients/bridge продолжали жить после HTTP lifecycle | `cd8b217` |
+| bridge handoff / shutdown wait | `9472ce9` | остановка bridge при последнем disconnect могла потерять coalesced update; `Close` не ждал bridge exit | `1fec23f` |
+| handler shutdown wait | `9d91fa2` | `Close` мог вернуться при ещё работающем handler, заблокированном на initial `State` | `99aa484` |
+
+### Зафиксированное отклонение процесса
+
+Capacity-one client queue, replacement/coalescing и неблокирующий publish были
+реализованы уже в GREEN 13A (`7294706`), то есть до RED-коммита 13B. Поэтому
+`8166256` непосредственно доказал RED router integration (`404 → 101`), а не
+отсутствие уже существовавшего queue algorithm. История намеренно не
+переписывалась: добавленные в 13B behavior tests и последующие race runs
+проверяют slow-client isolation, coalescing, reconnect и concurrent lifecycle.
+
+Оба checkpoint прошли spec review. Code-quality review выявил отсутствие явного
+router ownership для Hub, race/lost-edge риск при остановке bridge на последнем
+disconnect и неполное ожидание handlers при shutdown. Каждое замечание закрыто
+отдельной RED/GREEN-парой; итоговый review не оставил замечаний для Stage 13.
+Финальная root verification независимо повторила focused, full и race suites.
+
+### Requirements и verification
+
+- `WS-001`, `WS-002`, `WS-003` — GREEN.
+- REST/WS используют общий DTO; `TestWebSocket_DoesNotExposeHiddenFields`
+  подтверждает, что WebSocket не раскрывает domain-only timers/rates/scores.
+- Focused realtime/httpapi suites и их race runs — exit 0.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+- `go test -race -count=1 ./...` — exit 0.
+
+Stage 13 завершён. Stage 14 не начат.

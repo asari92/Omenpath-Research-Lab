@@ -762,34 +762,34 @@ Stage 12 не реализует Tutorial commands и WebSocket.
 
 ### Checkpoint 13A — initial snapshot и tick broadcast
 
-- [ ] Подключить `github.com/coder/websocket` и создать realtime package.
-- [ ] Tests:
+- [x] Подключить `github.com/coder/websocket` и создать realtime package.
+- [x] Tests:
   `TestWebSocket_ImmediatelyReceivesCurrentSnapshot`,
   `TestWebSocket_TickBroadcastUsesRESTSnapshotSchema`,
   `TestWebSocket_DoesNotExposeHiddenFields`,
   `TestHub_RemovesDisconnectedClient`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage13): RED websocket initial and tick snapshots`.
-- [ ] Реализовать Hub/handler с `wsjson` и common DTO builder.
-- [ ] GREEN commit:
+- [x] Реализовать Hub/handler с `wsjson` и common DTO builder.
+- [x] GREEN commit:
   `feat(stage13): GREEN websocket initial and tick snapshots`.
 
 ### Checkpoint 13B — actions, reconnect, slow clients
 
-- [ ] Tests:
+- [x] Tests:
   `TestWebSocket_SuccessfulActionBroadcastsImmediately`,
   `TestWebSocket_RejectedDomainActionBroadcastsPersistedEvent`,
   `TestWebSocket_ReconnectGetsLatestSnapshot`,
   `TestHub_SlowClientDoesNotBlockFastClientOrManager`,
   `TestHub_CoalescesPendingSnapshots`,
   `TestWebSocket_ConcurrentConnectBroadcastDisconnect`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage13): RED websocket action reconnect and backpressure`.
-- [ ] Реализовать per-client queue/write loop и bridge из `Manager.Updates()`.
-- [ ] Зарегистрировать `/ws/lab` в router composition без создания второго DTO.
-- [ ] Запустить focused suite, полный suite и race для realtime+engine.
-- [ ] WS-001..003 → GREEN.
-- [ ] Worklog + GREEN commit:
+- [x] Реализовать per-client queue/write loop и bridge из `Manager.Updates()`.
+- [x] Зарегистрировать `/ws/lab` в router composition без создания второго DTO.
+- [x] Запустить focused suite, полный suite и race для realtime+engine.
+- [x] WS-001..003 → GREEN.
+- [x] Worklog + GREEN commit:
   `feat(stage13): GREEN websocket authoritative realtime snapshots`.
 
 ## 10. Stage 14 — Tutorial engine
@@ -1010,7 +1010,7 @@ git status --short
   safety доказаны tests.
 - [x] Stage 12: reads/commands/errors и полная deterministic Recommendation
   decision table реализованы; значение присутствует только в Portal Details.
-- [ ] Stage 13: authoritative initial/tick/action snapshots, reconnect и
+- [x] Stage 13: authoritative initial/tick/action snapshots, reconnect и
   backpressure доказаны tests.
 - [ ] Stage 14: весь backend Tutorial 0–9, phases, prepared system transitions,
   retry/recreate/reset/restart/Live continuity доказаны unit/integration tests;
