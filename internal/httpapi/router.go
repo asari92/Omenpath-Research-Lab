@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
-	"omenpath-lab/internal/clock"
 	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/internal/engine"
@@ -33,11 +34,16 @@ type Manager interface {
 type API struct {
 	manager Manager
 	cfg     config.Config
-	clock   clock.Clock
 }
 
-func NewRouter(manager Manager, cfg config.Config, clk clock.Clock) http.Handler {
-	api := &API{manager: manager, cfg: cfg, clock: clk}
+func NewRouter(manager Manager, cfg config.Config) (http.Handler, error) {
+	if managerIsNil(manager) {
+		return nil, fmt.Errorf("new router: nil manager")
+	}
+	if err := validateRouterConfig(cfg); err != nil {
+		return nil, err
+	}
+	api := &API{manager: manager, cfg: cfg}
 	router := chi.NewRouter()
 	router.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", false)
@@ -53,7 +59,30 @@ func NewRouter(manager Manager, cfg config.Config, clk clock.Clock) http.Handler
 	router.Post("/api/portals/{id}/send-observer", api.sendObserver)
 	router.Post("/api/portals/{id}/recall-observer", api.recallObserver)
 	router.Post("/api/extraction/open", api.openExtraction)
-	return router
+	return router, nil
+}
+
+func managerIsNil(manager Manager) bool {
+	if manager == nil {
+		return true
+	}
+	value := reflect.ValueOf(manager)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+func validateRouterConfig(cfg config.Config) error {
+	if cfg.MaxActivePortals != 7 || cfg.CreatureTransit <= 0 || cfg.ObserverTransitMax <= 0 ||
+		cfg.RiskSafeHorizon <= 0 || cfg.RiskInstabilityPenalty < 0 || cfg.LabEnergyMax <= 0 ||
+		cfg.LabRegenPerSec < 0 || cfg.CloseCost < 0 || cfg.StabilizeCost < 0 ||
+		cfg.StabilizeBoost < 0 || cfg.StabilizeMaxStartEnergy < 0 || cfg.EmergencyDuration <= 0 {
+		return fmt.Errorf("new router: invalid config: %w", domain.ErrSimulationInvariant)
+	}
+	return nil
 }
 
 func (api *API) getState(w http.ResponseWriter, r *http.Request) {

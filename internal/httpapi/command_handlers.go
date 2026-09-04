@@ -167,6 +167,10 @@ func decodeExtractionBody(w http.ResponseWriter, r *http.Request) (extractionBod
 }
 
 func writeDomainError(w http.ResponseWriter, err error) {
+	if hasCompositeCause(err) {
+		writeInternal(w)
+		return
+	}
 	switch {
 	case errors.Is(err, engine.ErrPortalNotFound):
 		writeError(w, http.StatusNotFound, "PORTAL_NOT_FOUND", "portal not found", false)
@@ -175,13 +179,26 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	case isInvariantError(err):
 		writeInternal(w)
 	default:
-		code, ok := domainErrorCode(err)
+		code, message, confirmable, ok := domainErrorDescriptor(err)
 		if !ok {
 			writeInternal(w)
 			return
 		}
-		writeError(w, http.StatusConflict, code, err.Error(), errors.Is(err, domain.ErrConfirmationRequired))
+		writeError(w, http.StatusConflict, code, message, confirmable)
 	}
+}
+
+func hasCompositeCause(err error) bool {
+	if err == nil {
+		return false
+	}
+	if composite, ok := err.(interface{ Unwrap() []error }); ok {
+		return len(composite.Unwrap()) > 0
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		return hasCompositeCause(wrapped.Unwrap())
+	}
+	return false
 }
 
 func isInvariantError(err error) bool {
@@ -192,32 +209,33 @@ func isInvariantError(err error) bool {
 		errors.Is(err, domain.ErrEventInvariant)
 }
 
-func domainErrorCode(err error) (string, bool) {
+func domainErrorDescriptor(err error) (string, string, bool, bool) {
 	known := []struct {
-		err  error
-		code string
+		err         error
+		code        string
+		confirmable bool
 	}{
-		{domain.ErrPortalNotOpen, "PORTAL_NOT_OPEN"},
-		{domain.ErrPortalAlreadyStable, "PORTAL_ALREADY_STABLE"},
-		{domain.ErrPortalOverchargeRisk, "PORTAL_OVERCHARGE_RISK"},
-		{domain.ErrConfirmationRequired, "CONFIRMATION_REQUIRED"},
-		{domain.ErrNoFreePortalSlot, "NO_FREE_PORTAL_SLOT"},
-		{domain.ErrObserverNotAvailable, "OBSERVER_NOT_AVAILABLE"},
-		{domain.ErrObserverNotWaitingReturn, "OBSERVER_NOT_WAITING_RETURN"},
-		{domain.ErrObserverLost, "OBSERVER_LOST"},
-		{domain.ErrPortalCriticalRisk, "PORTAL_CRITICAL_RISK"},
-		{domain.ErrPortalDirectionConflict, "PORTAL_DIRECTION_CONFLICT"},
-		{domain.ErrPortalBusy, "PORTAL_BUSY"},
-		{domain.ErrPortalCreaturesPresent, "PORTAL_CREATURES_PRESENT"},
-		{domain.ErrNoAvailableObserver, "NO_AVAILABLE_OBSERVER"},
-		{domain.ErrNoWaitingObserver, "NO_WAITING_OBSERVER"},
-		{domain.ErrInsufficientLabEnergy, "INSUFFICIENT_LAB_ENERGY"},
-		{domain.ErrExtractionSynchronizing, "EXTRACTION_SYNCHRONIZING"},
+		{domain.ErrPortalNotOpen, "PORTAL_NOT_OPEN", false},
+		{domain.ErrPortalAlreadyStable, "PORTAL_ALREADY_STABLE", false},
+		{domain.ErrPortalOverchargeRisk, "PORTAL_OVERCHARGE_RISK", false},
+		{domain.ErrConfirmationRequired, "CONFIRMATION_REQUIRED", true},
+		{domain.ErrNoFreePortalSlot, "NO_FREE_PORTAL_SLOT", false},
+		{domain.ErrObserverNotAvailable, "OBSERVER_NOT_AVAILABLE", false},
+		{domain.ErrObserverNotWaitingReturn, "OBSERVER_NOT_WAITING_RETURN", false},
+		{domain.ErrObserverLost, "OBSERVER_LOST", false},
+		{domain.ErrPortalCriticalRisk, "PORTAL_CRITICAL_RISK", false},
+		{domain.ErrPortalDirectionConflict, "PORTAL_DIRECTION_CONFLICT", false},
+		{domain.ErrPortalBusy, "PORTAL_BUSY", false},
+		{domain.ErrPortalCreaturesPresent, "PORTAL_CREATURES_PRESENT", false},
+		{domain.ErrNoAvailableObserver, "NO_AVAILABLE_OBSERVER", false},
+		{domain.ErrNoWaitingObserver, "NO_WAITING_OBSERVER", false},
+		{domain.ErrInsufficientLabEnergy, "INSUFFICIENT_LAB_ENERGY", false},
+		{domain.ErrExtractionSynchronizing, "EXTRACTION_SYNCHRONIZING", false},
 	}
 	for _, candidate := range known {
 		if errors.Is(err, candidate.err) {
-			return candidate.code, true
+			return candidate.code, candidate.err.Error(), candidate.confirmable, true
 		}
 	}
-	return "", false
+	return "", "", false, false
 }
