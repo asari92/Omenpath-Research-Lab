@@ -74,9 +74,17 @@ func TestStoreCommit_RollsBackStateWhenEventInsertFails(t *testing.T) {
 
 	after := completeSnapshot(now.Add(time.Second))
 	after.Simulation.Lab.EnergyBase = 3
-	missingPortalID := int64(999)
+	_, err = store.db.Exec(`CREATE TRIGGER force_event_insert_failure
+		BEFORE INSERT ON events
+		WHEN NEW.message = 'force event failure'
+		BEGIN
+			SELECT RAISE(ABORT, 'forced event failure');
+		END`)
+	require.NoError(t, err)
+	failingDraft := eventDraft(now.Add(time.Second), domain.EventPortalClosed, nil)
+	failingDraft.Message = "force event failure"
 	_, err = store.Commit(ctx, after, []domain.EventDraft{
-		eventDraft(now.Add(time.Second), domain.EventPortalClosed, &missingPortalID),
+		failingDraft,
 	})
 	require.Error(t, err)
 
@@ -86,6 +94,28 @@ func TestStoreCommit_RollsBackStateWhenEventInsertFails(t *testing.T) {
 	events, err := store.ListEvents(ctx, nil)
 	require.NoError(t, err)
 	require.Empty(t, events)
+}
+
+func TestStoreCommit_ActionRejectedPreservesMissingRequestedEntityIDs(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	now := time.Date(2026, 9, 4, 13, 25, 0, 0, time.UTC)
+	snapshot := completeSnapshot(now)
+	missingPortalID, missingObserverID, missingPlaneID := int64(999), int64(998), int64(997)
+	draft := eventDraft(now, domain.EventActionRejected, &missingPortalID)
+	draft.ObserverID = &missingObserverID
+	draft.PlaneID = &missingPlaneID
+
+	persisted, err := store.Commit(ctx, snapshot, []domain.EventDraft{draft})
+	require.NoError(t, err)
+	require.Len(t, persisted, 1)
+
+	events, err := store.ListEvents(ctx, nil)
+	require.NoError(t, err)
+	require.Equal(t, persisted, events)
+	require.Equal(t, &missingPortalID, events[0].PortalID)
+	require.Equal(t, &missingObserverID, events[0].ObserverID)
+	require.Equal(t, &missingPlaneID, events[0].PlaneID)
 }
 
 func TestStoreLoad_RejectsCorruptPersistedEnum(t *testing.T) {
@@ -118,6 +148,23 @@ func TestStoreListEvents_RejectsCorruptPayloadJSON(t *testing.T) {
 	_, err = store.db.Exec(`PRAGMA ignore_check_constraints = ON`)
 	require.NoError(t, err)
 	_, err = store.db.Exec(`UPDATE events SET payload_json = '[]'`)
+	require.NoError(t, err)
+	_, err = store.ListEvents(ctx, nil)
+	require.Error(t, err)
+}
+
+func TestStoreListEvents_RejectsCorruptRequiredTimestamp(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	now := time.Date(2026, 9, 4, 13, 50, 0, 0, time.UTC)
+	snapshot := completeSnapshot(now)
+	portalID := int64(7)
+	_, err := store.Commit(ctx, snapshot, []domain.EventDraft{
+		eventDraft(now, domain.EventPortalOpened, &portalID),
+	})
+	require.NoError(t, err)
+
+	_, err = store.db.Exec(`UPDATE events SET created_at = 0`)
 	require.NoError(t, err)
 	_, err = store.ListEvents(ctx, nil)
 	require.Error(t, err)

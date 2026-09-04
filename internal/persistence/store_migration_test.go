@@ -62,6 +62,16 @@ func TestStoreMigrate_CreatesRequiredTablesAndIndexes(t *testing.T) {
 	require.GreaterOrEqual(t, busyTimeout, 1)
 }
 
+func TestStoreMigrate_EventEntityIDsAreSoftReferences(t *testing.T) {
+	store := openMigratedStore(t)
+
+	rows, err := store.db.Query(`PRAGMA foreign_key_list(events)`)
+	require.NoError(t, err)
+	defer rows.Close()
+	require.False(t, rows.Next(), "event entity IDs must not have foreign keys")
+	require.NoError(t, rows.Err())
+}
+
 func TestStoreMigrate_IsIdempotent(t *testing.T) {
 	store := openMigratedStore(t)
 
