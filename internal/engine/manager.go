@@ -60,7 +60,9 @@ func (m *LabManager) Tick(ctx context.Context) error {
 	if m == nil {
 		return fmt.Errorf("tick: nil manager")
 	}
-	return m.tickAt(ctx, m.clock.Now().UTC())
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.resolveLocked(ctx, m.clock.Now().UTC(), true)
 }
 
 func (m *LabManager) tickAt(ctx context.Context, now time.Time) error {
