@@ -634,3 +634,95 @@ targeted и полный suite прошли без изменения production
   slot-selection или natural-portal generation dependencies.
 
 Stage 7 не начат.
+
+## Stage 7 — Extraction Portal via TDD (2026-09-04)
+
+### Контекст и граница
+
+- Исполнитель: Codex (GPT-5). Реализация выполнена строго по
+  `09_STAGE_07_EXTRACTION_PORTAL_TDD.md` поверх завершённого Stage 6.
+- Перед реализацией рабочее дерево было чистым, `main` указывал на `1838076`;
+  baseline `gofmt`/vet/build/test/race был зелёным.
+- Блокирующих противоречий с Final Spec §§14/20/21/22/29/37 не найдено.
+  Уточнённая до реализации семантика зафиксирована в approved design
+  `6965d26`: opening проверяет WAITING_RETURN в выбранном Plane, а sync заново
+  выбирает текущего longest-waiting Observer без reservation.
+- Реализован только Stage 7 domain scope. Events, persistence, HTTP/WebSocket,
+  simulation tick, natural spawning и LabManager не начинались.
+
+### Что реализовано
+
+- `NewExtractionPortal` создаёт контролируемый Portal со статусом OPEN,
+  kind=EXTRACTION, stability=STABLE, flow=INBOUND, creatures=0, Portal Energy
+  60..100, decay 0.1..1.0 и TTL 30..60 sec.
+- `ExtractionPlaneEligible` проверяет канонический Observer roster и требует
+  хотя бы одного WAITING_RETURN Observer именно в выбранном Plane.
+- `OpenExtractionPortal` атомарно валидирует eligibility/free regular Slot/Lab
+  Energy, списывает 30 и добавляет Portal в первый свободный Slot. Отказы не
+  мутируют агрегат и не расходуют randomness; Leyline Override не отменяет
+  Extraction cost.
+- `Portal.ExtractionSynchronizedAt` хранит один completion marker. Пятисекундное
+  окно синхронизации полузакрыто: до `OpenedAt+5s` resolver является no-op, а
+  при позднем вызове использует точный semantic deadline.
+- `ResolveExtractionSynchronization` в момент sync заново выбирает текущего
+  longest-waiting Observer (earliest waiting timestamp, затем lowest ID) и
+  атомарно переводит его в RETURNING. Если первоначальный кандидат уже ушёл,
+  выбирается следующий; если никто не ждёт, marker всё равно завершается без
+  random draw, refund или автоматического возврата.
+- После marker все resolver replays являются no-op, включая вызовы после
+  transit deadline. Все дальнейшие возвраты выполняются обычным manual RECALL;
+  до завершения sync он отвергается с `ErrExtractionSynchronizing`.
+- Close до sync оставляет Observer в WAITING_RETURN. Close во время RETURNING
+  наследует Stage 4 confirmation и при подтверждении делает Observer LOST;
+  Collapse во время transit также даёт LOST. Marker не очищается.
+- Добавлено 143 top-level Extraction tests в восьми checkpoint-файлах; все
+  обязательные test names из Stage 7 plan присутствуют.
+
+### RED / GREEN history
+
+| Checkpoint | RED evidence | GREEN evidence |
+|---|---|---|
+| A — factory/model | `a566111` — отсутствовали factory и completion marker | `1a2f1f2` |
+| B — Plane eligibility | `8c152a7` — отсутствовал eligibility helper | `f86049a` |
+| C — atomic opening | `f1478c7` — отсутствовали open command/errors | `f87a79d` |
+| D — synchronization marker | `3fda61a` — отсутствовал resolver | `e9945e8` |
+| E — automatic return | `2c62cfa` — marker завершался без старта RETURNING | `d551a49` |
+| F — manual RECALL gate | `a2a0b34` — pre-sync RECALL проходил и расходовал random | `c7fda1e` |
+| G — Close/Collapse/loss | already GREEN characterization поверх Stage 3/4 lifecycle | `bde92b0` |
+| H — integration/regressions | `2bff17e` — late replay ошибочно валидировал завершённый transit и возвращал invariant error | `c427b3d` |
+
+Checkpoint G намеренно не получил искусственный RED: approved Close/Lost
+semantics уже полностью следовали из завершённых Stage 3/4 primitives.
+Checkpoint H corrective RED закрепил строгую one-shot idempotence: marker и
+terminal/pre-deadline no-op теперь проверяются до roster validation, которая
+нужна только при фактической незавершённой синхронизации.
+
+### Реальные ошибки/операционные замечания
+
+- Первый RED-тест automatic return разыменовывал отсутствующий `PhaseEndsAt` и
+  паниковал вместо чистого assertion failure; fixture assertion был исправлен
+  без production-изменений, после чего RED воспроизведён корректно.
+- Первый RED-тест manual gate использовал пустой FakeRandom и паниковал, потому
+  что отсутствующий guard дошёл до random draw. Recording random позволил
+  чисто показать одновременно nil error и ошибочный расход randomness.
+- При добавлении manual gate широкий текстовый patch сначала попал в SEND; это
+  было замечено немедленной инспекцией diff и перенесено в RECALL до запуска
+  тестов и до commit. Ошибочная семантика в history не попадала.
+- Финальный self-review обнаружил late-replay defect, не покрытый исходным
+  checkpoint-набором; он исправлен отдельной честной RED/GREEN парой.
+
+### Traceability и verification
+
+- `EXTRACTION-001..010`, `LAB-009..010`, `EMERGENCY-004` и `SLOT-007`
+  переведены в GREEN с конкретными tests/symbols.
+- `PORTAL-003/006`, `OBSERVER-013/016` и `FLOW-003` дополнены Extraction
+  evidence без изменения semantics завершённых stages.
+- `docs/requirements.md` семантически не менялся.
+- После каждого meaningful GREEN выполнены `gofmt -l .`, `go vet ./...`,
+  `go build ./...`, `go test -count=1 ./...` и
+  `go test -race -count=1 ./...`; все завершились с exit 0.
+- Scope scan production-файлов Stage 7 не нашёл wall-clock/ticker/sleep,
+  Events, persistence, HTTP/WebSocket, simulation, natural spawn или
+  LabManager dependencies.
+
+Stage 8 не начат.
