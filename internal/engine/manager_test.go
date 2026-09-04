@@ -32,8 +32,20 @@ type fakeRepository struct {
 	commitErr   error
 	loadErr     error
 	listErr     error
+	resetErr    error
 	lastFilter  *int64
 	nextEventID int64
+}
+
+func (r *fakeRepository) ResetTutorial(_ context.Context, snapshot persistence.Snapshot) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.resetErr != nil {
+		return r.resetErr
+	}
+	r.snapshot = cloneTestSnapshot(snapshot)
+	r.events = nil
+	return nil
 }
 
 func newFakeRepository(snapshot persistence.Snapshot) *fakeRepository {

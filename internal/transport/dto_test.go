@@ -118,3 +118,33 @@ func TestBuildStateSnapshot_SlotsNeverContainRecommendation(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, strings.Contains(string(payload), "recommendation"))
 }
+
+func TestTutorialSnapshot_ExposesStepPhaseTargetsAndExpectedAction(t *testing.T) {
+	snapshot := dtoSnapshot(testutil.BaseTime)
+	portalID, planeID, observerID := int64(1), int64(1), int64(2)
+	snapshot.App = domain.AppState{
+		Mode: domain.ModeTutorial, TutorialStep: 6, TutorialPhase: domain.TutorialPhaseRecallReady,
+		TutorialPortalID: &portalID, TutorialPlaneID: &planeID, TutorialObserverID: &observerID,
+	}
+	got, err := BuildStateSnapshot(snapshot, testutil.BaseTime, config.Default())
+	require.NoError(t, err)
+	require.Equal(t, domain.TutorialPhaseRecallReady, got.App.TutorialPhase)
+	require.Equal(t, &portalID, got.App.TutorialPortalID)
+	require.Equal(t, &planeID, got.App.TutorialPlaneID)
+	require.Equal(t, &observerID, got.App.TutorialObserverID)
+	require.Equal(t, domain.TutorialActionRecall, *got.App.ExpectedAction)
+}
+
+func TestTutorialSnapshot_DoesNotExposePreparedHiddenValues(t *testing.T) {
+	snapshot := dtoSnapshot(testutil.BaseTime)
+	snapshot.App = domain.AppState{Mode: domain.ModeTutorial, TutorialStep: 1, TutorialPortalID: int64DTOTestPointer(1)}
+	got, err := BuildStateSnapshot(snapshot, testutil.BaseTime, config.Default())
+	require.NoError(t, err)
+	payload, err := json.Marshal(got.App)
+	require.NoError(t, err)
+	for _, forbidden := range []string{"decay", "instability", "collapse_at", "prepared"} {
+		require.NotContains(t, string(payload), forbidden)
+	}
+}
+
+func int64DTOTestPointer(value int64) *int64 { return &value }

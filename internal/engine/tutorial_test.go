@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -303,6 +304,101 @@ func TestTutorial_PhaseAndTargetRestartDoesNotDuplicatePortalOrEvents(t *testing
 	require.NoError(t, restarted.Tick(context.Background()))
 	require.Len(t, restarted.snapshot.Simulation.Portals, beforePortals)
 	require.Len(t, repo.events, beforeEvents)
+}
+
+func TestTutorialStart_IsIdempotent(t *testing.T) {
+	manager, repo := tutorialManager(t, 4, testutil.BaseTime)
+	want := cloneSnapshot(manager.snapshot)
+	require.NoError(t, manager.StartTutorial(context.Background()))
+	require.NoError(t, manager.StartTutorial(context.Background()))
+	require.Equal(t, want, manager.snapshot)
+	require.Empty(t, repo.commits)
+}
+
+func TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory(t *testing.T) {
+	manager, repo := tutorialLostReturnManager(t)
+	manager.snapshot.Simulation.Lab.EnergyBase = 3
+	manager.snapshot.Simulation.Planes[0].Explored = true
+	exploredAt := testutil.BaseTime
+	manager.snapshot.Simulation.Planes[0].ExploredAt = &exploredAt
+	repo.events = []domain.Event{{ID: 1, EventType: domain.EventPortalOpened, Message: "old", PayloadJSON: `{}`, CreatedAt: testutil.BaseTime}}
+	require.NoError(t, manager.ResetTutorial(context.Background()))
+	require.Equal(t, domain.ModeTutorial, manager.snapshot.App.Mode)
+	require.Zero(t, manager.snapshot.App.TutorialStep)
+	require.Equal(t, 100, manager.snapshot.Simulation.Lab.EnergyBase)
+	require.Empty(t, manager.snapshot.Simulation.Portals)
+	require.Empty(t, repo.events)
+	for _, plane := range manager.snapshot.Simulation.Planes {
+		require.False(t, plane.Explored)
+	}
+	for _, observer := range manager.snapshot.Simulation.Observers {
+		require.Equal(t, domain.ObserverAvailable, observer.Status)
+	}
+}
+
+func TestTutorialReset_TransactionFailureRollsBackEverything(t *testing.T) {
+	manager, repo := tutorialLostReturnManager(t)
+	want := cloneSnapshot(manager.snapshot)
+	repo.resetErr = errors.New("forced reset failure")
+	err := manager.ResetTutorial(context.Background())
+	require.ErrorContains(t, err, "forced reset failure")
+	require.Equal(t, want, manager.snapshot)
+}
+
+func TestStartLive_BeforeStep9IsRejected(t *testing.T) {
+	manager, repo := tutorialManager(t, 8, testutil.BaseTime)
+	err := manager.StartLive(context.Background())
+	require.ErrorIs(t, err, ErrTutorialNotReady)
+	require.Equal(t, domain.ModeTutorial, manager.snapshot.App.Mode)
+	require.Equal(t, domain.EventActionRejected, repo.events[len(repo.events)-1].EventType)
+}
+
+func TestStartLive_PreservesEnergyEventsObserversAndExploration(t *testing.T) {
+	manager, repo := tutorialManager(t, 9, testutil.BaseTime)
+	manager.snapshot.Simulation.Lab.EnergyBase = 37
+	manager.snapshot.Simulation.Observers[0].Status = domain.ObserverLost
+	manager.snapshot.Simulation.Planes[0].Explored = true
+	exploredAt := testutil.BaseTime
+	manager.snapshot.Simulation.Planes[0].ExploredAt = &exploredAt
+	repo.snapshot = cloneSnapshot(manager.snapshot)
+	repo.events = []domain.Event{{ID: 1, EventType: domain.EventPlaneExplored, PlaneID: int64Pointer(1), Message: "explored", PayloadJSON: `{}`, CreatedAt: testutil.BaseTime}}
+	require.NoError(t, manager.StartLive(context.Background()))
+	require.Equal(t, domain.ModeLive, manager.snapshot.App.Mode)
+	require.Equal(t, 37, manager.snapshot.Simulation.Lab.EnergyBase)
+	require.Equal(t, domain.ObserverLost, manager.snapshot.Simulation.Observers[0].Status)
+	require.True(t, manager.snapshot.Simulation.Planes[0].Explored)
+	require.NotEmpty(t, repo.events)
+}
+
+func TestStartLive_ClosesTutorialPortalsForFreeAndStartsZeroOpen(t *testing.T) {
+	manager, _ := tutorialManager(t, 9, testutil.BaseTime)
+	portal, err := domain.NewTutorialPortal(domain.TutorialPortalStep1, 1, 1, 1, testutil.BaseTime, manager.cfg)
+	require.NoError(t, err)
+	manager.snapshot.Simulation.Portals = []domain.Portal{portal}
+	manager.snapshot.Simulation.NextPortalID = 2
+	manager.snapshot.Simulation.Lab.EnergyBase = 4
+	require.NoError(t, manager.StartLive(context.Background()))
+	require.Equal(t, 4, manager.snapshot.Simulation.Lab.EnergyBase)
+	require.Equal(t, domain.PortalStatusClosed, manager.snapshot.Simulation.Portals[0].Status)
+	require.Equal(t, 0, countOpen(manager.snapshot.Simulation.Portals))
+}
+
+func TestStartLive_SchedulesNaturalGenerator(t *testing.T) {
+	manager, _ := tutorialManager(t, 9, testutil.BaseTime)
+	require.NoError(t, manager.StartLive(context.Background()))
+	require.False(t, manager.snapshot.Simulation.NaturalSpawn.Paused)
+	require.NotNil(t, manager.snapshot.Simulation.NaturalSpawn.ScheduledAt)
+	require.NotNil(t, manager.snapshot.Simulation.NaturalSpawn.DueAt)
+}
+
+func countOpen(portals []domain.Portal) int {
+	count := 0
+	for _, portal := range portals {
+		if portal.Status == domain.PortalStatusOpen {
+			count++
+		}
+	}
+	return count
 }
 
 func eventTypes(events []domain.Event) []domain.EventType {
