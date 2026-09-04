@@ -216,3 +216,21 @@ func TestCleanWrappedDomainErrorsPreserveMapping(t *testing.T) {
 		})
 	}
 }
+
+func TestSingleCauseJoinedDomainErrorPreservesMapping(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{"direct single join", errors.Join(domain.ErrConfirmationRequired)},
+		{"wrapped single join", fmt.Errorf("command context: %w", errors.Join(domain.ErrConfirmationRequired))},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime), commandErr: tc.err}
+			rr := perform(manager, http.MethodPost, "/api/portals/1/close", `{}`)
+			require.Equal(t, http.StatusConflict, rr.Code)
+			require.JSONEq(t, `{"error":{"code":"CONFIRMATION_REQUIRED","message":"confirmation required","confirmable":true}}`, rr.Body.String())
+			require.NotContains(t, rr.Body.String(), "command context")
+		})
+	}
+}
