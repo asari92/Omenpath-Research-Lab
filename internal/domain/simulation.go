@@ -248,7 +248,7 @@ func resolveExtractionStage(state *SimulationState, now time.Time, rnd random.Ra
 		if !ok {
 			return ErrSimulationInvariant
 		}
-		if _, _, err := ResolveExtractionSynchronization(
+		if _, _, err := resolveExtractionSynchronizationPrepared(
 			portal,
 			&state.Planes[planeIndex],
 			state.Observers,

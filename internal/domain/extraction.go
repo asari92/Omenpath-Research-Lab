@@ -146,6 +146,29 @@ func ResolveExtractionSynchronization(
 	rnd random.Random,
 	cfg config.Config,
 ) (int64, bool, error) {
+	return resolveExtractionSynchronization(portal, plane, observers, now, rnd, cfg, true)
+}
+
+func resolveExtractionSynchronizationPrepared(
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	rnd random.Random,
+	cfg config.Config,
+) (int64, bool, error) {
+	return resolveExtractionSynchronization(portal, plane, observers, now, rnd, cfg, false)
+}
+
+func resolveExtractionSynchronization(
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	rnd random.Random,
+	cfg config.Config,
+	validateRoster bool,
+) (int64, bool, error) {
 	if portal == nil || plane == nil || portal.Kind != PortalKindExtraction ||
 		portal.DestinationPlaneID != plane.ID || cfg.ExtractionSync <= 0 {
 		return 0, false, ErrExtractionInvariant
@@ -163,8 +186,10 @@ func ResolveExtractionSynchronization(
 	if now.Before(syncAt) {
 		return 0, false, nil
 	}
-	if err := validateObserverRoster(observers, now); err != nil {
-		return 0, false, err
+	if validateRoster {
+		if err := validateObserverRoster(observers, now); err != nil {
+			return 0, false, err
+		}
 	}
 	nextPortal := *portal
 	nextPortal.ExtractionSynchronizedAt = &syncAt
@@ -178,7 +203,7 @@ func ResolveExtractionSynchronization(
 	if waiting && rnd == nil {
 		return 0, false, ErrExtractionInvariant
 	}
-	observerID, err := RecallObserver(&nextPortal, plane, nextObservers, syncAt, false, rnd, cfg)
+	observerID, err := recallObserverPrepared(&nextPortal, plane, nextObservers, syncAt, false, rnd, cfg)
 	if errors.Is(err, ErrNoWaitingObserver) {
 		*portal = nextPortal
 		return 0, true, nil

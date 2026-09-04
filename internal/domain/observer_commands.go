@@ -144,7 +144,18 @@ func RecallObserver(
 	if err := validateObserverCommandAggregate(portal, plane, observers, now); err != nil {
 		return 0, err
 	}
+	return recallObserverPrepared(portal, plane, observers, now, confirmUnstable, rnd, cfg)
+}
 
+func recallObserverPrepared(
+	portal *Portal,
+	plane *Plane,
+	observers []Observer,
+	now time.Time,
+	confirmUnstable bool,
+	rnd random.Random,
+	cfg config.Config,
+) (observerID int64, err error) {
 	if portal.Status != PortalStatusOpen {
 		return 0, ErrPortalNotOpen
 	}
