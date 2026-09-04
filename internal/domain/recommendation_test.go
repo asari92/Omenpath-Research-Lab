@@ -83,6 +83,7 @@ func TestRecommendation_ActiveSafeTransitLeavesOpen(t *testing.T) {
 	state.Observers[0].ActivePortalID = &portalID
 	state.Observers[0].PhaseStartedAt, state.Observers[0].PhaseEndsAt = &started, &ends
 	state.Observers[0].UpdatedAt = now
+	state.Portals[0].ObserverFlow = domain.PortalFlowOutbound
 	require.Equal(t, domain.RecommendationLeaveOpen, recommendation(t, state, now))
 }
 
@@ -95,6 +96,7 @@ func TestRecommendation_ActiveUnsafeTransitStabilizesOnlyWhenHelpful(t *testing.
 	state.Observers[0].ActivePortalID = &portalID
 	state.Observers[0].PhaseStartedAt, state.Observers[0].PhaseEndsAt = &started, &ends
 	state.Observers[0].UpdatedAt = now
+	state.Portals[0].ObserverFlow = domain.PortalFlowOutbound
 	hidden := now.Add(30 * time.Second)
 	state.Portals[0].Stability = domain.PortalUnstable
 	state.Portals[0].InstabilityCollapseAt = &hidden
@@ -118,6 +120,7 @@ func TestRecommendation_ActiveTransitNeverCloses(t *testing.T) {
 	state.Observers[0].ActivePortalID = &portalID
 	state.Observers[0].PhaseStartedAt, state.Observers[0].PhaseEndsAt = &started, &ends
 	state.Observers[0].UpdatedAt = now
+	state.Portals[0].ObserverFlow = domain.PortalFlowInbound
 	state.Portals[0].ScheduledCloseAt = now.Add(5 * time.Second)
 	state.Lab.EnergyBase = 100
 	require.Equal(t, domain.RecommendationLeaveOpen, recommendation(t, state, now))
@@ -208,6 +211,7 @@ func TestRecommendation_OtherOutboundToSamePlaneBlocksDuplicateSend(t *testing.T
 	state.Observers[0].ActivePortalID = &portalID
 	state.Observers[0].PhaseStartedAt, state.Observers[0].PhaseEndsAt = &started, &ends
 	state.Observers[0].UpdatedAt = now
+	state.Portals[1].ObserverFlow = domain.PortalFlowOutbound
 	require.NotEqual(t, domain.RecommendationSendObserver, recommendation(t, state, now))
 }
 

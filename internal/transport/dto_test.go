@@ -32,6 +32,7 @@ func dtoSnapshot(now time.Time) persistence.Snapshot {
 			Planes:       planes,
 			Observers:    domain.NewObserverRoster(10, now.Add(-time.Hour)),
 			NextPortalID: 2,
+			NaturalSpawn: domain.NaturalSpawnState{Paused: true},
 		},
 		App: domain.AppState{Mode: domain.ModeLive, TutorialStep: 9},
 	}
@@ -101,8 +102,9 @@ func TestBuildPortalDetails_TerminalHasNullRisk(t *testing.T) {
 	state := dtoSnapshot(testutil.BaseTime)
 	closed := testutil.BaseTime
 	state.Simulation.Portals[0].Status = domain.PortalStatusClosed
-	state.Simulation.Portals[0].TerminationReason = domain.TerminationNaturalClose
+	state.Simulation.Portals[0].TerminationReason = domain.TerminationManualClose
 	state.Simulation.Portals[0].ClosedAt = &closed
+	state.Simulation.Portals[0].UpdatedAt = closed
 	got, err := BuildPortalDetails(state, 1, nil, testutil.BaseTime, config.Default())
 	require.NoError(t, err)
 	require.Nil(t, got.RiskLevel)

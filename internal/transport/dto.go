@@ -138,11 +138,12 @@ type EventDTO struct {
 }
 
 type PortalDetails struct {
-	GeneratedAt time.Time         `json:"generated_at"`
-	Portal      PortalViewDTO     `json:"portal"`
-	Destination DestinationDTO    `json:"destination"`
-	RiskLevel   *domain.RiskLevel `json:"risk_level"`
-	History     []EventDTO        `json:"history"`
+	GeneratedAt    time.Time              `json:"generated_at"`
+	Portal         PortalViewDTO          `json:"portal"`
+	Destination    DestinationDTO         `json:"destination"`
+	RiskLevel      *domain.RiskLevel      `json:"risk_level"`
+	Recommendation *domain.Recommendation `json:"recommendation"`
+	History        []EventDTO             `json:"history"`
 }
 
 func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config.Config) (StateSnapshot, error) {
@@ -272,6 +273,11 @@ func BuildPortalDetails(snapshot persistence.Snapshot, portalID int64, history [
 	}
 	if risk, ok := portal.RiskLevel(now, cfg); ok {
 		details.RiskLevel = &risk
+	}
+	if recommendation, ok, err := domain.RecommendationForPortal(snapshot.Simulation, portal.ID, now, cfg); err != nil {
+		return PortalDetails{}, err
+	} else if ok {
+		details.Recommendation = &recommendation
 	}
 	return details, nil
 }
