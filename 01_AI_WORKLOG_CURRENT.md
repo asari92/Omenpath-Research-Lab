@@ -998,3 +998,18 @@ Stage 9 production implementation не начат.
   `TUTORIAL-005`, `009`, `013`.
 
 Production implementation Stage 9 всё ещё не начат.
+
+### Block C plan synchronized with approved product designs
+
+- `11_BLOCK_C_STAGE_09_14_TDD.md` обновлён после письменного утверждения
+  Recommendation и Tutorial designs.
+- Stage 12 теперь включает отдельный RED/GREEN checkpoint для полной
+  Recommendation decision table; `API-002` больше не планируется PARTIAL из-за
+  отсутствующего алгоритма. Только UI rendering row остаётся до Stage 17.
+- Stage 14 разделён на persisted/prepared Steps 0–5, normal Step 6/7 retry и
+  Tutorial API/reset/Live checkpoints. Добавлены exact signals, phases,
+  prepared properties, player/system transitions и test names.
+- Устаревший Recommendation gate удалён из block delivery design и roadmap.
+
+Stage 9 production implementation не начат; изменение касается только
+execution documentation.

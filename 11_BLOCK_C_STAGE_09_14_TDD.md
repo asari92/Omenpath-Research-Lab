@@ -44,9 +44,9 @@ Stage 9 Events
 ```
 
 Внутри блока дополнительное подтверждение между стадиями не требуется. Нельзя
-начинать Stage 15 или создавать frontend. Recommendation decision table всё
-ещё не определена: Stage 12 не придумывает алгоритм и честно оставляет эту
-часть Portal Details как `PARTIAL`.
+начинать Stage 15 или создавать frontend. Recommendation decision table уже
+зафиксирована в Final Spec §23.1: Stage 12 реализует чистый backend algorithm и
+Portal Details DTO, а Stage 17 позже только отображает готовое значение.
 
 Для каждого checkpoint:
 
@@ -101,6 +101,8 @@ internal/domain/event_test.go
 internal/domain/event_transition_test.go
 internal/domain/simulation.go
 internal/domain/simulation_event_test.go
+internal/domain/recommendation.go
+internal/domain/recommendation_test.go
 internal/domain/tutorial.go
 internal/domain/tutorial_test.go
 internal/persistence/migrations/001_initial.sql
@@ -332,11 +334,57 @@ State snapshot содержит:
 
 Slot portal содержит только разрешённые Final Spec §5 поля и quick-action
 availability. Portal Details дополнительно содержит destination, `risk_level`
-только для OPEN portal и history. Numeric risk и Recommendation до product
-decision table отсутствуют; `API-002` поэтому остаётся `PARTIAL` только по
-Recommendation.
+только для OPEN portal, `recommendation` и history. Для terminal Portal поля
+`risk_level` и `recommendation` равны `null`. Numeric risk отсутствует.
 
-### 4.5 REST errors
+### 4.5 Recommendation Engine
+
+Создать `internal/domain/recommendation.go` по Final Spec §23.1 и approved
+design `docs/superpowers/specs/2026-09-04-recommendation-engine-design.md`:
+
+```go
+type Recommendation string
+
+const (
+    RecommendationLeaveOpen       Recommendation = "LEAVE OPEN"
+    RecommendationWaitForCorridor Recommendation = "WAIT FOR CORRIDOR"
+    RecommendationStabilize       Recommendation = "STABILIZE"
+    RecommendationClose           Recommendation = "CLOSE"
+    RecommendationSendObserver    Recommendation = "SEND OBSERVER"
+    RecommendationRecallObserver  Recommendation = "RECALL OBSERVER"
+)
+
+func RecommendationForPortal(
+    state SimulationState,
+    portalID int64,
+    now time.Time,
+    cfg config.Config,
+) (Recommendation, bool, error)
+```
+
+`bool=false` допустим только для terminal Portal. Функция pure: не вызывает
+random, не мутирует aggregate, не читает `InstabilityCollapseAt` и не влияет на
+command eligibility.
+
+Safety horizon сравнивается строго (`effective_lifetime > required`), потому
+что при exact deadline tie Portal lifecycle выполняется раньше Observer
+lifecycle. Required horizon:
+
+```text
+SEND/RECALL now       ObserverTransitMax
+WAIT corridor         clearance remaining + ObserverTransitMax
+active transit        PhaseEndsAt - now
+future return         research remaining + ObserverTransitMax
+```
+
+Hypothetical Stabilize выполняется на копии Portal и предлагается только если
+обычная Lab Energy cost доступна (или Override делает её нулевой) и результат
+реально удовлетворяет horizon. Правила применяются сверху вниз: Extraction
+pre-sync; active transit; WAITING_RETURN; EXPLORING; useful SEND только в
+UNEXPLORED Plane без другого/направляющегося Observer; EXPLORED close; затем
+HIGH/CRITICAL close или LEAVE OPEN fallback.
+
+### 4.6 REST errors
 
 Единый envelope:
 
@@ -360,7 +408,7 @@ Mapping:
 
 Успешный command возвращает `200` и свежий authoritative state snapshot.
 
-### 4.6 WebSocket
+### 4.7 WebSocket
 
 `GET /ws/lab` только server → client snapshots. После upgrade клиент сразу
 получает current snapshot, затем snapshot на каждый simulation tick и сразу
@@ -370,7 +418,7 @@ Hub имеет отдельную writer goroutine и queue capacity 1 на кл
 версия snapshot заменяет непрочитанную старую; медленный клиент не блокирует
 manager, ticker и остальных клиентов. Reconnect всегда получает latest state.
 
-### 4.7 Tutorial state
+### 4.8 Tutorial state
 
 Расширить `AppState`:
 
@@ -378,44 +426,88 @@ manager, ticker и остальных клиентов. Reconnect всегда �
 type TutorialSignal string
 
 const (
+    TutorialSignalIntroCompleted      TutorialSignal = "TUTORIAL_INTRO_COMPLETED"
     TutorialSignalPortalDetailsOpened TutorialSignal = "PORTAL_DETAILS_OPENED"
     TutorialSignalEventLogOpened      TutorialSignal = "EVENT_LOG_OPENED"
+)
+
+type TutorialPhase string
+
+const (
+    TutorialPhaseNone            TutorialPhase = ""
+    TutorialPhaseSendReplacement TutorialPhase = "SEND_REPLACEMENT"
+    TutorialPhaseWaitResearch    TutorialPhase = "WAIT_RESEARCH"
+    TutorialPhaseRecallReady     TutorialPhase = "RECALL_READY"
+)
+
+type TutorialExpectedAction string
+
+const (
+    TutorialActionCompleteIntro TutorialExpectedAction = "COMPLETE_INTRO"
+    TutorialActionOpenDetails   TutorialExpectedAction = "OPEN_PORTAL_DETAILS"
+    TutorialActionWaitCorridor  TutorialExpectedAction = "WAIT_CORRIDOR"
+    TutorialActionSend          TutorialExpectedAction = "SEND_OBSERVER"
+    TutorialActionStabilize     TutorialExpectedAction = "STABILIZE"
+    TutorialActionCriticalSend  TutorialExpectedAction = "ATTEMPT_CRITICAL_SEND"
+    TutorialActionWaitResearch  TutorialExpectedAction = "WAIT_RESEARCH"
+    TutorialActionRecall        TutorialExpectedAction = "RECALL_OBSERVER"
+    TutorialActionWaitReturn    TutorialExpectedAction = "WAIT_RETURN"
+    TutorialActionOpenEventLog  TutorialExpectedAction = "OPEN_EVENT_LOG"
+    TutorialActionStartLive     TutorialExpectedAction = "START_LIVE"
 )
 
 type AppState struct {
     Mode               AppMode
     TutorialStep       int
+    TutorialPhase      TutorialPhase
     TutorialPortalID   *int64
     TutorialPlaneID    *int64
     TutorialObserverID *int64
 }
+
+func ExpectedTutorialAction(app AppState) (TutorialExpectedAction, error)
 ```
 
-`002_tutorial_context.sql` добавляет target IDs. Restart обязан продолжить тот
-же step и targets. Tutorial tick не вызывает Natural spawn; он управляет
-prepared Portal через те же lifecycle/event primitives.
+`002_tutorial_context.sql` добавляет phase и target IDs. `expected_action`
+выводится из step/phase и отдельно не хранится. Restart обязан продолжить тот
+же step/phase/targets без duplicate Portal/Event.
 
-Step contract:
+Step contract соответствует Final Spec §28.2 и approved design
+`docs/superpowers/specs/2026-09-04-tutorial-guidance-system-design.md`:
 
-| Step | Подготовка | Единственное completion condition |
-|---|---|---|
-| 0 | Empty State | первый tick создаёт Tutorial Portal → 1 |
-| 1 | target Portal существует | matching `PORTAL_DETAILS_OPENED` → 2 |
-| 2 | тот же Portal содержит creatures | creatures стали 0 → 3 |
-| 3 | доступен SEND | успешный SEND target Observer → 4 |
-| 4 | prepared UNSTABLE Portal с Risk HIGH | успешный STABILIZE даёт MEDIUM → 5 |
-| 5 | prepared CRITICAL Portal | отклонённый SEND создаёт event и → 6 |
-| 6 | Observer завершает research; новый Portal к тому же Plane | успешный RECALL → 7 |
-| 7 | Observer вернулся | Observer AVAILABLE и Plane EXPLORED → 8 |
-| 8 | Event Log доступен | `EVENT_LOG_OPENED` → 9 |
-| 9 | Training Complete | успешный `live/start` → Live |
+| Step | Player action | System transition | Completion |
+|---|---|---|---|
+| 0 | «Начать практику» | до signal 0 OPEN/paused generator; intro signal создаёт safe Step 1 target | `TUTORIAL_INTRO_COMPLETED` |
+| 1 | открыть target Details | GET read-only; signal проверяет `portal_id` | matching `PORTAL_DETAILS_OPENED` |
+| 2 | ждать | ticks очищают creatures; broken target получает fresh equivalent ID | creatures = 0 |
+| 3 | SEND target | normal command сохраняет Observer/Plane и создаёт Step 4 target | Observer OUTBOUND |
+| 4 | STABILIZE target | normal debit/events; создать Step 5 target | STABLE и HIGH/CRITICAL→MEDIUM/LOW |
+| 5 | SEND в CRITICAL target | persist rejection + Step 6 в одной transaction | `ErrPortalCriticalRisk` |
+| 6 | ждать research, затем RECALL; retry сначала SEND replacement | normal outbound/research/inbound lifecycle и safe return target | Observer RETURNING |
+| 7 | ждать | return → AVAILABLE+EXPLORED; LOST → Step 6/SEND_REPLACEMENT | successful return |
+| 8 | открыть Event Log | GET read-only; explicit signal | `EVENT_LOG_OPENED` |
+| 9 | начать Live | free cleanup, continuity, fresh Natural schedule | Mode LIVE |
 
-Wrong reversible action оставляет step без изменения. Terminal target Portal
-пересоздаётся эквивалентным с новым ID. LOST в Step 7 возвращает к Step 6:
-выбирается другой AVAILABLE Observer и создаётся эквивалентный prepared state
-с этим Observer в WAITING_RETURN в том же пока UNEXPLORED Plane; затем создаётся
-новый inbound Portal и повторяется RECALL. Такое восстановление является частью
-детерминированного Tutorial scenario, не Live gameplay.
+Step 0 не меняется от ticks и содержит только лор/цель/карту интерфейса. Цены и
+rules выдаются контекстно на Steps 1–9; Stage 14 snapshot возвращает step,
+phase, targets и expected action, а точный UI copy остаётся Stage 20.
+
+Prepared properties проверяются behavior tests:
+
+- Step 1: STABLE, creatures > 0, safe clearance + SEND horizon;
+- Step 4: UNSTABLE, Energy ≤85%, Risk HIGH/CRITICAL, после Stabilize LOW/MEDIUM;
+- Step 5: STABLE CRITICAL из-за scheduled lifetime, Energy depletion позже
+  NATURAL_CLOSE;
+- Step 6: STABLE, clear, lifetime строго больше ObserverTransitMax.
+
+Tutorial tick выполняет normal lifecycle существующих entities, но Natural
+Generator остаётся paused. Terminal target до ожидаемого action сохраняется в
+history и заменяется fresh equivalent Portal. Старый Portal не resurrect.
+
+LOST retry не создаёт WAITING_RETURN напрямую: Step 6/SEND_REPLACEMENT открывает
+safe outbound Portal, игрок отправляет другого AVAILABLE Observer, ждёт normal
+research и только затем получает новый inbound-capable Portal. Если tracked
+Observer был потерян ещё на Steps 4–5, вход в Step 6 выбирает тот же retry flow.
 
 `tutorial/reset` одной transaction заменяет snapshot начальным Tutorial state
 и удаляет старые events; для этого Stage 14 расширяет repository методом
@@ -587,8 +679,9 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
   `TestBuildStateSnapshot_AlwaysReturnsSevenFixedSlots`,
   `TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt`,
   `TestBuildStateSnapshot_DoesNotExposeHiddenFields`,
-  `TestBuildPortalDetails_OpenIncludesRiskAndHistory`,
-  `TestBuildPortalDetails_TerminalHasNullRisk`,
+  `TestBuildPortalDetails_OpenIncludesRiskRecommendationAndHistory`,
+  `TestBuildPortalDetails_TerminalHasNullRiskAndRecommendation`,
+  `TestBuildStateSnapshot_SlotsNeverContainRecommendation`,
   `TestGetState_ReturnsAuthoritativeSnapshot`,
   `TestGetPortal_ReturnsDetailsOr404`,
   `TestGetEvents_ReturnsChronologicalGlobalLog`,
@@ -597,7 +690,45 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
 - [ ] Реализовать DTO builder/router/read handlers.
 - [ ] GREEN commit: `feat(stage12): GREEN REST reads and public DTO contract`.
 
-### Checkpoint 12B — commands, strict JSON и errors
+### Checkpoint 12B — deterministic Recommendation Engine
+
+- [ ] Создать `internal/domain/recommendation_test.go` как table-driven suite:
+  `TestRecommendation_TerminalHasNoValue`,
+  `TestRecommendation_ExtractionBeforeSyncLeavesOpen`,
+  `TestRecommendation_ActiveSafeTransitLeavesOpen`,
+  `TestRecommendation_ActiveUnsafeTransitStabilizesOnlyWhenHelpful`,
+  `TestRecommendation_ActiveTransitNeverCloses`,
+  `TestRecommendation_WaitingObserverRecalls`,
+  `TestRecommendation_WaitingObserverWaitsForSafeCorridor`,
+  `TestRecommendation_WaitingObserverStabilizesForSafeReturn`,
+  `TestRecommendation_ExploringObserverPreservesInboundPath`,
+  `TestRecommendation_OutboundPathIsNotPreservedForRecall`,
+  `TestRecommendation_UnexploredPlaneSendsAvailableObserver`,
+  `TestRecommendation_DoesNotSendToExploredOrOccupiedPlane`,
+  `TestRecommendation_OtherOutboundToSamePlaneBlocksDuplicateSend`,
+  `TestRecommendation_ExactDeadlineTieIsUnsafe`,
+  `TestRecommendation_DangerFallbackClosesWhenAffordable`,
+  `TestRecommendation_InsufficientLabEnergyLeavesOpen`,
+  `TestRecommendation_HypotheticalStabilizeDoesNotMutateState`,
+  `TestRecommendation_DoesNotConsumeRandom`,
+  `TestRecommendation_HiddenCollapseTimestampDoesNotAffectResult`,
+  `TestRecommendation_DoesNotRestrictDomainCommands`.
+- [ ] Добавить REST assertions: Details возвращает enum/null; state/slots не
+  содержат JSON key `recommendation`.
+- [ ] Запустить
+  `go test -count=1 ./internal/domain ./internal/transport ./internal/httpapi -run 'TestRecommendation|TestBuildPortalDetails'`
+  и получить RED по отсутствующему domain type/function/DTO field.
+- [ ] RED commit:
+  `test(stage12): RED safe mission recommendation decision table`.
+- [ ] Реализовать exact priority table из Final Spec §23.1 чистыми helpers:
+  entity lookup, portal/observer horizon, hypothetical Stabilize eligibility и
+  close fallback. Не вызывать command на реальном aggregate.
+- [ ] Добавить `recommendation *domain.Recommendation` только в Details DTO.
+- [ ] Повторить focused command; expected PASS.
+- [ ] GREEN commit:
+  `feat(stage12): GREEN deterministic recommendation engine`.
+
+### Checkpoint 12C — commands, strict JSON и errors
 
 - [ ] Реализуемые routes Stage 12:
   `POST /api/portals/{id}/stabilize`, `/close`, `/send-observer`,
@@ -619,9 +750,9 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
 - [ ] Реализовать handlers/error mapper без дублирования domain rules.
 - [ ] Проверить `go test -count=1 ./internal/transport ./internal/httpapi`
   и весь suite.
-- [ ] API-001, API-003..008, API-010, API-011 → GREEN; API-002 → PARTIAL
-  только из-за отложенной Recommendation; API-009/API-012 остаются PLANNED до
-  Stage 14.
+- [ ] API-001..008, API-010, API-011 → GREEN; API-009/API-012 остаются PLANNED
+  до Stage 14. RECOMMENDATION-001,002,004..012 → GREEN;
+  RECOMMENDATION-003 остаётся PARTIAL до фактического rendering в Stage 17.
 - [ ] Worklog + GREEN commit:
   `feat(stage12): GREEN REST reads commands and error mapping`.
 
@@ -663,58 +794,138 @@ Stage 12 не реализует Tutorial commands и WebSocket.
 
 ## 10. Stage 14 — Tutorial engine
 
-### Checkpoint 14A — deterministic state machine и persistence context
+### Checkpoint 14A — persisted context, Step 0 и prepared Steps 1–5
 
-- [ ] Добавить `tutorial.go`, migration 002 и repository round-trip target IDs.
+- [ ] Расширить migration 002 колонками `tutorial_phase`,
+  `tutorial_portal_id`, `tutorial_plane_id`, `tutorial_observer_id`; добавить
+  round-trip и migration idempotency tests.
+- [ ] Добавить `TutorialSignal`, `TutorialPhase`, `TutorialExpectedAction`,
+  `ExpectedTutorialAction(app AppState)` и prepared factory helpers в
+  `internal/domain/tutorial.go`.
 - [ ] Tests:
-  `TestTutorial_FirstTickCreatesStep1Portal`,
-  `TestTutorial_OnlyExpectedTargetAndConditionAdvance`,
+  `TestTutorial_TicksDoNotAdvanceStep0OrCreatePortals`,
+  `TestTutorial_IntroSignalAtomicallyCreatesOneStep1TargetAndEvent`,
+  `TestTutorial_IntroSignalReplayIsRejectedWithoutDuplicate`,
+  `TestTutorial_DetailsSignalRequiresMatchingTargetID`,
+  `TestTutorial_ReadsNeverAdvanceProgress`,
+  `TestTutorial_Step1PreparedPortalHasSafeCorridorAndSendProperties`,
+  `TestTutorial_Step2AdvancesOnlyWhenCreaturesReachZero`,
+  `TestTutorial_Step3UsesNormalSendAndTracksObserverPlane`,
+  `TestTutorial_Step4PreparedPortalSatisfiesStabilizeContract`,
+  `TestTutorial_StabilizeAllowsHighOrCriticalToMediumOrLow`,
+  `TestTutorial_Step5CriticalPortalEndsByNaturalCloseNotCollapse`,
+  `TestTutorial_CriticalRejectedSendCommitsActionRejectedAndStep6`,
   `TestTutorial_WrongReversibleActionKeepsStep`,
-  `TestTutorial_DetailsAndEventLogRequireExplicitSignal`,
-  `TestTutorial_Step2AdvancesWhenCorridorClears`,
-  `TestTutorial_StabilizeGuaranteesHighToMedium`,
-  `TestTutorial_CriticalRejectedSendCompletesStep5`,
-  `TestTutorial_TerminalPreparedPortalRecreatesFreshID`,
-  `TestTutorial_TimedPortalAutoRecreatesAfterExpiry`,
+  `TestTutorial_TerminalTargetRecreatesEquivalentFreshID`,
   `TestTutorial_TickNeverSpawnsNaturalPortal`,
-  `TestTutorialContext_RoundTripsAcrossRestart`.
+  `TestTutorialContext_RoundTripsStepPhaseAndTargetsAcrossRestart`.
+- [ ] Запустить
+  `go test -count=1 ./internal/domain ./internal/persistence ./internal/engine -run 'TestTutorial|TestTutorialContext'`
+  и получить RED по отсутствующим types/state-machine behavior.
 - [ ] RED commit:
-  `test(stage14): RED deterministic tutorial state and restart context`.
-- [ ] Реализовать mode-aware tick, preparations и transition guards.
-- [ ] Critical rejected SEND должен одной transaction сохранить
-  `ACTION_REJECTED` и Step 6, вернуть 409 transport-слою и отправить update.
+  `test(stage14): RED tutorial context intro and prepared steps one to five`.
+- [ ] Реализовать mode-aware tick: normal lifecycle/events без вызова Natural
+  spawn; intro signal создаёт первый Portal, а Step 2 auto-progress выполняется
+  только при creatures = 0.
+- [ ] Prepared factory принимает semantic profile, создаёт новый sequential ID
+  и проверяет перечисленные свойства; production code не зависит от fixture ID.
+- [ ] Critical rejection одной transaction сохраняет catch-up,
+  `ACTION_REJECTED`, Step 6/phase и возвращает исходный domain error для 409.
+- [ ] Повторить focused command; expected PASS.
 - [ ] GREEN commit:
-  `feat(stage14): GREEN deterministic tutorial state and restart context`.
+  `feat(stage14): GREEN tutorial context intro and prepared steps one to five`.
 
-### Checkpoint 14B — return retry, reset, Live continuity и API
+### Checkpoint 14B — Step 6 phases, real retry и Step 8
 
-- [ ] Добавить manager Tutorial commands:
-  `StartTutorial`, `ResetTutorial`, `TutorialSignal`, `StartLive`.
-- [ ] Зарегистрировать три существующих Tutorial/Live routes и новый signal.
-- [ ] Tests:
+- [ ] Добавить tests:
+  `TestTutorial_EnterStep6DerivesWaitResearchPhase`,
+  `TestTutorial_EnterStep6WaitingObserverCreatesSafeReturnPortal`,
+  `TestTutorial_Step6ResearchCompletionCreatesFreshSamePlanePortal`,
+  `TestTutorial_Step6RecallUsesLongestWaitingAndAdvancesStep7`,
   `TestTutorial_ReturnExploresPlaneOnlyAfterObserverReturned`,
-  `TestTutorial_LostReturnRepeatsStep6WithDifferentObserver`,
+  `TestTutorial_LostReturnUsesDifferentAvailableObserver`,
+  `TestTutorial_LostRetryRequiresNormalSendResearchRecall`,
+  `TestTutorial_LostRetryNeverTeleportsObserverToPlane`,
+  `TestTutorial_EarlierTrackedLossEntersSendReplacementPhase`,
+  `TestTutorial_NoReplacementObserverStaysRecoverableUntilReset`,
+  `TestTutorial_EventLogGETDoesNotAdvanceStep8`,
+  `TestTutorial_EventLogSignalAdvancesStep8ToStep9`,
+  `TestTutorial_PhaseAndTargetRestartDoesNotDuplicatePortalOrEvents`.
+- [ ] RED commit:
+  `test(stage14): RED tutorial research return and honest lost retry`.
+- [ ] Реализовать phase transitions:
+
+```text
+SEND_REPLACEMENT --successful SEND--> WAIT_RESEARCH
+WAIT_RESEARCH --WAITING_RETURN--> create safe same-plane Portal → RECALL_READY
+RECALL_READY --successful RECALL--> Step 7 / WAIT_RETURN
+Step 7 --LOST--> Step 6 / SEND_REPLACEMENT
+Step 7 --AVAILABLE + EXPLORED--> Step 8 / OPEN_EVENT_LOG
+```
+
+- [ ] Replacement выбирает AVAILABLE Observer обычным lowest-ID rule и всегда
+  отличается от LOST terminal Observer. Все status changes проходят через
+  normal domain commands/lifecycle и создают normal Events.
+- [ ] Повторить focused engine/domain/persistence tests; expected PASS.
+- [ ] GREEN commit:
+  `feat(stage14): GREEN tutorial research return and honest lost retry`.
+
+### Checkpoint 14C — Tutorial API, reset и Live continuity
+
+- [ ] Расширить repository:
+
+```go
+ResetTutorial(context.Context, persistence.Snapshot) error
+```
+
+  Transaction удаляет prior Portals/Events, полностью заменяет Plane/Observer/
+  Lab/App state и откатывается целиком при injected failure.
+- [ ] Добавить manager methods:
+
+```go
+func (m *LabManager) StartTutorial(context.Context) error
+func (m *LabManager) ResetTutorial(context.Context) error
+func (m *LabManager) TutorialSignal(context.Context, domain.TutorialSignal, *int64) error
+func (m *LabManager) StartLive(context.Context) error
+```
+
+- [ ] `POST /api/tutorial/signal` strict body:
+
+```json
+{"signal":"PORTAL_DETAILS_OPENED","portal_id":42}
+```
+
+  `portal_id` обязателен ровно для `PORTAL_DETAILS_OPENED`; intro/event-log
+  signals запрещают это поле. Unknown enum и shape → 400 transport validation
+  без Event; valid unexpected signal → 409 + `ACTION_REJECTED`.
+- [ ] Tests:
   `TestTutorialStart_IsIdempotent`,
   `TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory`,
+  `TestTutorialReset_TransactionFailureRollsBackEverything`,
   `TestStartLive_BeforeStep9IsRejected`,
   `TestStartLive_PreservesEnergyEventsObserversAndExploration`,
   `TestStartLive_ClosesTutorialPortalsForFreeAndStartsZeroOpen`,
   `TestStartLive_SchedulesNaturalGenerator`,
-  `TestTutorialSignal_RejectsUnknownEnum`,
+  `TestTutorialSignal_StrictShapeAndClosedEnum`,
+  `TestTutorialSignal_UnexpectedValidSignalCreatesActionRejected`,
+  `TestTutorialSnapshot_ExposesStepPhaseTargetsAndExpectedAction`,
+  `TestTutorialSnapshot_DoesNotExposePreparedHiddenValues`,
   `TestTutorialAPI_GETsNeverMutateProgress`,
   `TestTutorialAPI_CriticalRejectionPersistsProgressAndEvent`,
-  `TestTutorialWebSocket_ReconnectShowsPersistedStep`,
+  `TestTutorialWebSocket_ReconnectShowsPersistedStepAndPhase`,
   `TestTutorial_FullColdStartRestartAndLiveJourney`.
 - [ ] RED commit:
-  `test(stage14): RED tutorial retry reset live continuity and API`.
-- [ ] Реализовать atomic reset operation, Live transition и HTTP handlers.
-- [ ] Проверить, что старые Tutorial Events удаляются только reset-командой;
-  обычный start и Live transition сохраняют историю.
+  `test(stage14): RED tutorial API reset and live continuity`.
+- [ ] Реализовать atomic reset, strict signal handler, Live free cleanup и fresh
+  scheduler. Старые Events удаляет только reset; start/Live сохраняют history.
+- [ ] REST и WS используют один DTO для step/phase/target/expected action.
 - [ ] Выполнить focused domain/engine/persistence/httpapi/realtime suites и
   затем полный обычный suite.
-- [ ] TUTORIAL-001..015, API-009, API-012, LAB-002 → GREEN.
+- [ ] TUTORIAL-001..015, TUTORIAL-017, TUTORIAL-018, API-009, API-012,
+  LAB-002 → GREEN. TUTORIAL-016 → PARTIAL по backend contract;
+  TUTORIAL-019 → PLANNED до Stage 20 UI copy/rendering.
 - [ ] Worklog + GREEN commit:
-  `feat(stage14): GREEN tutorial lifecycle and live continuity`.
+  `feat(stage14): GREEN tutorial API reset and live continuity`.
 
 Stage 14 заканчивает Block C. Не добавлять React/Vite, UI pages или Stage 15.
 
@@ -783,7 +994,8 @@ git status --short
 - [ ] Проверить `rg`-ом отсутствие React/Vite/frontend source и Stage 15
   implementation в Block C diff.
 - [ ] Обновить `docs/traceability.md`: только доказанные границы GREEN;
-  Recommendation остаётся PLANNED/PARTIAL согласно product gate.
+  Recommendation backend rows GREEN, а UI-only `RECOMMENDATION-003` остаётся
+  PARTIAL до Stage 17.
 - [ ] Дополнить `01_AI_WORKLOG_CURRENT.md`: стадии, решения, ошибки,
   verification, RED/GREEN hashes и вклад пользователя.
 - [ ] Сделать финальный docs/verification commit без изменения semantics.
@@ -796,11 +1008,13 @@ git status --short
   доказаны tests.
 - [ ] Stage 11: resolve-first manager, exactly-one transitions, ticker и race
   safety доказаны tests.
-- [ ] Stage 12: reads/commands/errors реализованы; Recommendation не придумана.
+- [ ] Stage 12: reads/commands/errors и полная deterministic Recommendation
+  decision table реализованы; значение присутствует только в Portal Details.
 - [ ] Stage 13: authoritative initial/tick/action snapshots, reconnect и
   backpressure доказаны tests.
-- [ ] Stage 14: весь Tutorial 0–9, retry/recreate/reset/restart/Live continuity
-  доказаны unit и integration tests.
+- [ ] Stage 14: весь backend Tutorial 0–9, phases, prepared system transitions,
+  retry/recreate/reset/restart/Live continuity доказаны unit/integration tests;
+  contextual UI copy честно остаётся Stage 20.
 - [ ] Обязательные gofmt/vet/build/test/race проходят с exit 0.
 - [ ] Requirements, traceability и worklog соответствуют коду и tests.
 - [ ] Git history содержит различимые RED/GREEN commits Stages 9–14.

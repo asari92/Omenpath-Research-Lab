@@ -152,6 +152,7 @@ Rationale:
 - Reads.
 - Portal actions.
 - Extraction.
+- Deterministic Recommendation Engine для Portal Details по Final Spec §23.1.
 - Domain errors.
 - `409` confirmation flow.
 

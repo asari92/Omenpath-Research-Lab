@@ -73,9 +73,10 @@ scope текущего блока, чистота Git и отсутствие р
 
 ## Известные будущие гейты
 
-- До реализации Recommendation в Block D требуется добавить в Final Spec
-  product decision table выбора рекомендации. Текущие ограничения и enum уже
-  известны, сам алгоритм ещё не определён.
+- Recommendation gate закрыт до реализации Block C: пользователь утвердил
+  deterministic decision table, зафиксированную в Final Spec §23.1 и
+  `docs/superpowers/specs/2026-09-04-recommendation-engine-design.md`. Backend
+  реализуется в Stage 12, rendering — в Stage 17.
 - Для Stage 25 могут понадобиться deployment credentials или выбор платформы.
   Этот вопрос поднимается на сверке после Block D, если ранее не решён.
 
