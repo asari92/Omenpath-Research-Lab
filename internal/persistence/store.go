@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
-	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -52,20 +51,7 @@ func sqliteDSN(path string) (string, error) {
 	settings := func(query url.Values) string {
 		query.Del("_fk")
 		query.Del("_timeout")
-		pragmas := query["_pragma"][:0]
-		for _, pragma := range query["_pragma"] {
-			normalized := strings.ToLower(strings.TrimSpace(pragma))
-			if strings.HasPrefix(normalized, "busy_timeout") ||
-				strings.HasPrefix(normalized, "foreign_keys") {
-				continue
-			}
-			pragmas = append(pragmas, pragma)
-		}
-		if len(pragmas) == 0 {
-			query.Del("_pragma")
-		} else {
-			query["_pragma"] = pragmas
-		}
+		query.Del("_pragma")
 		query.Set("_busy_timeout", "5000")
 		query.Set("_foreign_keys", "1")
 		return query.Encode()
