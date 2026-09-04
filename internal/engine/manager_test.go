@@ -219,7 +219,7 @@ func TestManagerCommand_ResolvesWholeSimulationBeforeAction(t *testing.T) {
 	base := testutil.BaseTime
 	snapshot := managerSnapshot(base)
 	target := managerPortal(1, 1, base)
-	hidden := base.Add(time.Minute)
+	hidden := base.Add(50 * time.Second)
 	target.Stability = domain.PortalUnstable
 	target.InstabilityCollapseAt = &hidden
 	target.EnergyBase = 50
@@ -359,15 +359,27 @@ func ptrInt64(value int64) *int64 { return &value }
 
 func cloneTestSnapshot(snapshot persistence.Snapshot) persistence.Snapshot {
 	clone := snapshot
-	clone.Simulation.Portals = append([]domain.Portal(nil), snapshot.Simulation.Portals...)
-	clone.Simulation.Planes = append([]domain.Plane(nil), snapshot.Simulation.Planes...)
-	clone.Simulation.Observers = append([]domain.Observer(nil), snapshot.Simulation.Observers...)
+	if snapshot.Simulation.Portals != nil {
+		clone.Simulation.Portals = make([]domain.Portal, len(snapshot.Simulation.Portals))
+		copy(clone.Simulation.Portals, snapshot.Simulation.Portals)
+	}
+	if snapshot.Simulation.Planes != nil {
+		clone.Simulation.Planes = make([]domain.Plane, len(snapshot.Simulation.Planes))
+		copy(clone.Simulation.Planes, snapshot.Simulation.Planes)
+	}
+	if snapshot.Simulation.Observers != nil {
+		clone.Simulation.Observers = make([]domain.Observer, len(snapshot.Simulation.Observers))
+		copy(clone.Simulation.Observers, snapshot.Simulation.Observers)
+	}
 	clone.Simulation.Lab.LeylineOverrideUntil = cloneTestTime(snapshot.Simulation.Lab.LeylineOverrideUntil)
 	clone.Simulation.NaturalSpawn.ScheduledAt = cloneTestTime(snapshot.Simulation.NaturalSpawn.ScheduledAt)
 	clone.Simulation.NaturalSpawn.DueAt = cloneTestTime(snapshot.Simulation.NaturalSpawn.DueAt)
 	clone.Simulation.LastTickAt = cloneTestTime(snapshot.Simulation.LastTickAt)
 	for i := range clone.Simulation.Planes {
-		clone.Simulation.Planes[i].Aliases = append([]string(nil), snapshot.Simulation.Planes[i].Aliases...)
+		if snapshot.Simulation.Planes[i].Aliases != nil {
+			clone.Simulation.Planes[i].Aliases = make([]string, len(snapshot.Simulation.Planes[i].Aliases))
+			copy(clone.Simulation.Planes[i].Aliases, snapshot.Simulation.Planes[i].Aliases)
+		}
 		clone.Simulation.Planes[i].ExploredAt = cloneTestTime(snapshot.Simulation.Planes[i].ExploredAt)
 	}
 	for i := range clone.Simulation.Portals {
