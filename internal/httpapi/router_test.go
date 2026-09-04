@@ -25,6 +25,7 @@ type fakeManager struct {
 	portalErr   error
 	eventsErr   error
 	stateCalls  int
+	portalReads int
 	commandErr  error
 	commandHook func(action string, id int64, confirm bool) error
 	commands    []commandCall
@@ -41,6 +42,7 @@ func (m *fakeManager) State(context.Context) (persistence.Snapshot, error) {
 	return m.snapshot, m.stateErr
 }
 func (m *fakeManager) Portal(_ context.Context, id int64) (domain.Portal, []domain.Event, error) {
+	m.portalReads++
 	if m.portalErr != nil {
 		return domain.Portal{}, nil, m.portalErr
 	}
@@ -50,6 +52,16 @@ func (m *fakeManager) Portal(_ context.Context, id int64) (domain.Portal, []doma
 		}
 	}
 	return domain.Portal{}, nil, engine.ErrPortalNotFound
+}
+
+func (m *fakeManager) PortalState(_ context.Context, id int64) (persistence.Snapshot, []domain.Event, error) {
+	m.portalReads++
+	for _, portal := range m.snapshot.Simulation.Portals {
+		if portal.ID == id {
+			return m.snapshot, domain.PortalHistory(m.events, id), nil
+		}
+	}
+	return persistence.Snapshot{}, nil, engine.ErrPortalNotFound
 }
 func (m *fakeManager) Events(context.Context) ([]domain.Event, error) { return m.events, m.eventsErr }
 func (m *fakeManager) runCommand(action string, id int64, confirm bool) error {
@@ -81,10 +93,13 @@ func httpSnapshot(now time.Time) persistence.Snapshot {
 		planes[i] = domain.Plane{ID: int64(i + 1), Name: "Plane", Aliases: []string{}, CatalogTier: "core"}
 	}
 	p := testutil.NewPortalBuilder().Build()
+	p.OpenedAt, p.CreatedAt, p.UpdatedAt, p.EnergyBaseAt = now, now, now, now
+	p.ScheduledCloseAt = now.Add(time.Minute)
+	lastTick := now
 	return persistence.Snapshot{Simulation: domain.SimulationState{
 		Lab: domain.LabState{EnergyBase: 100, EnergyBaseAt: now}, Portals: []domain.Portal{p},
 		Planes: planes, Observers: domain.NewObserverRoster(10, now), NextPortalID: 2,
-		NaturalSpawn: domain.NaturalSpawnState{Paused: true},
+		NaturalSpawn: domain.NaturalSpawnState{Paused: true}, LastTickAt: &lastTick,
 	}, App: domain.AppState{Mode: domain.ModeTutorial}}
 }
 
@@ -100,6 +115,98 @@ func TestGetState_ReturnsAuthoritativeSnapshot(t *testing.T) {
 	var body map[string]any
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
 	require.Len(t, body["slots"], 7)
+}
+
+func TestGetState_DerivesDTOAtSnapshotCatchUpTimestamp(t *testing.T) {
+	now := testutil.BaseTime
+	snapshot := httpSnapshot(now)
+	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
+	manager := &fakeManager{snapshot: snapshot}
+	rr := httptest.NewRecorder()
+	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(2*time.Second))).ServeHTTP(
+		rr, httptest.NewRequest(http.MethodGet, "/api/state", nil),
+	)
+	require.Equal(t, http.StatusOK, rr.Code)
+	var body struct {
+		GeneratedAt time.Time `json:"generated_at"`
+		Slots       []struct {
+			Portal *struct {
+				Status               domain.PortalStatus `json:"status"`
+				TimeRemainingSeconds int64               `json:"time_remaining_seconds"`
+			} `json:"portal"`
+		} `json:"slots"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	require.Equal(t, now, body.GeneratedAt)
+	require.Equal(t, domain.PortalStatusOpen, body.Slots[0].Portal.Status)
+	require.Equal(t, int64(1), body.Slots[0].Portal.TimeRemainingSeconds)
+}
+
+type coherenceManager struct {
+	atomicSnapshot persistence.Snapshot
+	atomicHistory  []domain.Event
+	staleSnapshot  persistence.Snapshot
+	portalCalls    int
+	stateCalls     int
+	atomicCalls    int
+}
+
+func (m *coherenceManager) State(context.Context) (persistence.Snapshot, error) {
+	m.stateCalls++
+	return m.staleSnapshot, nil
+}
+func (m *coherenceManager) Portal(context.Context, int64) (domain.Portal, []domain.Event, error) {
+	m.portalCalls++
+	return m.atomicSnapshot.Simulation.Portals[0], m.atomicHistory[:1], nil
+}
+func (m *coherenceManager) PortalState(context.Context, int64) (persistence.Snapshot, []domain.Event, error) {
+	m.atomicCalls++
+	return m.atomicSnapshot, m.atomicHistory, nil
+}
+func (m *coherenceManager) Events(context.Context) ([]domain.Event, error)    { return nil, nil }
+func (m *coherenceManager) Stabilize(context.Context, int64) error            { return nil }
+func (m *coherenceManager) ClosePortal(context.Context, int64, bool) error    { return nil }
+func (m *coherenceManager) SendObserver(context.Context, int64, bool) error   { return nil }
+func (m *coherenceManager) RecallObserver(context.Context, int64, bool) error { return nil }
+func (m *coherenceManager) OpenExtraction(context.Context, int64) error       { return nil }
+
+func TestGetPortal_UsesOneResolvedSnapshotHistoryBoundary(t *testing.T) {
+	now := testutil.BaseTime
+	open := httpSnapshot(now)
+	portalID := int64(1)
+	opened := domain.Event{ID: 1, EventType: domain.EventPortalOpened, PortalID: &portalID, Message: "opened", PayloadJSON: `{}`, CreatedAt: now}
+	closed := httpSnapshot(now.Add(time.Second))
+	closedAt := now.Add(time.Second)
+	closed.Simulation.Portals[0].Status = domain.PortalStatusClosed
+	closed.Simulation.Portals[0].TerminationReason = domain.TerminationManualClose
+	closed.Simulation.Portals[0].ClosedAt = &closedAt
+	closed.Simulation.Portals[0].UpdatedAt = closedAt
+	manager := &coherenceManager{
+		atomicSnapshot: open,
+		atomicHistory:  []domain.Event{opened},
+		staleSnapshot:  closed,
+	}
+	rr := httptest.NewRecorder()
+	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(5*time.Minute))).ServeHTTP(
+		rr, httptest.NewRequest(http.MethodGet, "/api/portals/1", nil),
+	)
+	require.Equal(t, http.StatusOK, rr.Code)
+	var body struct {
+		GeneratedAt time.Time `json:"generated_at"`
+		Portal      struct {
+			Status domain.PortalStatus `json:"status"`
+		} `json:"portal"`
+		History []struct {
+			EventType domain.EventType `json:"event_type"`
+		} `json:"history"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	require.Equal(t, now, body.GeneratedAt)
+	require.Equal(t, domain.PortalStatusOpen, body.Portal.Status)
+	require.Equal(t, []domain.EventType{domain.EventPortalOpened}, []domain.EventType{body.History[0].EventType})
+	require.Equal(t, 1, manager.atomicCalls)
+	require.Zero(t, manager.portalCalls)
+	require.Zero(t, manager.stateCalls)
 }
 
 func TestGetPortal_ReturnsDetailsOr404(t *testing.T) {

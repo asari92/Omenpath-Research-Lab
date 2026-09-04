@@ -1,14 +1,17 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/internal/engine"
 	"omenpath-lab/testutil"
@@ -43,6 +46,29 @@ func TestPortalCommandRoutes_ReturnFreshState(t *testing.T) {
 	require.Equal(t, 200, rr.Code)
 	require.Equal(t, []commandCall{{action: "OPEN_EXTRACTION", id: 1}}, manager.commands)
 	require.Equal(t, 1, manager.stateCalls)
+}
+
+func TestPortalCommandResponse_DerivesDTOAtResolvedSnapshotTimestamp(t *testing.T) {
+	now := testutil.BaseTime
+	snapshot := httpSnapshot(now)
+	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
+	manager := &fakeManager{snapshot: snapshot}
+	rr := httptest.NewRecorder()
+	NewRouter(manager, config.Default(), testutil.NewFakeClock(now.Add(2*time.Second))).ServeHTTP(
+		rr, httptest.NewRequest(http.MethodPost, "/api/portals/1/close", strings.NewReader(`{}`)),
+	)
+	require.Equal(t, http.StatusOK, rr.Code)
+	var body struct {
+		GeneratedAt time.Time `json:"generated_at"`
+		Slots       []struct {
+			Portal *struct {
+				TimeRemainingSeconds int64 `json:"time_remaining_seconds"`
+			} `json:"portal"`
+		} `json:"slots"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	require.Equal(t, now, body.GeneratedAt)
+	require.Equal(t, int64(1), body.Slots[0].Portal.TimeRemainingSeconds)
 }
 
 func TestCloseConfirmationFlow_Returns409ThenSucceeds(t *testing.T) {
@@ -98,9 +124,18 @@ func TestCommandRoute_StrictJSONRejectsUnknownAndTrailingValues(t *testing.T) {
 		{"/api/portals/1/close", `{"unknown":true}`},
 		{"/api/portals/1/close", `{} {}`},
 		{"/api/portals/1/close", ``},
+		{"/api/portals/1/close", `null`},
+		{"/api/portals/1/close", `[]`},
+		{"/api/portals/1/close", `true`},
+		{"/api/portals/1/close", `{"confirm":null}`},
+		{"/api/portals/1/close", `{"Confirm":true}`},
+		{"/api/portals/1/close", `{"confirm":true,"confirm":false}`},
 		{"/api/portals/1/close", `{"confirm":"yes"}`},
 		{"/api/extraction/open", `{}`},
 		{"/api/extraction/open", `{"plane_id":0}`},
+		{"/api/extraction/open", `null`},
+		{"/api/extraction/open", `{"Plane_ID":1}`},
+		{"/api/extraction/open", `{"plane_id":1,"plane_id":2}`},
 		{"/api/extraction/open", `{"plane_id":1,"extra":2}`},
 	} {
 		manager := &fakeManager{snapshot: httpSnapshot(testutil.BaseTime)}
