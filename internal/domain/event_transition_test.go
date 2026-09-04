@@ -116,6 +116,92 @@ func TestEventsForTransition_LateTickReconstructsObserverPhases(t *testing.T) {
 	require.Equal(t, []time.Time{arrivalAt, arrivalAt, completedAt}, eventTimes(events))
 }
 
+func TestEventsForTransition_ResearchCompletionIsCadenceIndependent(t *testing.T) {
+	portalID, planeID := int64(1), int64(2)
+	startedAt := testutil.BaseTime
+	arrivalAt := testutil.BaseTime.Add(5 * time.Second)
+	completedAt := arrivalAt.Add(config.Default().ResearchDuration)
+	outbound := eventObserver(1, domain.ObserverOutbound, nil, &portalID, &startedAt, &arrivalAt)
+	exploring := eventObserver(1, domain.ObserverExploring, &planeID, nil, &arrivalAt, &completedAt)
+	waiting := eventObserver(1, domain.ObserverWaitingReturn, &planeID, nil, &completedAt, nil)
+
+	late := transitionEvents(t, stateWithObservers(outbound), stateWithObservers(waiting), startedAt, completedAt)
+	arrivalTick := transitionEvents(t, stateWithObservers(outbound), stateWithObservers(exploring), startedAt, arrivalAt)
+	completionTick := transitionEvents(t, stateWithObservers(exploring), stateWithObservers(waiting), arrivalAt, completedAt)
+	split := append(arrivalTick, completionTick...)
+
+	require.Equal(t, split, late)
+	require.Nil(t, late[2].PortalID)
+}
+
+func TestEventsForTransition_RejectsInvalidPlaneSnapshots(t *testing.T) {
+	validBefore := []domain.Plane{{ID: 1}}
+	exploredAt := testutil.BaseTime.Add(time.Second)
+	validAfter := []domain.Plane{{ID: 1, Explored: true, ExploredAt: &exploredAt}}
+
+	tests := []struct {
+		name   string
+		before []domain.Plane
+		after  []domain.Plane
+	}{
+		{name: "duplicate before", before: []domain.Plane{{ID: 1}, {ID: 1}}, after: validAfter},
+		{name: "duplicate after", before: validBefore, after: []domain.Plane{{ID: 1, Explored: true, ExploredAt: &exploredAt}, {ID: 1, Explored: true, ExploredAt: &exploredAt}}},
+		{name: "non-positive before", before: []domain.Plane{{ID: 0}}, after: validAfter},
+		{name: "non-positive after", before: validBefore, after: []domain.Plane{{ID: 0}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events, err := domain.EventsForStateTransition(
+				domain.SimulationState{Planes: tt.before},
+				domain.SimulationState{Planes: tt.after},
+				testutil.BaseTime,
+				exploredAt,
+				config.Default(),
+			)
+			require.ErrorIs(t, err, domain.ErrEventInvariant)
+			require.Empty(t, events)
+		})
+	}
+}
+
+func TestEventsForTransition_StabilizedUsesSemanticIdentityAndTime(t *testing.T) {
+	beforePortal := testutil.NewPortalBuilder().Unstable(testutil.BaseTime.Add(30 * time.Second)).Build()
+	afterPortal := beforePortal
+	stabilizedAt := testutil.BaseTime.Add(5 * time.Second)
+	afterPortal.Stability = domain.PortalStable
+	afterPortal.InstabilityCollapseAt = nil
+	afterPortal.UpdatedAt = stabilizedAt
+
+	events := transitionEvents(t, stateWithPortals(beforePortal), stateWithPortals(afterPortal), testutil.BaseTime, stabilizedAt)
+	require.Len(t, events, 1)
+	assert.Equal(t, domain.EventPortalStabilized, events[0].EventType)
+	assert.Equal(t, stabilizedAt, events[0].CreatedAt)
+	assert.Equal(t, beforePortal.ID, *events[0].PortalID)
+	assert.Equal(t, beforePortal.DestinationPlaneID, *events[0].PlaneID)
+	assert.Nil(t, events[0].ObserverID)
+}
+
+func TestEventsForTransition_DispatchedUsesSemanticIdentityAndTime(t *testing.T) {
+	portal := testutil.NewPortalBuilder().Build()
+	portal.ID = 3
+	portal.DestinationPlaneID = 7
+	observerID := int64(4)
+	beforeObserver := eventObserver(observerID, domain.ObserverAvailable, nil, nil, nil, nil)
+	dispatchedAt := testutil.BaseTime.Add(5 * time.Second)
+	transitEndsAt := dispatchedAt.Add(5 * time.Second)
+	afterObserver := eventObserver(observerID, domain.ObserverOutbound, nil, &portal.ID, &dispatchedAt, &transitEndsAt)
+	before := domain.SimulationState{Portals: []domain.Portal{portal}, Observers: []domain.Observer{beforeObserver}}
+	after := domain.SimulationState{Portals: []domain.Portal{portal}, Observers: []domain.Observer{afterObserver}}
+
+	events := transitionEvents(t, before, after, testutil.BaseTime, dispatchedAt)
+	require.Len(t, events, 1)
+	assert.Equal(t, domain.EventObserverDispatched, events[0].EventType)
+	assert.Equal(t, dispatchedAt, events[0].CreatedAt)
+	assert.Equal(t, portal.ID, *events[0].PortalID)
+	assert.Equal(t, observerID, *events[0].ObserverID)
+	assert.Equal(t, portal.DestinationPlaneID, *events[0].PlaneID)
+}
+
 func TestEventsForTransition_ReturnAndLoss(t *testing.T) {
 	t.Run("return then plane explored", func(t *testing.T) {
 		planeID, portalID := int64(1), int64(2)

@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -134,6 +135,32 @@ func TestNewActionRejectedEvent_EncodesDomainCause(t *testing.T) {
 	assert.Equal(t, domain.EventActionRejected, draft.EventType)
 	assert.Equal(t, &portalID, draft.PortalID)
 	assert.JSONEq(t, `{"action":"close_portal","cause":"confirmation required"}`, draft.PayloadJSON)
+}
+
+func TestNewActionRejectedEvent_ReadsStatefulCauseOnce(t *testing.T) {
+	cause := &changingError{}
+
+	draft, err := domain.NewActionRejectedEvent(
+		testutil.BaseTime,
+		"send_observer",
+		nil,
+		nil,
+		nil,
+		cause,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 1, cause.calls)
+	assert.Equal(t, "Action rejected: cause-1", draft.Message)
+	assert.JSONEq(t, `{"action":"send_observer","cause":"cause-1"}`, draft.PayloadJSON)
+}
+
+type changingError struct {
+	calls int
+}
+
+func (e *changingError) Error() string {
+	e.calls++
+	return fmt.Sprintf("cause-%d", e.calls)
 }
 
 func canonicalEventDraft() domain.EventDraft {
