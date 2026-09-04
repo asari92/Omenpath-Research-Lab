@@ -283,13 +283,14 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 	if state.LastTickAt != nil && state.LastTickAt.After(now) {
 		return ErrSimulationInvariant
 	}
-	if !validNaturalSpawnState(state.NaturalSpawn) {
+	if !validNaturalSpawnState(state.NaturalSpawn, now) {
 		return ErrSimulationInvariant
 	}
 
 	planeIDs := make(map[int64]struct{}, len(state.Planes))
 	for _, plane := range state.Planes {
-		if plane.ID <= 0 {
+		if plane.ID <= 0 || plane.Explored != (plane.ExploredAt != nil) ||
+			(plane.ExploredAt != nil && plane.ExploredAt.After(now)) {
 			return ErrSimulationInvariant
 		}
 		if _, duplicate := planeIDs[plane.ID]; duplicate {
@@ -353,11 +354,12 @@ func validSimulationConfig(cfg config.Config) bool {
 		cfg.RiskSafeHorizon > 0 && cfg.RiskInstabilityPenalty >= 0
 }
 
-func validNaturalSpawnState(spawn NaturalSpawnState) bool {
+func validNaturalSpawnState(spawn NaturalSpawnState, now time.Time) bool {
 	if spawn.Paused {
 		return spawn.ScheduledAt == nil && spawn.DueAt == nil
 	}
 	return spawn.ScheduledAt != nil && spawn.DueAt != nil &&
+		!spawn.ScheduledAt.After(now) &&
 		!spawn.DueAt.Before(*spawn.ScheduledAt)
 }
 
