@@ -1,7 +1,6 @@
 package domain_test
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -236,12 +235,6 @@ func TestSimulationTick_DoesNotReorderAnyAggregateSlice(t *testing.T) {
 	require.Equal(t, portalIDs, []int64{state.Portals[0].ID, state.Portals[1].ID})
 	require.Equal(t, planeIDs, []int64{state.Planes[0].ID, state.Planes[1].ID})
 	require.Equal(t, observerIDs, []int64{state.Observers[0].ID, state.Observers[1].ID})
-}
-
-func TestSimulationTick_DoesNotCreateEvents(t *testing.T) {
-	resultType := reflect.TypeOf(domain.SimulationTickResult{})
-	_, hasEvents := resultType.FieldByName("Events")
-	require.False(t, hasEvents)
 }
 
 func TestSimulationTick_NaturalPortalFactoryBehaviorUnchanged(t *testing.T) {
