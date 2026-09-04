@@ -5,7 +5,9 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -18,6 +20,82 @@ import (
 )
 
 var loadBarrierSequence atomic.Uint64
+
+func TestStoreCommitAndLoad_AcceptsStructurallyValidCustomTimingSnapshot(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	snapshot := completeSnapshot(time.Date(2026, 9, 4, 16, 0, 0, 0, time.UTC))
+	customSynchronization := snapshot.Simulation.Portals[1].OpenedAt.Add(6 * time.Second)
+	snapshot.Simulation.Portals[1].ExtractionSynchronizedAt = &customSynchronization
+
+	_, err := store.Commit(ctx, snapshot, nil)
+	require.NoError(t, err)
+	loaded, err := store.Load(ctx)
+	require.NoError(t, err)
+	require.Equal(t, snapshot, loaded)
+}
+
+func TestStoreCommitAndLoad_AcceptsCommandUpdatesAfterLastTick(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	now := time.Date(2026, 9, 4, 16, 10, 0, 0, time.UTC)
+	snapshot := completeSnapshot(now)
+	lastTick := now.Add(-10 * time.Second)
+	snapshot.Simulation.LastTickAt = &lastTick
+
+	_, err := store.Commit(ctx, snapshot, nil)
+	require.NoError(t, err)
+	loaded, err := store.Load(ctx)
+	require.NoError(t, err)
+	require.Equal(t, snapshot, loaded)
+}
+
+func TestSQLiteDSN_PreservesMemoryURIAndMergesConnectionSettings(t *testing.T) {
+	name := filepath.Join(t.TempDir(), "shared memory")
+	raw := "file:" + name + "?mode=memory&cache=shared"
+
+	dsn, err := sqliteDSN(raw)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(dsn, "file:"+name+"?"), dsn)
+	parsed, err := url.Parse(dsn)
+	require.NoError(t, err)
+	require.Equal(t, "memory", parsed.Query().Get("mode"))
+	require.Equal(t, "shared", parsed.Query().Get("cache"))
+	require.Equal(t, "1", parsed.Query().Get("_foreign_keys"))
+	require.Equal(t, "5000", parsed.Query().Get("_busy_timeout"))
+}
+
+func TestStoreOpen_SharedMemoryURIWorksAcrossConnectionsAndThenVanishes(t *testing.T) {
+	ctx := context.Background()
+	uri := "file:" + filepath.Join(t.TempDir(), "shared-state") + "?mode=memory&cache=shared"
+	first, err := Open(ctx, uri)
+	require.NoError(t, err)
+	require.NoError(t, first.Migrate(ctx))
+	want := completeSnapshot(time.Date(2026, 9, 4, 16, 20, 0, 0, time.UTC))
+	_, err = first.Commit(ctx, want, nil)
+	require.NoError(t, err)
+
+	second, err := Open(ctx, uri)
+	require.NoError(t, err)
+	got, err := second.Load(ctx)
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+	require.NoError(t, first.Close())
+
+	third, err := Open(ctx, uri)
+	require.NoError(t, err)
+	got, err = third.Load(ctx)
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+	require.NoError(t, third.Close())
+	require.NoError(t, second.Close())
+
+	fresh, err := Open(ctx, uri)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, fresh.Close()) }()
+	_, err = fresh.Load(ctx)
+	require.Error(t, err, "named memory database must disappear after its last connection closes")
+}
 
 func TestStoreCommit_RejectsStructurallyImpossibleSnapshots(t *testing.T) {
 	now := time.Date(2026, 9, 4, 15, 0, 0, 0, time.UTC)
