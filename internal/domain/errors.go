@@ -25,4 +25,5 @@ var (
 	ErrExtractionInvariant      = errors.New("extraction invariant violated")
 	ErrExtractionSynchronizing  = errors.New("extraction portal is synchronizing")
 	ErrSimulationInvariant      = errors.New("simulation invariant violated")
+	ErrEventInvariant           = errors.New("event invariant violated")
 )
