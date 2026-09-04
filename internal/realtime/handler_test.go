@@ -26,6 +26,52 @@ type fakeStateSource struct {
 	updates  chan struct{}
 }
 
+type blockingShutdownSource struct {
+	snapshot persistence.Snapshot
+	updates  chan struct{}
+	calls    int
+	mu       sync.Mutex
+	entered  chan struct{}
+	canceled chan struct{}
+	release  chan struct{}
+	exited   chan struct{}
+}
+
+func newBlockingShutdownSource(snapshot persistence.Snapshot) *blockingShutdownSource {
+	return &blockingShutdownSource{
+		snapshot: snapshot,
+		updates:  make(chan struct{}, 1),
+		entered:  make(chan struct{}),
+		canceled: make(chan struct{}),
+		release:  make(chan struct{}),
+		exited:   make(chan struct{}),
+	}
+}
+
+func (s *blockingShutdownSource) State(ctx context.Context) (persistence.Snapshot, error) {
+	s.mu.Lock()
+	s.calls++
+	call := s.calls
+	s.mu.Unlock()
+	if call == 1 {
+		return s.snapshot, nil
+	}
+	close(s.entered)
+	<-ctx.Done()
+	close(s.canceled)
+	<-s.release
+	close(s.exited)
+	return persistence.Snapshot{}, ctx.Err()
+}
+
+func (s *blockingShutdownSource) Updates() <-chan struct{} { return s.updates }
+
+func (s *blockingShutdownSource) callCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls
+}
+
 func newFakeStateSource(snapshot persistence.Snapshot) *fakeStateSource {
 	return &fakeStateSource{snapshot: snapshot, updates: make(chan struct{}, 1)}
 }
@@ -104,6 +150,7 @@ func TestWebSocket_ImmediatelyReceivesCurrentSnapshot(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(at))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 
@@ -118,6 +165,7 @@ func TestWebSocket_TickBroadcastUsesRESTSnapshotSchema(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(at))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 	conn := dialRealtime(t, server.URL)
@@ -138,6 +186,7 @@ func TestWebSocket_DoesNotExposeHiddenFields(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(at))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 	conn := dialRealtime(t, server.URL)
@@ -159,6 +208,7 @@ func TestHub_RemovesDisconnectedClient(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 	conn := dialRealtime(t, server.URL)
@@ -174,6 +224,7 @@ func TestWebSocket_ReconnectGetsLatestSnapshot(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(at))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 
@@ -195,6 +246,7 @@ func TestHub_SlowClientDoesNotBlockFastClientOrManager(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 
 	slowCtx, cancelSlow := context.WithCancel(context.Background())
 	fastCtx, cancelFast := context.WithCancel(context.Background())
@@ -232,6 +284,7 @@ func TestHub_CoalescesPendingSnapshots(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	ctx, cancel := context.WithCancel(context.Background())
 	candidate := &client{queue: make(chan queuedSnapshot, 1), cancel: cancel}
 	require.NoError(t, hub.register(ctx, candidate))
@@ -248,6 +301,7 @@ func TestWebSocket_ConcurrentConnectBroadcastDisconnect(t *testing.T) {
 	source := newFakeStateSource(realtimeSnapshot(testutil.BaseTime))
 	hub, err := NewHub(source, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(hub.Close)
 	server := httptest.NewServer(hub)
 	t.Cleanup(server.Close)
 
@@ -290,4 +344,95 @@ func TestWebSocket_ConcurrentConnectBroadcastDisconnect(t *testing.T) {
 		require.NoError(t, err)
 	}
 	require.Eventually(t, func() bool { return hub.clientCount() == 0 }, time.Second, 10*time.Millisecond)
+}
+
+func TestHub_LastDisconnectReconnectKeepsSingleBridgeAndDoesNotLoseUpdate(t *testing.T) {
+	at := testutil.BaseTime
+	source := newFakeStateSource(realtimeSnapshot(at))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	t.Cleanup(hub.Close)
+
+	firstCtx, cancelFirst := context.WithCancel(context.Background())
+	first := &client{queue: make(chan queuedSnapshot, 1), cancel: cancelFirst}
+	require.NoError(t, hub.register(firstCtx, first))
+	<-first.queue
+	hub.unregister(first)
+
+	hub.mu.Lock()
+	bridgeStayedAlive := hub.bridgeCancel != nil
+	hub.mu.Unlock()
+	require.True(t, bridgeStayedAlive, "the sole update consumer must survive a zero-client handoff")
+
+	secondCtx, cancelSecond := context.WithCancel(context.Background())
+	second := &client{queue: make(chan queuedSnapshot, 1), cancel: cancelSecond}
+	require.NoError(t, hub.register(secondCtx, second))
+	t.Cleanup(func() { hub.unregister(second) })
+	<-second.queue
+
+	next := realtimeSnapshot(at.Add(time.Second))
+	next.Simulation.Lab.EnergyBase = 42
+	source.replace(next)
+	select {
+	case got := <-second.queue:
+		require.Equal(t, at.Add(time.Second), got.view.GeneratedAt)
+		require.Equal(t, 42, got.view.Lab.CurrentEnergy)
+	case <-time.After(time.Second):
+		t.Fatal("single manager update edge was lost during client handoff")
+	}
+}
+
+func TestHub_CloseWaitsForBridgeExit(t *testing.T) {
+	source := newBlockingShutdownSource(realtimeSnapshot(testutil.BaseTime))
+	hub, err := NewHub(source, config.Default())
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	candidate := &client{queue: make(chan queuedSnapshot, 1), cancel: cancel}
+	require.NoError(t, hub.register(ctx, candidate))
+	<-candidate.queue
+
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(source.release) }) }
+	t.Cleanup(release)
+	source.updates <- struct{}{}
+	select {
+	case <-source.entered:
+	case <-time.After(time.Second):
+		t.Fatal("bridge did not enter the controlled State call")
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		hub.Close()
+		close(closed)
+	}()
+	select {
+	case <-source.canceled:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not cancel the bridge context")
+	}
+	select {
+	case <-closed:
+		t.Fatal("Close returned before the bridge exited")
+	default:
+	}
+	release()
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("Close did not return after the bridge exited")
+	}
+	select {
+	case <-source.exited:
+	default:
+		t.Fatal("Close returned before State and bridge completed")
+	}
+
+	calls := source.callCount()
+	source.updates <- struct{}{}
+	select {
+	case <-time.After(50 * time.Millisecond):
+	}
+	require.Equal(t, calls, source.callCount(), "closed hub must not call State again")
+	require.NotPanics(t, hub.Close)
 }

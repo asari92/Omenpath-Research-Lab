@@ -119,6 +119,7 @@ func TestWebSocket_SuccessfulActionBroadcastsImmediately(t *testing.T) {
 	manager := newRealtimeManager()
 	router, err := NewRouter(manager, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(router.Close)
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
 	conn := connectRouterWebSocket(t, server.URL)
@@ -141,6 +142,7 @@ func TestWebSocket_RejectedDomainActionBroadcastsPersistedEvent(t *testing.T) {
 	manager.reject = domain.ErrPortalCriticalRisk
 	router, err := NewRouter(manager, config.Default())
 	require.NoError(t, err)
+	t.Cleanup(router.Close)
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
 	conn := connectRouterWebSocket(t, server.URL)
