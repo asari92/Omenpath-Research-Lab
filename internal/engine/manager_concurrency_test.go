@@ -1,0 +1,250 @@
+package engine
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"omenpath-lab/internal/config"
+	"omenpath-lab/internal/domain"
+	"omenpath-lab/testutil"
+)
+
+func TestManagerRun_ConsumesInjectedTicksUntilContextCancel(t *testing.T) {
+	base := testutil.BaseTime
+	manager, _ := newTestManager(t, managerSnapshot(base), base)
+	ticks := make(chan time.Time, 2)
+	ticks <- base.Add(time.Second)
+	ticks <- base.Add(2 * time.Second)
+	close(ticks)
+
+	err := manager.Run(context.Background(), ticks)
+
+	require.NoError(t, err)
+	require.Equal(t, base.Add(2*time.Second), *manager.snapshot.Simulation.LastTickAt)
+}
+
+func TestManagerTick_SignalsEvenWithoutMeaningfulDatabaseWrite(t *testing.T) {
+	base := testutil.BaseTime
+	clk := testutil.NewFakeClock(base)
+	repo := newFakeRepository(managerSnapshot(base))
+	manager, err := NewLabManager(context.Background(), config.Default(), clk, &lockedMinimumRandom{}, repo)
+	require.NoError(t, err)
+	clk.Advance(time.Second)
+
+	require.NoError(t, manager.Tick(context.Background()))
+
+	require.Empty(t, repo.commits)
+	select {
+	case <-manager.Updates():
+	default:
+		t.Fatal("expected one update signal")
+	}
+}
+
+func TestManagerAction_SignalsAfterSuccessAndRejection(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+	manager, _ := newTestManager(t, snapshot, base)
+
+	require.NoError(t, manager.ClosePortal(context.Background(), 1, true))
+	requireUpdate(t, manager.Updates())
+	require.ErrorIs(t, manager.ClosePortal(context.Background(), 1, true), domain.ErrPortalNotOpen)
+	requireUpdate(t, manager.Updates())
+}
+
+func TestManagerUpdates_CoalesceWithoutBlocking(t *testing.T) {
+	base := testutil.BaseTime
+	clk := testutil.NewFakeClock(base)
+	repo := newFakeRepository(managerSnapshot(base))
+	manager, err := NewLabManager(context.Background(), config.Default(), clk, &lockedMinimumRandom{}, repo)
+	require.NoError(t, err)
+
+	for range 100 {
+		clk.Advance(time.Second)
+		require.NoError(t, manager.Tick(context.Background()))
+	}
+
+	require.Len(t, manager.updates, 1)
+}
+
+func TestManagerConcurrentCommands_OnlyOneTransitionWins(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+	manager, repo := newTestManager(t, snapshot, base)
+	errorsOut := runConcurrently(2, func() error {
+		return manager.ClosePortal(context.Background(), 1, true)
+	})
+
+	require.Len(t, errorsOut, 2)
+	successes := 0
+	rejections := 0
+	for _, err := range errorsOut {
+		switch {
+		case err == nil:
+			successes++
+		case errors.Is(err, domain.ErrPortalNotOpen):
+			rejections++
+		default:
+			t.Fatalf("unexpected command error: %v", err)
+		}
+	}
+	require.Equal(t, 1, successes)
+	require.Equal(t, 1, rejections)
+	require.Equal(t, 1, countDraftType(repo.commits, domain.EventPortalClosed))
+	require.Equal(t, 1, countDraftType(repo.commits, domain.EventActionRejected))
+}
+
+type observingClock struct {
+	now    time.Time
+	called chan struct{}
+	once   sync.Once
+}
+
+func (c *observingClock) Now() time.Time {
+	c.once.Do(func() { close(c.called) })
+	return c.now
+}
+
+func TestManagerConcurrentTicks_DoNotDuplicateEvents(t *testing.T) {
+	base := testutil.BaseTime
+	portal := managerPortal(1, 1, base)
+	portal.ScheduledCloseAt = base.Add(time.Second)
+	snapshot := withManagerPortal(managerSnapshot(base), portal)
+	repo := newFakeRepository(snapshot)
+	clk := &observingClock{now: base.Add(2 * time.Second), called: make(chan struct{})}
+	manager, err := NewLabManager(context.Background(), config.Default(), clk, &lockedMinimumRandom{}, repo)
+	require.NoError(t, err)
+
+	manager.mu.Lock()
+	done := make(chan error, 1)
+	go func() { done <- manager.Tick(context.Background()) }()
+	clockReadOutsideLock := false
+	select {
+	case <-clk.called:
+		clockReadOutsideLock = true
+	case <-time.After(50 * time.Millisecond):
+	}
+	manager.mu.Unlock()
+	require.NoError(t, <-done)
+	require.False(t, clockReadOutsideLock, "tick time must be captured under the manager lock")
+
+	errorsOut := runConcurrently(16, func() error { return manager.Tick(context.Background()) })
+	for _, err := range errorsOut {
+		require.NoError(t, err)
+	}
+	require.Equal(t, 1, countDraftType(repo.commits, domain.EventPortalClosed))
+}
+
+func TestManagerConcurrentOpenings_KeepUniqueIDsAndSlots(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := managerSnapshot(base)
+	makeWaitingObserver(&snapshot.Simulation.Observers[0], 1, base.Add(-10*time.Second), base)
+	makeWaitingObserver(&snapshot.Simulation.Observers[1], 2, base.Add(-5*time.Second), base)
+	manager, _ := newTestManager(t, snapshot, base)
+
+	var wg sync.WaitGroup
+	errs := make([]error, 2)
+	for i, planeID := range []int64{1, 2} {
+		wg.Add(1)
+		go func(index int, id int64) {
+			defer wg.Done()
+			errs[index] = manager.OpenExtraction(context.Background(), id)
+		}(i, planeID)
+	}
+	wg.Wait()
+	require.NoError(t, errs[0])
+	require.NoError(t, errs[1])
+
+	state := manager.snapshot.Simulation
+	require.Len(t, state.Portals, 2)
+	require.ElementsMatch(t, []int64{1, 2}, []int64{state.Portals[0].ID, state.Portals[1].ID})
+	require.ElementsMatch(t, []int{1, 2}, []int{state.Portals[0].SlotIndex, state.Portals[1].SlotIndex})
+	require.Equal(t, int64(3), state.NextPortalID)
+}
+
+func TestManagerConcurrentReadsAndWrites_ReturnConsistentSnapshots(t *testing.T) {
+	base := testutil.BaseTime
+	snapshot := withManagerPortal(managerSnapshot(base), managerPortal(1, 1, base))
+	manager, _ := newTestManager(t, snapshot, base)
+
+	start := make(chan struct{})
+	results := make(chan error, 65)
+	for range 32 {
+		go func() {
+			<-start
+			state, err := manager.State(context.Background())
+			if err == nil && (len(state.Simulation.Planes) != 85 || len(state.Simulation.Observers) != 10 || len(state.Simulation.Portals) != 1) {
+				err = errors.New("torn snapshot")
+			}
+			results <- err
+		}()
+		go func() {
+			<-start
+			portal, _, err := manager.Portal(context.Background(), 1)
+			if err == nil && portal.Status != domain.PortalStatusOpen && portal.Status != domain.PortalStatusClosed {
+				err = errors.New("invalid portal status")
+			}
+			results <- err
+		}()
+	}
+	go func() {
+		<-start
+		results <- manager.ClosePortal(context.Background(), 1, true)
+	}()
+	close(start)
+	for range 65 {
+		require.NoError(t, <-results)
+	}
+}
+
+func requireUpdate(t *testing.T, updates <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-updates:
+	default:
+		t.Fatal("expected update signal")
+	}
+}
+
+func runConcurrently(count int, operation func() error) []error {
+	start := make(chan struct{})
+	results := make(chan error, count)
+	for range count {
+		go func() {
+			<-start
+			results <- operation()
+		}()
+	}
+	close(start)
+	errorsOut := make([]error, count)
+	for i := range errorsOut {
+		errorsOut[i] = <-results
+	}
+	return errorsOut
+}
+
+func countDraftType(commits []repositoryCommit, eventType domain.EventType) int {
+	count := 0
+	for _, commit := range commits {
+		for _, draft := range commit.drafts {
+			if draft.EventType == eventType {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func makeWaitingObserver(observer *domain.Observer, planeID int64, waitingSince, now time.Time) {
+	observer.Status = domain.ObserverWaitingReturn
+	observer.CurrentPlaneID = &planeID
+	observer.ActivePortalID = nil
+	observer.PhaseStartedAt = &waitingSince
+	observer.PhaseEndsAt = nil
+	observer.UpdatedAt = now
+}
