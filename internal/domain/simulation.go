@@ -408,7 +408,9 @@ func validSimulationPortal(portal *Portal, now time.Time, cfg config.Config) boo
 			portal.InstabilityCollapseAt.Before(
 				portal.OpenedAt.Add(cfg.InstabilityMinLifetime),
 			) ||
-			!portal.InstabilityCollapseAt.Before(portal.ScheduledCloseAt) {
+			portal.InstabilityCollapseAt.After(
+				portal.ScheduledCloseAt.Add(-cfg.InstabilityCloseMargin),
+			) {
 			return false
 		}
 	default:
