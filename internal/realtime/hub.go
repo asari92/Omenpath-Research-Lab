@@ -45,6 +45,7 @@ type Hub struct {
 	mu           sync.Mutex
 	clients      map[*client]struct{}
 	bridgeCancel context.CancelFunc
+	bridgeDone   chan struct{}
 	closed       bool
 
 	snapshotMu sync.Mutex
@@ -105,8 +106,10 @@ func (h *Hub) register(ctx context.Context, candidate *client) error {
 	h.clients[candidate] = struct{}{}
 	if h.bridgeCancel == nil {
 		bridgeCtx, cancel := context.WithCancel(context.Background())
+		done := make(chan struct{})
 		h.bridgeCancel = cancel
-		go h.runBridge(bridgeCtx)
+		h.bridgeDone = done
+		go h.runBridge(bridgeCtx, done)
 	}
 	h.mu.Unlock()
 
@@ -127,18 +130,11 @@ func (h *Hub) unregister(candidate *client) {
 	}
 	delete(h.clients, candidate)
 	candidate.cancel()
-	var stop context.CancelFunc
-	if len(h.clients) == 0 {
-		stop = h.bridgeCancel
-		h.bridgeCancel = nil
-	}
 	h.mu.Unlock()
-	if stop != nil {
-		stop()
-	}
 }
 
-func (h *Hub) runBridge(ctx context.Context) {
+func (h *Hub) runBridge(ctx context.Context, done chan<- struct{}) {
+	defer close(done)
 	for {
 		select {
 		case <-ctx.Done():
@@ -206,23 +202,26 @@ func (h *Hub) clientCount() int {
 // call more than once.
 func (h *Hub) Close() {
 	h.mu.Lock()
-	if h.closed {
-		h.mu.Unlock()
-		return
+	var stop context.CancelFunc
+	var clients []*client
+	if !h.closed {
+		h.closed = true
+		stop = h.bridgeCancel
+		clients = make([]*client, 0, len(h.clients))
+		for candidate := range h.clients {
+			clients = append(clients, candidate)
+			delete(h.clients, candidate)
+		}
 	}
-	h.closed = true
-	stop := h.bridgeCancel
-	h.bridgeCancel = nil
-	clients := make([]*client, 0, len(h.clients))
-	for candidate := range h.clients {
-		clients = append(clients, candidate)
-		delete(h.clients, candidate)
-	}
+	done := h.bridgeDone
 	h.mu.Unlock()
 	if stop != nil {
 		stop()
 	}
 	for _, candidate := range clients {
 		candidate.cancel()
+	}
+	if done != nil {
+		<-done
 	}
 }
