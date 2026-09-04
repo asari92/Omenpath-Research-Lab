@@ -564,23 +564,27 @@ func TestStartLive_RejectionPersistsRecreatedTerminalTargetEventExactlyOnce(t *t
 func TestStartTutorial_LiveRejectionResolvesDueLifecycleAtomically(t *testing.T) {
 	base := testutil.BaseTime
 	snapshot := managerSnapshot(base)
-	due := base.Add(time.Second)
-	snapshot.Simulation.NaturalSpawn.DueAt = &due
+	portal := managerPortal(1, 1, base)
+	portal.ObserverFlow = domain.PortalFlowOutbound
+	portal.ScheduledCloseAt = base.Add(time.Second)
+	snapshot = withManagerPortal(snapshot, portal)
+	require.NoError(t, snapshot.Simulation.Observers[0].StartOutbound(base, portal.ID, &lockedMinimumRandom{}, config.Default()))
 	repo := newFakeRepository(snapshot)
-	rnd := &checkpointSequenceRandom{
-		ints:   []int{0, 10, 0, 1},
-		floats: []float64{10, .1, 1},
-	}
-	manager, err := NewLabManager(context.Background(), config.Default(), testutil.NewFakeClock(base.Add(2*time.Second)), rnd, repo)
+	manager, err := NewLabManager(context.Background(), config.Default(), testutil.NewFakeClock(base.Add(2*time.Second)), &lockedMinimumRandom{}, repo)
 	require.NoError(t, err)
 
 	err = manager.StartTutorial(context.Background())
 	require.ErrorIs(t, err, ErrTutorialNotReady)
 	require.Equal(t, domain.ModeLive, manager.snapshot.App.Mode)
 	require.Len(t, manager.snapshot.Simulation.Portals, 1)
-	require.Equal(t, []domain.EventType{domain.EventPortalOpened, domain.EventActionRejected}, eventTypes(repo.events))
-	require.Equal(t, 4, rnd.intAt)
-	require.Equal(t, 3, rnd.floatAt)
+	require.Equal(t, domain.PortalStatusClosed, manager.snapshot.Simulation.Portals[0].Status)
+	require.Equal(t, domain.ObserverLost, manager.snapshot.Simulation.Observers[0].Status)
+	require.Nil(t, manager.snapshot.Simulation.Observers[0].ActivePortalID)
+	require.Equal(t, []domain.EventType{
+		domain.EventPortalClosed,
+		domain.EventObserverLost,
+		domain.EventActionRejected,
+	}, eventTypes(repo.events))
 }
 
 func TestStartTutorial_LiveRejectionFailureRollsBackCatchupAndRandom(t *testing.T) {

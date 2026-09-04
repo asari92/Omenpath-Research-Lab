@@ -105,19 +105,18 @@ func runServices(
 	go func() { serverDone <- server.ListenAndServe() }()
 	go func() { managerDone <- runManager(ctx) }()
 
-	var primary error
+	var serverErr error
+	var managerErr error
 	serverFinished := false
 	managerFinished := false
 	select {
 	case <-parent.Done():
 	case err := <-serverDone:
 		serverFinished = true
-		if !errors.Is(err, http.ErrServerClosed) {
-			primary = err
-		}
+		serverErr = err
 	case err := <-managerDone:
 		managerFinished = true
-		primary = err
+		managerErr = err
 	}
 
 	cancel()
@@ -128,16 +127,24 @@ func runServices(
 		shutdownErr = errors.Join(shutdownErr, server.Close())
 	}
 	if !serverFinished {
-		if err := <-serverDone; primary == nil && !errors.Is(err, http.ErrServerClosed) {
-			primary = err
-		}
+		serverErr = <-serverDone
 	}
 	if !managerFinished {
-		if err := <-managerDone; primary == nil {
-			primary = err
-		}
+		managerErr = <-managerDone
 	}
 	closeRouter()
 	storeErr := closeStore()
-	return errors.Join(primary, shutdownErr, storeErr)
+	return errors.Join(
+		unexpectedServiceError(serverErr),
+		unexpectedServiceError(managerErr),
+		shutdownErr,
+		storeErr,
+	)
+}
+
+func unexpectedServiceError(err error) error {
+	if err == nil || errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil
+	}
+	return err
 }

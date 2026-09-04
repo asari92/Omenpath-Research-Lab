@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"omenpath-lab/internal/domain"
@@ -84,15 +85,26 @@ func (m *LabManager) StartLive(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	resolvedBeforeTutorial := cloneSnapshot(working)
 	if err := m.advanceTutorialAfterTick(&working, now); err != nil {
 		return err
+	}
+	lifecycleDrafts := cloneDrafts(tick.Events)
+	if !reflect.DeepEqual(resolvedBeforeTutorial.Simulation, working.Simulation) {
+		tutorialDrafts, eventErr := domain.EventsForStateTransition(
+			resolvedBeforeTutorial.Simulation, working.Simulation, now, now, m.cfg,
+		)
+		if eventErr != nil {
+			return eventErr
+		}
+		lifecycleDrafts = append(lifecycleDrafts, tutorialDrafts...)
 	}
 	if working.App.Mode != domain.ModeTutorial || working.App.TutorialStep != 9 {
 		rejected, eventErr := domain.NewActionRejectedEvent(now, "START_LIVE", nil, nil, nil, ErrTutorialNotReady)
 		if eventErr != nil {
 			return eventErr
 		}
-		drafts := append(cloneDrafts(tick.Events), rejected)
+		drafts := append(cloneDrafts(lifecycleDrafts), rejected)
 		if _, err := m.repo.Commit(ctx, cloneSnapshot(working), drafts); err != nil {
 			return fmt.Errorf("commit START_LIVE rejection: %w", err)
 		}
@@ -162,7 +174,7 @@ func (m *LabManager) StartLive(ctx context.Context) (err error) {
 	}
 	working.Simulation.NaturalSpawn = spawn
 	working.App = domain.AppState{Mode: domain.ModeLive, TutorialStep: 9}
-	drafts := append(cloneDrafts(tick.Events), closeDrafts...)
+	drafts := append(cloneDrafts(lifecycleDrafts), closeDrafts...)
 	if _, err := m.repo.Commit(ctx, cloneSnapshot(working), drafts); err != nil {
 		return fmt.Errorf("commit START_LIVE: %w", err)
 	}
@@ -172,15 +184,30 @@ func (m *LabManager) StartLive(ctx context.Context) (err error) {
 	return nil
 }
 
-func (m *LabManager) commitTutorialRejectionLocked(ctx context.Context, action string, cause error) error {
+func (m *LabManager) commitTutorialRejectionLocked(ctx context.Context, action string, cause error) (err error) {
+	randomTx, err := beginRandomTransaction(m.random)
+	if err != nil {
+		return fmt.Errorf("checkpoint random state: %w", err)
+	}
+	defer func() { err = randomTx.finish(err) }()
+
 	now := m.clock.Now().UTC()
+	working := cloneSnapshot(m.snapshot)
+	prepareTutorialSpawn(&working)
+	tick, err := working.Simulation.ResolveTick(now, m.random, m.cfg)
+	if err != nil {
+		return err
+	}
 	rejected, err := domain.NewActionRejectedEvent(now, action, nil, nil, nil, cause)
 	if err != nil {
 		return err
 	}
-	if _, err := m.repo.Commit(ctx, cloneSnapshot(m.snapshot), []domain.EventDraft{rejected}); err != nil {
+	drafts := append(cloneDrafts(tick.Events), rejected)
+	if _, err := m.repo.Commit(ctx, cloneSnapshot(working), drafts); err != nil {
 		return fmt.Errorf("commit %s rejection: %w", action, err)
 	}
+	m.snapshot = cloneSnapshot(working)
+	randomTx.commit()
 	m.signalLocked()
 	return cause
 }
