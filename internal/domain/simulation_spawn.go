@@ -50,9 +50,42 @@ func resolveNaturalSpawnPrepared(
 	if !naturalSpawnDue(state.NaturalSpawn, now) {
 		return NaturalSpawnResult{}, nil
 	}
+	if rnd == nil {
+		return NaturalSpawnResult{}, ErrSimulationInvariant
+	}
 
-	// Checkpoint D adds the due/free spawn branch.
-	return NaturalSpawnResult{}, nil
+	slot, ok := FirstFreeSlot(state.Portals, cfg.MaxActivePortals)
+	if !ok {
+		return NaturalSpawnResult{}, ErrSimulationInvariant
+	}
+	planeIndex := rnd.IntInclusive(0, len(state.Planes)-1)
+	portalID := state.NextPortalID
+	portal := NewNaturalPortal(
+		portalID,
+		state.Planes[planeIndex].ID,
+		slot,
+		now,
+		cfg,
+		rnd,
+	)
+	state.Portals = append(state.Portals, portal)
+	state.NextPortalID++
+
+	if openCount+1 >= cfg.MaxActivePortals {
+		state.NaturalSpawn = NaturalSpawnState{Paused: true}
+	} else {
+		next, err := NewNaturalSpawnState(now, cfg, rnd)
+		if err != nil {
+			return NaturalSpawnResult{}, err
+		}
+		state.NaturalSpawn = next
+	}
+
+	return NaturalSpawnResult{
+		Changed:  true,
+		Spawned:  true,
+		PortalID: portalID,
+	}, nil
 }
 
 func countOpenPortals(portals []Portal) int {

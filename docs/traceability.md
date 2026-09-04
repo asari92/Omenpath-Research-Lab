@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|---|
 | PLANE-001 | Plane permanent, independent of Portal | INV | — | — | PLANNED | |
 | PLANE-002 | Plane 0..N Portals | INV | — | — | PLANNED | |
-| PLANE-003 | Multiple OPEN Portals to same Plane | BEH | — | — | PLANNED | |
+| PLANE-003 | Multiple OPEN Portals to same Plane | BEH | `TestResolveNaturalSpawn_AllowsRepeatedDestination` | `ResolveNaturalSpawn` | GREEN | Natural generation permits multiple OPEN Portal instances with the same destination Plane |
 | PLANE-004 | Seed 85, default UNEXPLORED | BEH | `TestSimulationState_RequiresExactlyEightyFivePlanes`, `TestSimulationState_RejectsDuplicatePlaneIDs` | `validateSimulationState` | PARTIAL | active aggregate enforces 85 unique Plane IDs; canonical seed/default data remains Stage 10 |
 | PLANE-005 | SEND does not explore | INV | `TestObserver_StartOutboundDoesNotExplorePlane`, `TestSendObserver_DoesNotExplorePlane`, `TestSendObserver_AllowsAlreadyExploredPlane`, `TestObserverCommands_DoNotChangePlaneExplorationOnTransitStart` | `Observer.StartOutbound`, `SendObserver`, `RecallObserver` | GREEN | transit-start commands leave both unexplored and already-explored Plane state unchanged |
 | PLANE-006 | Arrival does not explore | INV | `TestObserver_OutboundArrivalDoesNotExplorePlane` | `ResolveObserverLifecycle` | GREEN | successful OUTBOUND leaves Plane exploration unchanged |
@@ -26,8 +26,8 @@
 
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
-| PORTAL-001 | Unique instance per opening | INV | — | — | PLANNED | |
-| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec` | `NewNaturalPortal` | PARTIAL | формат имени из seq покрыт; сквозная нумерация экземпляров — оркестрация Stage 8/11 |
+| PORTAL-001 | Unique instance per opening | INV | `TestResolveNaturalSpawn_UsesNextPortalID`, `TestResolveNaturalSpawn_IncrementsSequenceExactlyOnce`, `TestResolveNaturalSpawn_AppendsWithoutRemovingTerminalHistory` | `ResolveNaturalSpawn`, `validateSimulationState` | PARTIAL | Natural generation creates a fresh unique instance and preserves history; Stage 11 must serialize all opening commands |
+| PORTAL-002 | Sequential `Omenpath #XXXX` | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec`, `TestResolveNaturalSpawn_FormatsSequentialPortalName`, `TestResolveNaturalSpawn_IncrementsSequenceExactlyOnce` | `NewNaturalPortal`, `ResolveNaturalSpawn` | PARTIAL | Natural aggregate sequence is proven; Stage 11 must serialize all opening commands |
 | PORTAL-003 | NATURAL/EXTRACTION kinds | BEH | `TestNewNaturalPortal_GeneratesUnstableWithinSpec`, `TestNewExtractionPortal_SetsExtractionKind` | `PortalKind` enum, `NewNaturalPortal`, `NewExtractionPortal` | GREEN | both kinds have concrete pure factories |
 | PORTAL-004 | OPEN/CLOSED/COLLAPSED statuses | INV | `TestPortal_ScheduledRemainingIsZeroWhenTerminal`, `TestPortal_EnergyFreezesAtManualClose`, `TestPortal_EnergyFreezesAtCollapse`, `TestPortal_CreaturesFreezeAtCollapse` | `PortalStatus` enum + terminal derived state freeze | GREEN | все три статуса и разные outcomes (CLOSED vs COLLAPSED, разные termination reasons) покрыты прямо; повышено с PLANNED в corrective-пасе |
 | PORTAL-005 | TTL expiry → CLOSED/NATURAL_CLOSE | BEH | `TestPortal_NaturalCloseWhenTTLExpires`, `TestPortal_LateResolutionPreservesNaturalCloseTime` | `Portal.ResolveLifecycle` | GREEN | semantic ClosedAt; late resolution сохраняет время события |
@@ -45,7 +45,7 @@
 | SLOT-003 | First free slot | BEH | `TestFirstFreeSlot_FillsGap` | `FirstFreeSlot` | GREEN | |
 | SLOT-004 | Portal keeps slot for lifecycle | INV | `TestFirstFreeSlot_DoesNotMutateInput` | pure helper | PARTIAL | helper не мутирует вход / не пересортирует; инвариант целиком (хранение slot_index у живого портала) — LabManager Stage 11 |
 | SLOT-005 | Terminal releases slot | BEH | `TestFirstFreeSlot_TerminalPortalsDoNotOccupy` | `FirstFreeSlot` | GREEN | |
-| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen`, `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules` | `FirstFreeSlot`, `ResolveNaturalSpawn` | PARTIAL | generator pause/resume scheduling is proven; due Portal creation after resumed delay arrives in checkpoint D |
+| SLOT-006 | 7/7 blocks natural spawn | BEH | `TestFirstFreeSlot_ReturnsNoneWhenAllSevenOpen`, `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules`, `TestResolveNaturalSpawn_SeventhPortalPausesWithoutNextDelayDraw`, `TestResolveNaturalSpawn_SixthPortalDrawsNextDelay` | `FirstFreeSlot`, `ResolveNaturalSpawn` | GREEN | backend Natural Generator re-checks capacity, pauses at 7/7, and starts a fresh delay after a Slot becomes free |
 | SLOT-007 | Extraction uses regular slot | BEH | `TestOpenExtractionPortal_UsesFirstFreeRegularSlot`, `TestOpenExtractionPortal_ReusesTerminalPortalSlot`, `TestOpenExtractionPortal_RejectsAllSevenSlotsOccupied` | `OpenExtractionPortal`, `FirstFreeSlot` | GREEN | same first-free pool and terminal release rules as Natural portals |
 
 ## ENERGY
@@ -185,11 +185,11 @@
 | ID | Rule | Type | Test | Implementation | Status | Notes |
 |---|---|---|---|---|---|---|
 | SPAWN-001 | Inclusive random delay 0..20 sec | BAL | `TestNewNaturalSpawnState_AcceptsZeroDelay`, `TestNewNaturalSpawnState_AcceptsMaximumDelay`, `TestNewNaturalSpawnState_DrawsExactlyOnce` | `NewNaturalSpawnState` | GREEN | inclusive whole-second scheduler draw from config |
-| SPAWN-002 | Fresh delay after successful spawn | BEH | — | — | PLANNED | Stage 8 |
-| SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FullCapacityConsumesNoRandom`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay` | `ResolveNaturalSpawn`, `resolveNaturalSpawnPrepared` | PARTIAL | pause and fresh schedule are complete; post-delay creation is checkpoint D |
-| SPAWN-004 | Random destination among 85 Planes | BEH | — | — | PLANNED | Stage 8 |
-| SPAWN-005 | Repeated Plane destinations allowed | BEH | — | — | PLANNED | Stage 8 |
-| SPAWN-006 | At most one spawn per tick | BEH | `TestResolveNaturalSpawn_AtSchedulingOriginIsNoOpForZeroDelay`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay` | `naturalSpawnDue`, `ResolveNaturalSpawn` | PARTIAL | zero-delay same-tick suppression proven; successful-spawn one-per-tick behavior is checkpoint D |
+| SPAWN-002 | Fresh delay after successful spawn | BEH | `TestResolveNaturalSpawn_SchedulesNextDelayAfterSuccess`, `TestResolveNaturalSpawn_NextScheduleUsesSpawnTick`, `TestResolveNaturalSpawn_SeventhPortalPausesWithoutNextDelayDraw` | `ResolveNaturalSpawn`, `NewNaturalSpawnState` | GREEN | successful non-capacity spawn draws one fresh delay from the spawn tick; reaching 7/7 pauses instead |
+| SPAWN-003 | 7/7 pause; free Slot restarts delay | BEH | `TestResolveNaturalSpawn_FullCapacityPausesImmediately`, `TestResolveNaturalSpawn_FullCapacityConsumesNoRandom`, `TestResolveNaturalSpawn_FirstTickAfterFreeOnlySchedules`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay`, `TestResolveNaturalSpawn_SeventhPortalPausesWithoutNextDelayDraw` | `ResolveNaturalSpawn`, `resolveNaturalSpawnPrepared` | GREEN | full capacity discards the timer; first later free-capacity tick draws a fresh delay without spawning |
+| SPAWN-004 | Random destination among 85 Planes | BEH | `TestResolveNaturalSpawn_SelectsFirstPlaneIndex`, `TestResolveNaturalSpawn_SelectsLastPlaneIndex`, `TestResolveNaturalSpawn_DestinationDrawPrecedesFactoryDraws` | `ResolveNaturalSpawn` | GREEN | destination index is drawn uniformly through `Random.IntInclusive(0, 84)` before factory draws |
+| SPAWN-005 | Repeated Plane destinations allowed | BEH | `TestResolveNaturalSpawn_AllowsRepeatedDestination` | `ResolveNaturalSpawn` | GREEN | destination selection does not exclude Planes already targeted by OPEN Portals |
+| SPAWN-006 | At most one spawn per tick | BEH | `TestResolveNaturalSpawn_AtSchedulingOriginIsNoOpForZeroDelay`, `TestResolveNaturalSpawn_FirstTickAfterFreeDoesNotSpawnAtZeroDelay`, `TestResolveNaturalSpawn_LateTickSpawnsOnlyOnePortal`, `TestResolveNaturalSpawn_NextZeroDelayDoesNotSpawnTwice` | `naturalSpawnDue`, `ResolveNaturalSpawn` | GREEN | one resolver call creates at most one Portal; zero-delay schedules require a strictly later tick |
 
 ## SIMULATION
 
