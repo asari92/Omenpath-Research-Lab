@@ -276,3 +276,42 @@ func TestSimulationTick_ResultIsDerivedFromCommittedState(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, state.Portals[index].ID, result.NeedsAttentionPortalID)
 }
+
+func TestSimulationTick_RejectsInvalidRequiredConfig(t *testing.T) {
+	tests := map[string]func(*config.Config){
+		"natural ttl":       func(cfg *config.Config) { cfg.NaturalTTLMin = 0 },
+		"portal energy":     func(cfg *config.Config) { cfg.PortalEnergyMin = cfg.PortalEnergyMax + 1 },
+		"portal decay":      func(cfg *config.Config) { cfg.PortalDecayMin = 0 },
+		"stability":         func(cfg *config.Config) { cfg.UnstableProbability = 2 },
+		"creature transit":  func(cfg *config.Config) { cfg.CreatureTransit = 0 },
+		"observer transit":  func(cfg *config.Config) { cfg.ObserverTransitMin = 0 },
+		"research":          func(cfg *config.Config) { cfg.ResearchDuration = 0 },
+		"extraction":        func(cfg *config.Config) { cfg.ExtractionSync = 0 },
+		"emergency":         func(cfg *config.Config) { cfg.EmergencyDuration = 0 },
+		"attention horizon": func(cfg *config.Config) { cfg.RiskSafeHorizon = 0 },
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := config.Default()
+			mutate(&cfg)
+			state := simulationState(testutil.BaseTime)
+			before := state
+			_, err := state.ResolveTick(testutil.BaseTime.Add(time.Second), nil, cfg)
+			require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+			require.Equal(t, before, state)
+		})
+	}
+}
+
+func TestSimulationTick_InvalidConfigConsumesNoRandom(t *testing.T) {
+	cfg := config.Default()
+	cfg.RiskSafeHorizon = 0
+	state := dueNaturalState(testutil.BaseTime)
+	before := state
+	rnd := &countingRandom{}
+	_, err := state.ResolveTick(testutil.BaseTime.Add(time.Second), rnd, cfg)
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+	require.Equal(t, before, state)
+	require.Zero(t, rnd.intCalls)
+	require.Zero(t, rnd.floatCalls)
+}
