@@ -213,8 +213,9 @@ Final Spec, without changing product semantics:
 
 UI rendering and WebSocket cadence remain PLANNED. `SLOT-006` can become GREEN
 for backend generator behavior; UI slot requirements retain their frontend
-boundary. Global Portal sequence remains PARTIAL until Stage 11 serializes both
-Natural and Extraction openings.
+boundary. `PLANE-004` becomes PARTIAL for validated 85-Plane cardinality but
+awaits canonical seed/bootstrap in Stage 10. Global Portal sequence remains
+PARTIAL until Stage 11 serializes both Natural and Extraction openings.
 
 ## 10. Explicit exclusions
 
