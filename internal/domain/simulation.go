@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"sort"
 	"time"
 
 	"omenpath-lab/internal/config"
@@ -68,13 +69,90 @@ func cloneSimulationState(state SimulationState) SimulationState {
 	return state
 }
 
-// ResolveTick initially exposes the approved aggregate validation boundary.
-// Ordered lifecycle behavior is added checkpoint-by-checkpoint.
-func (state *SimulationState) ResolveTick(now time.Time, _ random.Random, cfg config.Config) (SimulationTickResult, error) {
+// ResolveTick atomically advances the pure simulation aggregate in the
+// domain-defined stage order. Later checkpoints fill the observer and
+// extraction stages; the ordering boundary is established here.
+func (state *SimulationState) ResolveTick(now time.Time, rnd random.Random, cfg config.Config) (SimulationTickResult, error) {
 	if err := validateSimulationState(state, now, cfg); err != nil {
 		return SimulationTickResult{}, err
 	}
-	return SimulationTickResult{LabEnergy: state.Lab.CurrentEnergy(now, cfg)}, nil
+	if state.LastTickAt != nil && state.LastTickAt.Equal(now) {
+		return deriveSimulationTickResult(*state, now, cfg), nil
+	}
+
+	next := cloneSimulationState(*state)
+	if err := resolvePortalStage(&next, now, cfg); err != nil {
+		return SimulationTickResult{}, err
+	}
+	spawn, err := resolveNaturalSpawnPrepared(&next, now, rnd, cfg)
+	if err != nil {
+		return SimulationTickResult{}, err
+	}
+
+	tickAt := now
+	next.LastTickAt = &tickAt
+	result := deriveSimulationTickResult(next, now, cfg)
+	result.Changed = true
+	result.Spawned = spawn.Spawned
+	result.SpawnedPortalID = spawn.PortalID
+	*state = next
+	return result, nil
+}
+
+type portalLifecycleTransition struct {
+	index    int
+	portalID int64
+	closedAt time.Time
+}
+
+func resolvePortalStage(state *SimulationState, now time.Time, cfg config.Config) error {
+	transitions := make([]portalLifecycleTransition, 0, len(state.Portals))
+	for i := range state.Portals {
+		candidate := state.Portals[i]
+		changed, err := candidate.ResolveLifecycle(now)
+		if err != nil {
+			return err
+		}
+		if !changed {
+			continue
+		}
+		if candidate.ClosedAt == nil {
+			return ErrSimulationInvariant
+		}
+		transitions = append(transitions, portalLifecycleTransition{
+			index:    i,
+			portalID: candidate.ID,
+			closedAt: *candidate.ClosedAt,
+		})
+	}
+
+	sort.Slice(transitions, func(i, j int) bool {
+		if transitions[i].closedAt.Equal(transitions[j].closedAt) {
+			return transitions[i].portalID < transitions[j].portalID
+		}
+		return transitions[i].closedAt.Before(transitions[j].closedAt)
+	})
+	for _, transition := range transitions {
+		if _, err := ResolvePortalLifecycleWithLabEmergency(
+			&state.Lab,
+			&state.Portals[transition.index],
+			now,
+			cfg,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deriveSimulationTickResult(state SimulationState, now time.Time, cfg config.Config) SimulationTickResult {
+	result := SimulationTickResult{LabEnergy: state.Lab.CurrentEnergy(now, cfg)}
+	index, ok, err := NeedsAttentionPortalIndex(state.Portals, now, cfg)
+	if err == nil && ok {
+		result.HasNeedsAttention = true
+		result.NeedsAttentionPortalID = state.Portals[index].ID
+	}
+	return result
 }
 
 func validateSimulationState(state *SimulationState, now time.Time, cfg config.Config) error {
