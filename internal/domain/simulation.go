@@ -84,6 +84,9 @@ func (state *SimulationState) ResolveTick(now time.Time, rnd random.Random, cfg 
 	if err := resolvePortalStage(&next, now, cfg); err != nil {
 		return SimulationTickResult{}, err
 	}
+	if err := resolveObserverStage(&next, now, cfg); err != nil {
+		return SimulationTickResult{}, err
+	}
 	spawn, err := resolveNaturalSpawnPrepared(&next, now, rnd, cfg)
 	if err != nil {
 		return SimulationTickResult{}, err
@@ -139,6 +142,58 @@ func resolvePortalStage(state *SimulationState, now time.Time, cfg config.Config
 			now,
 			cfg,
 		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resolveObserverStage(state *SimulationState, now time.Time, cfg config.Config) error {
+	planeIndexByID := make(map[int64]int, len(state.Planes))
+	for i := range state.Planes {
+		planeIndexByID[state.Planes[i].ID] = i
+	}
+	portalIndexByID := make(map[int64]int, len(state.Portals))
+	for i := range state.Portals {
+		portalIndexByID[state.Portals[i].ID] = i
+	}
+
+	indices := make([]int, len(state.Observers))
+	for i := range indices {
+		indices[i] = i
+	}
+	sort.Slice(indices, func(i, j int) bool {
+		return state.Observers[indices[i]].ID < state.Observers[indices[j]].ID
+	})
+
+	for _, index := range indices {
+		observer := &state.Observers[index]
+		var plane *Plane
+		var portal *Portal
+
+		if observer.CurrentPlaneID != nil {
+			planeIndex, ok := planeIndexByID[*observer.CurrentPlaneID]
+			if !ok {
+				return ErrSimulationInvariant
+			}
+			plane = &state.Planes[planeIndex]
+		}
+		if observer.ActivePortalID != nil {
+			portalIndex, ok := portalIndexByID[*observer.ActivePortalID]
+			if !ok {
+				return ErrSimulationInvariant
+			}
+			portal = &state.Portals[portalIndex]
+			if plane == nil {
+				planeIndex, ok := planeIndexByID[portal.DestinationPlaneID]
+				if !ok {
+					return ErrSimulationInvariant
+				}
+				plane = &state.Planes[planeIndex]
+			}
+		}
+
+		if err := ResolveObserverLifecycle(observer, plane, portal, now, cfg); err != nil {
 			return err
 		}
 	}
