@@ -54,3 +54,83 @@ func ExtractionPlaneEligible(observers []Observer, planeID int64, now time.Time)
 	_, ok, err := LongestWaitingObserverIndex(observers, planeID)
 	return ok, err
 }
+
+// OpenExtractionPortal atomically charges Laboratory Energy and appends one
+// controlled portal in the first regular free slot.
+func OpenExtractionPortal(
+	lab *LabState,
+	portals *[]Portal,
+	plane *Plane,
+	observers []Observer,
+	seq int64,
+	now time.Time,
+	rnd random.Random,
+	cfg config.Config,
+) (int64, error) {
+	if _, err := prepareLabEnergySpend(lab, now, 0, cfg); err != nil {
+		return 0, err
+	}
+	if portals == nil || plane == nil || rnd == nil || !validExtractionConfig(cfg) {
+		return 0, ErrExtractionInvariant
+	}
+	eligible, err := ExtractionPlaneEligible(observers, plane.ID, now)
+	if err != nil {
+		return 0, err
+	}
+	if !eligible {
+		return 0, ErrNoWaitingObserver
+	}
+	if err := validateExtractionPortalCollection(*portals, seq, cfg.MaxActivePortals); err != nil {
+		return 0, err
+	}
+	slot, ok := FirstFreeSlot(*portals, cfg.MaxActivePortals)
+	if !ok {
+		return 0, ErrNoFreePortalSlot
+	}
+	if _, err := prepareLabEnergySpend(lab, now, cfg.ExtractionCost, cfg); err != nil {
+		return 0, err
+	}
+
+	nextLab := *lab
+	if err := nextLab.SpendEnergy(now, cfg.ExtractionCost, cfg); err != nil {
+		return 0, err
+	}
+	portal := NewExtractionPortal(seq, plane.ID, slot, now, cfg, rnd)
+	nextPortals := append(append([]Portal(nil), (*portals)...), portal)
+	*lab = nextLab
+	*portals = nextPortals
+	return portal.ID, nil
+}
+
+func validExtractionConfig(cfg config.Config) bool {
+	return cfg.MaxActivePortals > 0 && cfg.ExtractionCost >= 0 &&
+		cfg.ExtractionEnergyMin >= 0 && cfg.ExtractionEnergyMin <= cfg.ExtractionEnergyMax &&
+		cfg.PortalDecayMin > 0 && cfg.PortalDecayMin <= cfg.PortalDecayMax &&
+		cfg.ExtractionTTLMin > 0 && cfg.ExtractionTTLMin <= cfg.ExtractionTTLMax &&
+		cfg.ExtractionSync > 0
+}
+
+func validateExtractionPortalCollection(portals []Portal, newID int64, maxSlots int) error {
+	ids := make(map[int64]struct{}, len(portals))
+	openSlots := make(map[int]struct{}, maxSlots)
+	for _, portal := range portals {
+		if portal.ID == newID {
+			return ErrExtractionInvariant
+		}
+		if _, duplicate := ids[portal.ID]; duplicate {
+			return ErrExtractionInvariant
+		}
+		ids[portal.ID] = struct{}{}
+		if portal.Status != PortalStatusOpen {
+			continue
+		}
+		if portal.SlotIndex < 1 || portal.SlotIndex > maxSlots {
+			return ErrExtractionInvariant
+		}
+		if _, duplicate := openSlots[portal.SlotIndex]; duplicate {
+			return ErrExtractionInvariant
+		}
+		openSlots[portal.SlotIndex] = struct{}{}
+	}
+	return nil
+}

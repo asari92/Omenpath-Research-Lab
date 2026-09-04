@@ -22,4 +22,6 @@ var (
 	ErrNoWaitingObserver        = errors.New("no observer waiting in destination plane")
 	ErrLabEnergyInvariant       = errors.New("laboratory energy invariant violated")
 	ErrInsufficientLabEnergy    = errors.New("insufficient laboratory energy")
+	ErrExtractionInvariant      = errors.New("extraction invariant violated")
+	ErrExtractionSynchronizing  = errors.New("extraction portal is synchronizing")
 )
