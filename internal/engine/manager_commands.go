@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"omenpath-lab/internal/domain"
@@ -162,6 +163,19 @@ func (m *LabManager) executeCommand(ctx context.Context, command managerCommand)
 	tick, err := working.Simulation.ResolveTick(now, m.random, m.cfg)
 	if err != nil {
 		return err
+	}
+	resolvedBeforeTutorial := cloneSnapshot(working)
+	if err := m.advanceTutorialAfterTick(&working, now); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(resolvedBeforeTutorial.Simulation, working.Simulation) {
+		tutorialDrafts, eventErr := domain.EventsForStateTransition(
+			resolvedBeforeTutorial.Simulation, working.Simulation, now, now, m.cfg,
+		)
+		if eventErr != nil {
+			return eventErr
+		}
+		tick.Events = append(tick.Events, tutorialDrafts...)
 	}
 	resolved := cloneSnapshot(working)
 	commandErr := command.apply(&working, now)

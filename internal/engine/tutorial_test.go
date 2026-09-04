@@ -201,6 +201,7 @@ func tutorialLostReturnManager(t *testing.T) (*LabManager, *fakeRepository) {
 	portal, err := domain.NewTutorialPortal(domain.TutorialPortalStep6Return, 1, 1, 1, base, manager.cfg)
 	require.NoError(t, err)
 	portal.ScheduledCloseAt = base.Add(time.Second)
+	portal.ObserverFlow = domain.PortalFlowInbound
 	planeID, portalID, observerID := int64(1), int64(1), int64(1)
 	ends := base.Add(5 * time.Second)
 	manager.snapshot.Simulation.Portals = []domain.Portal{portal}

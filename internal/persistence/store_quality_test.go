@@ -284,7 +284,8 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	_, err = store.db.ExecContext(ctx, fmt.Sprintf(`CREATE VIEW app_state AS
 		SELECT id,
 			CASE %s() WHEN 1 THEN mode ELSE mode END AS mode,
-			tutorial_step, next_portal_id, spawn_scheduled_at, spawn_due_at,
+			tutorial_step, tutorial_phase, tutorial_portal_id, tutorial_plane_id,
+			tutorial_observer_id, next_portal_id, spawn_scheduled_at, spawn_due_at,
 			spawn_paused, last_tick_at
 		FROM app_state_rows`, barrierName))
 	require.NoError(t, err)

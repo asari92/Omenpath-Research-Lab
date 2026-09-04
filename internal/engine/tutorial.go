@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -37,6 +38,17 @@ func (m *LabManager) executeTutorialSignalLocked(ctx context.Context, signal dom
 		return err
 	}
 	resolved := cloneSnapshot(working)
+	if err := m.advanceTutorialAfterTick(&working, now); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(resolved.Simulation, working.Simulation) {
+		tutorialDrafts, eventErr := domain.EventsForStateTransition(resolved.Simulation, working.Simulation, now, now, m.cfg)
+		if eventErr != nil {
+			return eventErr
+		}
+		tick.Events = append(tick.Events, tutorialDrafts...)
+	}
+	resolved = cloneSnapshot(working)
 	signalErr := applyTutorialSignal(&working, signal, portalID, now, m.cfg)
 	drafts := cloneDrafts(tick.Events)
 	if signalErr == nil {
@@ -110,6 +122,46 @@ func (m *LabManager) advanceTutorialAfterTick(snapshot *persistence.Snapshot, no
 			snapshot.App.TutorialStep = 3
 		}
 	}
+	if snapshot.App.TutorialStep == 6 {
+		observer := trackedObserver(snapshot)
+		if observer != nil && observer.Status == domain.ObserverLost {
+			if snapshot.App.TutorialPhase == domain.TutorialPhaseSendReplacement {
+				if target, ok := tutorialTarget(snapshot); ok && target.Status == domain.PortalStatusOpen {
+					return nil
+				}
+			}
+			snapshot.App.TutorialPhase = domain.TutorialPhaseSendReplacement
+			return createTutorialTarget(snapshot, domain.TutorialPortalStep6Outbound, pointerValue(snapshot.App.TutorialPlaneID), now, m.cfg)
+		}
+		if snapshot.App.TutorialPhase == domain.TutorialPhaseWaitResearch && observer != nil && observer.Status == domain.ObserverWaitingReturn {
+			if observer.CurrentPlaneID == nil {
+				return domain.ErrSimulationInvariant
+			}
+			if err := createTutorialTarget(snapshot, domain.TutorialPortalStep6Return, *observer.CurrentPlaneID, now, m.cfg); err != nil {
+				return err
+			}
+			snapshot.App.TutorialPhase = domain.TutorialPhaseRecallReady
+		}
+	}
+	if snapshot.App.TutorialStep == 7 {
+		observer := trackedObserver(snapshot)
+		if observer == nil {
+			return domain.ErrSimulationInvariant
+		}
+		switch observer.Status {
+		case domain.ObserverLost:
+			snapshot.App.TutorialStep = 6
+			snapshot.App.TutorialPhase = domain.TutorialPhaseSendReplacement
+			return createTutorialTarget(snapshot, domain.TutorialPortalStep6Outbound, pointerValue(snapshot.App.TutorialPlaneID), now, m.cfg)
+		case domain.ObserverAvailable:
+			planeAt, ok := planeIndex(snapshot.Simulation.Planes, pointerValue(snapshot.App.TutorialPlaneID))
+			if ok && snapshot.Simulation.Planes[planeAt].Explored {
+				snapshot.App.TutorialStep = 8
+				snapshot.App.TutorialPhase = domain.TutorialPhaseNone
+				snapshot.App.TutorialPortalID = nil
+			}
+		}
+	}
 	return nil
 }
 
@@ -158,6 +210,24 @@ func (m *LabManager) advanceTutorialAfterCommand(snapshot, before *persistence.S
 		if command.action == "SEND" && matched && errors.Is(commandErr, domain.ErrPortalCriticalRisk) {
 			snapshot.App.TutorialStep = 6
 			return enterTutorialStep6(snapshot, now, m.cfg)
+		}
+	case 6:
+		if commandErr == nil && command.action == "SEND" && matched && snapshot.App.TutorialPhase == domain.TutorialPhaseSendReplacement {
+			observer := dispatchedThrough(snapshot.Simulation.Observers, *command.portalID)
+			if observer == nil {
+				return domain.ErrSimulationInvariant
+			}
+			snapshot.App.TutorialObserverID = int64Pointer(observer.ID)
+			snapshot.App.TutorialPhase = domain.TutorialPhaseWaitResearch
+		}
+		if commandErr == nil && command.action == "RECALL" && matched && snapshot.App.TutorialPhase == domain.TutorialPhaseRecallReady {
+			observer := returningThrough(snapshot.Simulation.Observers, *command.portalID)
+			if observer == nil {
+				return domain.ErrSimulationInvariant
+			}
+			snapshot.App.TutorialObserverID = int64Pointer(observer.ID)
+			snapshot.App.TutorialStep = 7
+			snapshot.App.TutorialPhase = domain.TutorialPhaseNone
 		}
 	}
 	return recreateTerminalTutorialTarget(snapshot, now, m.cfg)
@@ -282,6 +352,15 @@ func trackedObserver(snapshot *persistence.Snapshot) *domain.Observer {
 func dispatchedThrough(observers []domain.Observer, portalID int64) *domain.Observer {
 	for i := range observers {
 		if observers[i].Status == domain.ObserverOutbound && observers[i].ActivePortalID != nil && *observers[i].ActivePortalID == portalID {
+			return &observers[i]
+		}
+	}
+	return nil
+}
+
+func returningThrough(observers []domain.Observer, portalID int64) *domain.Observer {
+	for i := range observers {
+		if observers[i].Status == domain.ObserverReturning && observers[i].ActivePortalID != nil && *observers[i].ActivePortalID == portalID {
 			return &observers[i]
 		}
 	}
