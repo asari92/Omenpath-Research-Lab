@@ -148,6 +148,9 @@ func RecallObserver(
 	if portal.Status != PortalStatusOpen {
 		return 0, ErrPortalNotOpen
 	}
+	if portal.Kind == PortalKindExtraction && portal.ExtractionSynchronizedAt == nil {
+		return 0, ErrExtractionSynchronizing
+	}
 	risk, _ := portal.RiskLevel(now, cfg)
 	if risk == RiskCritical {
 		return 0, ErrPortalCriticalRisk
