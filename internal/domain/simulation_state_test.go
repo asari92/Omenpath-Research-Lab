@@ -285,6 +285,11 @@ func TestSimulationState_RejectsNonCanonicalPortalFields(t *testing.T) {
 			at := p.OpenedAt.Add(cfg.InstabilityMinLifetime - time.Nanosecond)
 			p.InstabilityCollapseAt = &at
 		}},
+		{"unstable hidden collapse after legal window", func(p *domain.Portal) {
+			p.Stability = domain.PortalUnstable
+			at := p.ScheduledCloseAt.Add(-cfg.InstabilityCloseMargin + time.Nanosecond)
+			p.InstabilityCollapseAt = &at
+		}},
 		{"natural with extraction marker", func(p *domain.Portal) {
 			at := p.OpenedAt.Add(cfg.ExtractionSync)
 			p.ExtractionSynchronizedAt = &at
