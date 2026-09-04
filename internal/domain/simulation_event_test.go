@@ -54,3 +54,24 @@ func TestSimulationTick_ReturnsEventDraftsWithoutPersistenceIDs(t *testing.T) {
 	_, hasID := reflect.TypeOf(result.Events[0]).FieldByName("ID")
 	require.False(t, hasID)
 }
+
+func TestSimulationTick_FirstLateTickUsesStateBaselineForRisk(t *testing.T) {
+	portal := riskTransitionPortal()
+	state := portalTickState(portal)
+	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, time.Minute)
+
+	result, err := state.ResolveTick(testutil.BaseTime.Add(50*time.Second), nil, config.Default())
+	require.NoError(t, err)
+	require.Equal(t, []domain.EventType{domain.EventRiskLevelChanged}, eventTypes(result.Events))
+}
+
+func TestSimulationTick_FirstResolutionEndsExistingOverride(t *testing.T) {
+	state := simulationState(testutil.BaseTime)
+	deadline := testutil.BaseTime.Add(5 * time.Second)
+	state.Lab.LeylineOverrideUntil = &deadline
+	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, time.Minute)
+
+	result, err := state.ResolveTick(testutil.BaseTime.Add(6*time.Second), nil, config.Default())
+	require.NoError(t, err)
+	require.Equal(t, []domain.EventType{domain.EventLeylineOverrideEnded}, eventTypes(result.Events))
+}

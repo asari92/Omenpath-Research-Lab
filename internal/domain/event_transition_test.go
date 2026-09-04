@@ -51,6 +51,8 @@ func TestEventsForTransition_CloseAndCollapse(t *testing.T) {
 
 		events := transitionEvents(t, before, after, testutil.BaseTime, closedAt)
 		require.Equal(t, []domain.EventType{domain.EventPortalCollapsed, domain.EventLeylineOverrideStarted}, eventTypes(events))
+		require.NotNil(t, events[1].PortalID)
+		require.Equal(t, afterPortal.ID, *events[1].PortalID)
 	})
 }
 
@@ -138,10 +140,17 @@ func TestEventsForTransition_ReturnAndLoss(t *testing.T) {
 		beforeObserver := eventObserver(1, domain.ObserverOutbound, nil, &portalID, &startedAt, &transitEndsAt)
 		afterObserver := eventObserver(1, domain.ObserverLost, nil, nil, nil, nil)
 		afterObserver.UpdatedAt = lostAt
+		portal := testutil.NewPortalBuilder().Build()
+		portal.ID = portalID
+		portal.DestinationPlaneID = 2
 
-		events := transitionEvents(t, stateWithObservers(beforeObserver), stateWithObservers(afterObserver), testutil.BaseTime, lostAt)
+		before := domain.SimulationState{Portals: []domain.Portal{portal}, Observers: []domain.Observer{beforeObserver}}
+		after := domain.SimulationState{Portals: []domain.Portal{portal}, Observers: []domain.Observer{afterObserver}}
+		events := transitionEvents(t, before, after, testutil.BaseTime, lostAt)
 		require.Equal(t, []domain.EventType{domain.EventObserverLost}, eventTypes(events))
 		require.Equal(t, lostAt, events[0].CreatedAt)
+		require.NotNil(t, events[0].PlaneID)
+		require.Equal(t, int64(2), *events[0].PlaneID)
 	})
 }
 

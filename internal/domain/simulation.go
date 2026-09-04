@@ -42,6 +42,7 @@ type SimulationTickResult struct {
 	HasNeedsAttention      bool
 	NeedsAttentionPortalID int64
 	LabEnergy              int
+	Events                 []EventDraft
 }
 
 // NewNaturalSpawnState draws one inclusive whole-second delay from now.
@@ -81,6 +82,7 @@ func (state *SimulationState) ResolveTick(now time.Time, rnd random.Random, cfg 
 		return deriveSimulationTickResult(*state, now, cfg), nil
 	}
 
+	before := cloneSimulationState(*state)
 	next := cloneSimulationState(*state)
 	if err := resolvePortalStage(&next, now, cfg); err != nil {
 		return SimulationTickResult{}, err
@@ -98,10 +100,19 @@ func (state *SimulationState) ResolveTick(now time.Time, rnd random.Random, cfg 
 
 	tickAt := now
 	next.LastTickAt = &tickAt
+	previousAt := before.Lab.EnergyBaseAt
+	if before.LastTickAt != nil {
+		previousAt = *before.LastTickAt
+	}
+	events, err := EventsForStateTransition(before, next, previousAt, now, cfg)
+	if err != nil {
+		return SimulationTickResult{}, err
+	}
 	result := deriveSimulationTickResult(next, now, cfg)
 	result.Changed = true
 	result.Spawned = spawn.Spawned
 	result.SpawnedPortalID = spawn.PortalID
+	result.Events = events
 	*state = next
 	return result, nil
 }
