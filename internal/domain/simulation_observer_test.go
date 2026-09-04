@@ -124,6 +124,7 @@ func TestSimulationTick_RepeatReturnPreservesExploredAt(t *testing.T) {
 
 func TestSimulationTick_PortalClosedBeforeTransitMakesObserverLost(t *testing.T) {
 	p := tickNaturalClosePortal(1, 1, 4*time.Second)
+	p.ObserverFlow = domain.PortalFlowOutbound
 	state := observerTickState(p, tickOutboundObserver(1, 8*time.Second))
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
@@ -132,6 +133,7 @@ func TestSimulationTick_PortalClosedBeforeTransitMakesObserverLost(t *testing.T)
 
 func TestSimulationTick_PortalCollapsedBeforeTransitMakesObserverLost(t *testing.T) {
 	p := tickEnergyCollapsePortal(1, 1, 4*time.Second)
+	p.ObserverFlow = domain.PortalFlowOutbound
 	state := observerTickState(p, tickOutboundObserver(1, 8*time.Second))
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
@@ -140,6 +142,7 @@ func TestSimulationTick_PortalCollapsedBeforeTransitMakesObserverLost(t *testing
 
 func TestSimulationTick_CloseAtTransitDeadlineAllowsArrival(t *testing.T) {
 	p := tickNaturalClosePortal(1, 1, 5*time.Second)
+	p.ObserverFlow = domain.PortalFlowOutbound
 	state := observerTickState(p, tickOutboundObserver(1, 5*time.Second))
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)
@@ -148,6 +151,7 @@ func TestSimulationTick_CloseAtTransitDeadlineAllowsArrival(t *testing.T) {
 
 func TestSimulationTick_PortalLifecycleRunsBeforeObserverLifecycle(t *testing.T) {
 	p := tickNaturalClosePortal(1, 1, 4*time.Second)
+	p.ObserverFlow = domain.PortalFlowOutbound
 	state := observerTickState(p, tickOutboundObserver(1, 8*time.Second))
 	_, err := state.ResolveTick(testutil.BaseTime.Add(5*time.Second), nil, config.Default())
 	require.NoError(t, err)

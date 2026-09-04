@@ -24,6 +24,7 @@ func countOpenForTest(portals []domain.Portal) int {
 
 func TestSimulationTick_FullOrderPortalObserverExtractionSpawnAttention(t *testing.T) {
 	closing := tickNaturalClosePortal(1, 1, 4*time.Second)
+	closing.ObserverFlow = domain.PortalFlowOutbound
 	extraction := tickExtractionPortal(2, 1, 2, testutil.BaseTime)
 	state := extractionTickState(
 		[]domain.Portal{closing, extraction},
@@ -138,6 +139,7 @@ func TestSimulationTick_LargeJumpDoesNotBackfillNaturalSpawns(t *testing.T) {
 
 func TestSimulationTick_LargeJumpStillCatchesUpDomainLifecycles(t *testing.T) {
 	p := tickNaturalClosePortal(1, 1, 4*time.Second)
+	p.ObserverFlow = domain.PortalFlowOutbound
 	state := observerTickState(p, tickOutboundObserver(1, 8*time.Second))
 	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, 2*time.Minute)
 	_, err := state.ResolveTick(testutil.BaseTime.Add(time.Minute), nil, config.Default())

@@ -328,7 +328,7 @@ func validateSimulationState(state *SimulationState, now time.Time, cfg config.C
 	if state.NextPortalID <= maxPortalID {
 		return ErrSimulationInvariant
 	}
-	return validateSimulationObservers(state.Observers, planeIDs, portalIDs, state.Portals)
+	return validateSimulationObservers(state.Observers, planeIDs, portalIDs, state.Portals, now)
 }
 
 func validSimulationConfig(cfg config.Config) bool {
@@ -484,6 +484,7 @@ func validateSimulationObservers(
 	planeIDs map[int64]struct{},
 	portalIDs map[int64]int,
 	portals []Portal,
+	now time.Time,
 ) error {
 	ids := make(map[int64]struct{}, len(observers))
 	for i := range observers {
@@ -500,6 +501,12 @@ func validateSimulationObservers(
 		hasPortal := observer.ActivePortalID != nil
 		hasStart := observer.PhaseStartedAt != nil
 		hasEnd := observer.PhaseEndsAt != nil
+		if observer.CreatedAt.After(now) ||
+			observer.UpdatedAt.Before(observer.CreatedAt) ||
+			observer.UpdatedAt.After(now) ||
+			(hasStart && observer.PhaseStartedAt.After(now)) {
+			return ErrSimulationInvariant
+		}
 		if hasPlane {
 			if _, exists := planeIDs[*observer.CurrentPlaneID]; !exists {
 				return ErrSimulationInvariant
@@ -524,6 +531,9 @@ func validateSimulationObservers(
 			if hasPlane || !hasPortal || !validSimulationPhase(observer) {
 				return ErrSimulationInvariant
 			}
+			if portals[portalIDs[*observer.ActivePortalID]].ObserverFlow != PortalFlowOutbound {
+				return ErrSimulationInvariant
+			}
 		case ObserverExploring:
 			if !hasPlane || hasPortal || !validSimulationPhase(observer) {
 				return ErrSimulationInvariant
@@ -534,6 +544,11 @@ func validateSimulationObservers(
 			}
 		case ObserverReturning:
 			if !hasPlane || !hasPortal || !validSimulationPhase(observer) {
+				return ErrSimulationInvariant
+			}
+			portal := portals[portalIDs[*observer.ActivePortalID]]
+			if portal.ObserverFlow != PortalFlowInbound ||
+				portal.DestinationPlaneID != *observer.CurrentPlaneID {
 				return ErrSimulationInvariant
 			}
 		default:
