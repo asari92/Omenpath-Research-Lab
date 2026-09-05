@@ -15,6 +15,7 @@ import (
 	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/internal/engine"
+	"omenpath-lab/internal/transport"
 	"omenpath-lab/testutil"
 )
 
@@ -258,4 +259,12 @@ func TestSingleCauseJoinedDomainErrorPreservesMapping(t *testing.T) {
 			require.NotContains(t, rr.Body.String(), "command context")
 		})
 	}
+}
+
+func TestDomainConflictMapping_UsesSharedTransportDescriptor(t *testing.T) {
+	descriptor, ok := transport.DescribeDomainError(domain.ErrPortalCriticalRisk)
+	require.True(t, ok)
+	require.Equal(t, "PORTAL_CRITICAL_RISK", descriptor.Code)
+	require.Equal(t, "portal risk is critical", descriptor.Message)
+	require.False(t, descriptor.Confirmable)
 }

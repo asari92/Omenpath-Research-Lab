@@ -148,3 +148,16 @@ func TestTutorialSnapshot_DoesNotExposePreparedHiddenValues(t *testing.T) {
 }
 
 func int64DTOTestPointer(value int64) *int64 { return &value }
+
+func TestQuickActionReasons_ArePairedWithAvailability(t *testing.T) {
+	got, err := BuildStateSnapshot(dtoSnapshot(testutil.BaseTime), testutil.BaseTime, config.Default())
+	require.NoError(t, err)
+	actions := got.Slots[0].Portal.QuickActions
+	require.False(t, actions.CanStabilize)
+	require.NotNil(t, actions.StabilizeUnavailableReason)
+	require.Equal(t, "PORTAL_ALREADY_STABLE", *actions.StabilizeUnavailableReason)
+	require.True(t, actions.CanClose)
+	require.Nil(t, actions.CloseUnavailableReason)
+	require.False(t, actions.CanRecall)
+	require.Equal(t, "NO_WAITING_OBSERVER", *actions.RecallUnavailableReason)
+}
