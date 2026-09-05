@@ -1621,3 +1621,52 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - `UI-001`, `UI-002`, `UI-006`, `UI-007` и `SLOT-001` теперь GREEN;
   `UI-003..005` остаются PLANNED для Stages 17, 19 и 21. Stage 17 ещё не
   начат; Block E не начат.
+
+## Stage 17 — Portal Details via TDD (2026-09-05)
+
+### Реализованный scope
+
+- `/portals/:id` валидирует positive integer до API call и различает loading,
+  Portal Not Found, transient error с Retry и успешный Details view.
+- Coalesced live resource допускает один GET in-flight и максимум один trailing
+  refresh независимо от числа snapshot edges; dispose aborts запрос и удаляет
+  trailing work. React Strict Mode не ломает resource lifecycle.
+- Portal Details показывает все требуемые секции: Portal, Destination,
+  Diagnostics с Risk/Recommendation и `How Risk Works`, History и те же четыре
+  Actions, что Dashboard. Terminal diagnostics используют `Not applicable`;
+  hidden score/decay/lifetime/timestamps не раскрываются.
+- History сохраняет полученный от API chronological order; structured payload
+  находится в закрытом disclosure и pretty-print выполняется только по запросу.
+- Переход по matching Dashboard Details link несёт one-shot in-memory intent.
+  Только он отправляет `PORTAL_DETAILS_OPENED`; direct route/GET, wrong target и
+  wrong step signal не отправляют. Ответ signal принимается общим store.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 17A live Details | `393e9c7` | отсутствовали live resource, required Details sections и route validation | `2af3dfe` |
+| 17B History/Actions/signal | `3f09c06` | отсутствовали Event primitives, shared Details actions и navigation intent matcher | `9f75dfc` |
+
+### Corrections и verification
+
+- TypeScript не выводил mutation nullable-переменной внутри mock callback;
+  signal fixture хранит захваченные AbortSignal в typed array, production code
+  не менялся.
+- Нативный закрытый `<details>` держит payload в DOM, но скрывает его визуально;
+  тест исправлен с проверки отсутствия DOM-node на фактический closed/visibility
+  contract.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test` — 16 files, 64 tests PASS.
+- `npm --prefix web run test:e2e -- portal-details.spec.ts` — 4 PASS
+  (desktop и phone, matching click и direct load).
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- `UI-003` и `RECOMMENDATION-003` теперь GREEN; frontend evidence добавлен к
+  уже GREEN `EVENT-004` и `TUTORIAL-010`. Stage 18 ещё не начат; Block E не
+  начат.
