@@ -22,7 +22,7 @@ describe("application routes", () => {
     render(<App initialEntries={[path]} />);
 
     expect(
-      await screen.findByRole("heading", { name: heading }),
+      await screen.findByRole("heading", { name: heading, level: 1 }),
     ).toBeInTheDocument();
   });
 
