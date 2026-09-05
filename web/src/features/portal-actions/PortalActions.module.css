@@ -31,6 +31,12 @@
   cursor: help;
 }
 
+.actions button[data-tutorial-command="true"] {
+  outline: 2px solid var(--warning);
+  outline-offset: 2px;
+  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--warning) 55%, transparent);
+}
+
 .wrapper p {
   position: fixed;
   inset: auto 1rem 1rem;

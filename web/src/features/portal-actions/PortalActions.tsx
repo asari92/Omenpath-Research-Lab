@@ -18,6 +18,8 @@ export interface PortalActionsProps {
   quickActions: QuickActionsDTO | null;
   busyKey?: string | null;
   onCommand?(command: PortalCommand): void | Promise<void>;
+  expectedCriticalSend?: boolean;
+  highlightedCommand?: PortalCommand | null;
 }
 
 export function PortalActions({
@@ -25,6 +27,8 @@ export function PortalActions({
   quickActions,
   busyKey = null,
   onCommand,
+  expectedCriticalSend = false,
+  highlightedCommand = null,
 }: PortalActionsProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const emptyReason = "No Portal occupies this Slot";
@@ -54,6 +58,9 @@ export function PortalActions({
       reason: quickActions?.recall_observer_unavailable_reason ?? emptyReason,
     },
   ];
+  if (expectedCriticalSend && commands[2].reason === "PORTAL_CRITICAL_RISK") {
+    commands[2] = { ...commands[2], available: true };
+  }
 
   return (
     <div className={styles.wrapper}>
@@ -66,6 +73,9 @@ export function PortalActions({
               aria-label={item.label}
               aria-disabled={!item.available}
               className={item.available ? styles.available : styles.unavailable}
+              data-tutorial-command={
+                highlightedCommand === item.command || undefined
+              }
               disabled={busy}
               key={item.command}
               onClick={() => {

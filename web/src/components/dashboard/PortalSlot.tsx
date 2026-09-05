@@ -4,9 +4,14 @@ import type { SlotPortalDTO } from "../../api/types";
 import { PortalActions } from "../../features/portal-actions/PortalActions";
 import { usePortalCommand } from "../../features/portal-actions/usePortalCommand";
 import { recordNavigationIntent } from "../../features/tutorial/navigation-signal";
+import {
+  isExpectedCriticalSend,
+  tutorialCommandTarget,
+} from "../../features/tutorial/tutorial-actions";
 import { PortalEffect } from "../../portal-fx/PortalEffect";
 import { formatEnergy, formatRemaining } from "../../state/selectors";
 import styles from "./PortalSlot.module.css";
+import { useSnapshotState } from "../../state/SnapshotProvider";
 
 export function PortalSlot({
   slotIndex,
@@ -19,7 +24,9 @@ export function PortalSlot({
   needsAttention: boolean;
   tutorialTarget?: boolean;
 }) {
+  const { snapshot } = useSnapshotState();
   const command = usePortalCommand(portal.id);
+  const target = snapshot ? tutorialCommandTarget(snapshot.app) : null;
   return (
     <article
       className={styles.slot}
@@ -54,6 +61,12 @@ export function PortalSlot({
       </dl>
       <PortalActions
         busyKey={command.busyKey}
+        expectedCriticalSend={
+          snapshot ? isExpectedCriticalSend(snapshot.app, portal.id) : false
+        }
+        highlightedCommand={
+          target?.portalId === portal.id ? target.command : null
+        }
         onCommand={command.run}
         portalId={portal.id}
         quickActions={portal.quick_actions}

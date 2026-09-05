@@ -16,6 +16,10 @@ import { PortalFacts } from "../components/portal/PortalFacts";
 import { PortalActions } from "../features/portal-actions/PortalActions";
 import { usePortalCommand } from "../features/portal-actions/usePortalCommand";
 import { consumeNavigationSignal } from "../features/tutorial/navigation-signal";
+import {
+  isExpectedCriticalSend,
+  tutorialCommandTarget,
+} from "../features/tutorial/tutorial-actions";
 import { PortalEffect } from "../portal-fx/PortalEffect";
 import {
   useSnapshotContext,
@@ -88,6 +92,7 @@ function PortalDetailsResource({ id }: { id: number }) {
     return <p>{details.loading ? "Loading Portal…" : "Portal unavailable"}</p>;
 
   const value = details.data;
+  const tutorialTarget = snapshot ? tutorialCommandTarget(snapshot.app) : null;
   return (
     <>
       {details.loading && <p className={styles.refreshing}>Refreshing…</p>}
@@ -115,6 +120,12 @@ function PortalDetailsResource({ id }: { id: number }) {
           <h2>Actions</h2>
           <PortalActions
             busyKey={command.busyKey}
+            expectedCriticalSend={
+              snapshot ? isExpectedCriticalSend(snapshot.app, id) : false
+            }
+            highlightedCommand={
+              tutorialTarget?.portalId === id ? tutorialTarget.command : null
+            }
             onCommand={command.run}
             portalId={id}
             quickActions={value.portal.quick_actions}

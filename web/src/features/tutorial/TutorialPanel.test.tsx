@@ -21,7 +21,14 @@ function setup(
   const next = snapshotAt("2026-09-05T10:00:01Z");
   const api = {
     state: async () => snapshot,
-    tutorialSignal: vi.fn().mockResolvedValue(next),
+    tutorialSignal: vi.fn().mockResolvedValue({
+      ...next,
+      app: {
+        ...next.app,
+        tutorial_step: 1,
+        expected_action: "OPEN_PORTAL_DETAILS",
+      },
+    }),
     resetTutorial: vi.fn().mockResolvedValue(next),
     startLive: vi.fn().mockResolvedValue({
       ...next,

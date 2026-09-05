@@ -32,7 +32,9 @@ test("the visible Tutorial journey reaches Live without client-side progress", a
   await expect(page.getByLabel("Tutorial")).toContainText("Step 5");
   await page.getByRole("button", { name: "Try Send" }).click();
 
-  await expect.poll(async () => (await apiState(request)).app.tutorial_step).toBe(6);
+  await expect
+    .poll(async () => (await apiState(request)).app.tutorial_step)
+    .toBe(6);
   const firstPhase = (await apiState(request)).app.expected_action;
   if (firstPhase === "SEND_OBSERVER") {
     await page.locator('[data-tutorial-command="true"]').click();

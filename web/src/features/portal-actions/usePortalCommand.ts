@@ -7,6 +7,7 @@ import {
   useSnapshotState,
 } from "../../state/SnapshotProvider";
 import type { PortalCommand } from "./PortalActions";
+import { isExpectedCriticalSend } from "../tutorial/tutorial-actions";
 
 export function usePortalCommand(portalId: number) {
   const { api, store } = useSnapshotContext();
@@ -20,6 +21,11 @@ export function usePortalCommand(portalId: number) {
       const key = `${portalId}:${command}`;
       if (store.getState().commandKeys.has(key)) return;
       store.beginCommand(key);
+      const appAtStart = store.getState().snapshot?.app;
+      const expectedCriticalRejection =
+        command === "SEND" &&
+        appAtStart !== undefined &&
+        isExpectedCriticalSend(appAtStart, portalId);
       const invoke = (confirm: boolean) =>
         command === "STABILIZE"
           ? api.stabilize(portalId)
@@ -33,6 +39,13 @@ export function usePortalCommand(portalId: number) {
         try {
           next = await invoke(false);
         } catch (error: unknown) {
+          if (
+            expectedCriticalRejection &&
+            error instanceof ApiError &&
+            error.code === "PORTAL_CRITICAL_RISK"
+          ) {
+            return;
+          }
           if (!(error instanceof ApiError) || !error.confirmable) throw error;
           store.endCommand(key);
           const labels: Record<PortalCommand, string> = {

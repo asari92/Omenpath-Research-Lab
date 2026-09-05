@@ -18,6 +18,21 @@
 .instruction {
   color: var(--text-strong);
 }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.actions button {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.35rem;
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+}
 @media (max-width: 600px) {
   .panel {
     padding: 0.3rem 0.45rem;
