@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** закрыть обязательный corrective gate Block D: перейти с одной общей игры на изолированные anonymous laboratories, увеличить roster до 20 Observers, добавить authoritative transit projection и пересобрать frontend в согласованный цельный dark-fantasy интерфейс без page scroll на Dashboard и Portal Details.
+**Goal:** закрыть обязательный corrective gate Block D: на новой clean-start SQLite schema перейти с одной общей игры на изолированные anonymous laboratories, увеличить roster до 20 Observers, добавить authoritative transit projection и пересобрать frontend в согласованный цельный dark-fantasy интерфейс без page scroll на Dashboard и Portal Details.
 
 **Architecture:** одна SQLite database хранит все laboratories в общей schema с обязательным `lab_id`; anonymous cookie разрешается до любого REST/WebSocket доступа, tenant-bound repository сохраняет прежний `engine.Repository`, а runtime registry выдаёт отдельный `LabManager` и `realtime.Hub` на laboratory. React принимает только authoritative snapshots, запускает WebSocket после успешного REST bootstrap и хранит animation/tutorial presentation отдельно от gameplay state.
 
@@ -25,7 +25,8 @@
 
 - `b74f7f0` — согласованный UI/UX и multi-lab design;
 - `a3bbb9d` — Final Spec, roadmap, worklog, requirements и traceability;
-- `63557ba` — session constants, legacy claim и WS activity.
+- `63557ba` — session constants и WS activity;
+- `dd6915d` — clean-start database без legacy import/claim.
 
 Verified starting boundary:
 
@@ -92,12 +93,11 @@ Open Slot uniqueness: `(lab_id, slot_index) WHERE status='OPEN'`. Event IDs
 `MAX(id)+1`, drafts вставляются в semantic order. Event entity references
 остаются soft references, но event row всегда tenant-scoped.
 
-`003_multi_lab.sql` создаёт replacement tables, переносит singleton state под
-фиксированный `legacy-v1`, доводит legacy roster до 20 AVAILABLE/lifecycle-safe
-Observers без изменения существующих 1–10, удаляет old child tables раньше
-parents и переименовывает replacement tables. Если `app_state` пуст, legacy lab
-не создаётся. До первого claim legacy lab имеет non-expiring sentinel expiry и
-не является cleanup candidate; claim атомарно заменяет его на `now + 30d`.
+Implementation рассчитан только на новую пустую database. `001_initial.sql`
+сразу создаёт `labs`, `sessions` и tenant-owned gameplay tables с `lab_id`.
+`002_tutorial_context.sql` сохраняется и добавляет Tutorial columns в уже
+tenant-aware `app_state`. Migration 003, replacement tables, legacy import и
+claim отсутствуют. Старый `omenpath.db` application автоматически не удаляет.
 
 `Store.ForLab` возвращает tenant-bound repository:
 
@@ -142,9 +142,8 @@ Resolution transaction:
 1. valid non-expired hash возвращает lab;
 2. после 12h session/lab expiry обновляются до `now + 30d`;
 3. missing/invalid/expired cookie создаёт fresh token;
-4. первая fresh session атомарно claims unclaimed `legacy-v1`;
-5. иначе одна transaction создаёт lab, 85 Planes, 20 Observers, Lab/App и session;
-6. failure не оставляет partial lab/token.
+4. одна transaction создаёт lab, 85 Planes, 20 Observers, Lab/App и session;
+5. failure не оставляет partial lab/token.
 
 REST resolution или WS handshake являются activity. Live WS держит runtime lease.
 Cleanup берёт candidate, затем под registry idle gate выполняет conditional
@@ -229,7 +228,8 @@ realtime.start();
 ```text
 internal/config/config.go
 internal/config/config_test.go
-internal/persistence/migrations/003_multi_lab.sql
+internal/persistence/migrations/001_initial.sql
+internal/persistence/migrations/002_tutorial_context.sql
 internal/persistence/lab_id.go
 internal/persistence/lab_repository.go
 internal/persistence/lab_repository_test.go
@@ -333,17 +333,16 @@ git add internal
 git commit -m "feat(block-d-corrective): GREEN expand roster to twenty observers"
 ```
 
-## 5. DC-2 — Multi-lab schema and tenant repository
+## 5. DC-2 — Fresh multi-lab schema and tenant repository
 
-Requirements: `PERSIST-001`–`PERSIST-006` persistence/migration half.
+Requirements: `PERSIST-001`–`PERSIST-006` fresh-schema half.
 
 ### Task 2.1 — RED
 
-- [ ] Build a real v2 singleton DB with explored Plane, terminal Portal, LOST
-  Observer, Events, energy and tutorial context; migrate and assert exact
-  `legacy-v1` values plus safe Observers 11–20.
-- [ ] Clean migration must not create a lab.
-- [ ] Invalid legacy FK must roll back migration/version.
+- [ ] Build a fresh database and assert the complete expected tables, composite
+  tenant keys/FKs, indexes and Tutorial columns after migrations 001–002.
+- [ ] Schema migration alone must not create a laboratory or gameplay rows;
+  first session resolution owns canonical bootstrap.
 - [ ] Bootstrap labs A/B with overlapping entity IDs; prove Load/Commit/Events/
   Reset cannot see or mutate the other.
 - [ ] Prove cross-lab FKs fail, same-lab duplicate open Slot fails, same Slot in
@@ -358,7 +357,9 @@ git commit -m "test(block-d-corrective): RED specify tenant scoped persistence"
 
 ### Task 2.2 — GREEN
 
-- [ ] Add `003_multi_lab.sql` with replacement-table migration.
+- [ ] Rewrite `001_initial.sql` directly as the final multi-lab base schema.
+- [ ] Retain `002_tutorial_context.sql` as the only additive migration and make
+  its ALTER statements target tenant-aware `app_state`; do not add migration 003.
 - [ ] Add strict `LabID` and `Store.ForLab`.
 - [ ] Move Bootstrap/Load/Commit/ListEvents/ResetTutorial to `LabRepository`;
   every SQL statement scopes `lab_id`.
@@ -386,8 +387,8 @@ Requirements: `SESSION-001`–`SESSION-006`, `PERSIST-006`.
 
 - [ ] With fake clock/bytes test token length/encoding, lab ID, hash-only storage
   and absence of raw token in errors.
-- [ ] Prove first session claims legacy; second creates new lab; concurrent first
-  claims yield one legacy winner.
+- [ ] Prove two independent fresh tokens create two canonical isolated labs;
+  concurrent resolutions create complete labs with no partial/duplicate rows.
 - [ ] Prove reuse before expiry, no write before 12h, refresh at 12h, new lab after
   expiry.
 - [ ] Prove session/bootstrap failure fully rolls back.
@@ -412,8 +413,8 @@ git commit -m "test(block-d-corrective): RED specify anonymous session lifecycle
 
 - [ ] Add exact config defaults.
 - [ ] Implement injected cryptographic generator; reject short output before DB.
-- [ ] Implement hash lookup, bounded refresh, atomic legacy claim/new bootstrap,
-  cleanup candidates and conditional delete.
+- [ ] Implement hash lookup, bounded refresh, atomic new-lab bootstrap, cleanup
+  candidates and conditional delete.
 - [ ] Return raw token only for a newly generated cookie; on bounded refresh the
   middleware reuses the incoming cookie value transiently. Never retain/log it.
 - [ ] Run focused tests.
@@ -809,11 +810,11 @@ git commit -m "docs(block-d): close corrective gate evidence"
 - [x] Every approved complaint maps to requirement/checkpoint.
 - [x] Multi-lab precedes frontend bootstrap/E2E changes.
 - [x] REST and WS share cookie/runtime boundary.
-- [x] Existing singleton progress remains claimable.
+- [x] Clean-start schema contains no legacy import/claim path.
 - [x] Cleanup cannot race active/renewed lab deletion.
 - [x] Dashboard/Details no-scroll have browser geometry evidence.
 - [x] Tutorial timings exact: skipped 7s, replacement 2s.
-- [x] 20 Observers covered by bootstrap, validation, reset, migration and UI.
+- [x] 20 Observers covered by bootstrap, validation, reset, fresh schema and UI.
 - [x] 85 images local, audited and credited.
 - [x] No new dependencies.
 - [x] No unrelated gameplay semantics change.
