@@ -66,10 +66,14 @@ type PlaneDTO struct {
 }
 
 type QuickActionsDTO struct {
-	CanStabilize bool `json:"can_stabilize"`
-	CanClose     bool `json:"can_close"`
-	CanSend      bool `json:"can_send_observer"`
-	CanRecall    bool `json:"can_recall_observer"`
+	CanStabilize               bool    `json:"can_stabilize"`
+	StabilizeUnavailableReason *string `json:"stabilize_unavailable_reason"`
+	CanClose                   bool    `json:"can_close"`
+	CloseUnavailableReason     *string `json:"close_unavailable_reason"`
+	CanSend                    bool    `json:"can_send_observer"`
+	SendUnavailableReason      *string `json:"send_observer_unavailable_reason"`
+	CanRecall                  bool    `json:"can_recall_observer"`
+	RecallUnavailableReason    *string `json:"recall_observer_unavailable_reason"`
 }
 
 type SlotPortalDTO struct {
@@ -210,7 +214,10 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 			if !ok {
 				return StateSnapshot{}, domain.ErrSimulationInvariant
 			}
-			view := buildSlotPortal(snapshot.Simulation, portal, plane, now, cfg)
+			view, err := buildSlotPortal(snapshot.Simulation, portal, plane, now, cfg)
+			if err != nil {
+				return StateSnapshot{}, err
+			}
 			result.Slots[portal.SlotIndex-1].Portal = &view
 		case domain.PortalStatusClosed:
 			result.Portals.Closed++
@@ -273,6 +280,10 @@ func BuildPortalDetails(snapshot persistence.Snapshot, portalID int64, history [
 			destination.ObserversWaitingReturn++
 		}
 	}
+	actions, err := quickActions(snapshot.Simulation, *portal, now, cfg)
+	if err != nil {
+		return PortalDetails{}, err
+	}
 	details := PortalDetails{
 		GeneratedAt: now,
 		Portal: PortalViewDTO{
@@ -282,7 +293,7 @@ func BuildPortalDetails(snapshot persistence.Snapshot, portalID int64, history [
 			TimeRemainingSeconds: seconds(portal.ScheduledRemaining(now)),
 			CreaturesInside:      portal.CreaturesInside(now, cfg), ObserverFlow: portal.ObserverFlow,
 			OpenedAt: portal.OpenedAt, ClosedAt: cloneTime(portal.ClosedAt),
-			QuickActions: quickActions(snapshot.Simulation, *portal, now, cfg),
+			QuickActions: actions,
 		},
 		Destination: destination,
 		History:     BuildEvents(history),
@@ -325,43 +336,47 @@ func buildPlane(plane domain.Plane) PlaneDTO {
 	return PlaneDTO{ID: plane.ID, Name: plane.Name, Aliases: append([]string(nil), plane.Aliases...), CatalogTier: plane.CatalogTier, Explored: plane.Explored, ExploredAt: cloneTime(plane.ExploredAt)}
 }
 
-func buildSlotPortal(state domain.SimulationState, portal domain.Portal, plane domain.Plane, now time.Time, cfg config.Config) SlotPortalDTO {
+func buildSlotPortal(state domain.SimulationState, portal domain.Portal, plane domain.Plane, now time.Time, cfg config.Config) (SlotPortalDTO, error) {
+	actions, err := quickActions(state, portal, now, cfg)
+	if err != nil {
+		return SlotPortalDTO{}, err
+	}
 	return SlotPortalDTO{
 		ID: portal.ID, Name: portal.Name, DestinationPlaneID: plane.ID, DestinationPlaneName: plane.Name,
 		DestinationExplored: plane.Explored, Energy: portal.CurrentEnergy(now), Stability: portal.Stability,
 		TimeRemainingSeconds: seconds(portal.ScheduledRemaining(now)), CreaturesInside: portal.CreaturesInside(now, cfg),
-		Status: portal.Status, QuickActions: quickActions(state, portal, now, cfg),
-	}
+		Status: portal.Status, QuickActions: actions,
+	}, nil
 }
 
-func quickActions(state domain.SimulationState, portal domain.Portal, now time.Time, cfg config.Config) QuickActionsDTO {
-	if portal.Status != domain.PortalStatusOpen {
-		return QuickActionsDTO{}
+func quickActions(state domain.SimulationState, portal domain.Portal, now time.Time, cfg config.Config) (QuickActionsDTO, error) {
+	var result QuickActionsDTO
+	targets := []struct {
+		action domain.PortalAction
+		set    func(bool, *string)
+	}{
+		{domain.PortalActionStabilize, func(ok bool, reason *string) { result.CanStabilize, result.StabilizeUnavailableReason = ok, reason }},
+		{domain.PortalActionClose, func(ok bool, reason *string) { result.CanClose, result.CloseUnavailableReason = ok, reason }},
+		{domain.PortalActionSend, func(ok bool, reason *string) { result.CanSend, result.SendUnavailableReason = ok, reason }},
+		{domain.PortalActionRecall, func(ok bool, reason *string) { result.CanRecall, result.RecallUnavailableReason = ok, reason }},
 	}
-	lab := state.Lab
-	closeCost := cfg.CloseCost
-	stabilizeCost := cfg.StabilizeCost
-	if lab.LeylineOverrideActive(now, cfg) {
-		closeCost, stabilizeCost = 0, 0
+	for _, target := range targets {
+		availability, err := domain.PortalActionAvailability(state, portal.ID, target.action, now, cfg)
+		if err != nil {
+			return QuickActionsDTO{}, err
+		}
+		if availability.Available {
+			target.set(true, nil)
+			continue
+		}
+		descriptor, ok := DescribeDomainError(availability.Cause)
+		if !ok || descriptor.Confirmable {
+			return QuickActionsDTO{}, domain.ErrSimulationInvariant
+		}
+		reason := descriptor.Code
+		target.set(false, &reason)
 	}
-	actions := QuickActionsDTO{
-		CanClose: lab.CanAfford(now, closeCost, cfg),
-		CanStabilize: portal.Stability == domain.PortalUnstable && portal.CurrentEnergy(now) <= cfg.StabilizeMaxStartEnergy &&
-			lab.CanAfford(now, stabilizeCost, cfg),
-	}
-	risk, _ := portal.RiskLevel(now, cfg)
-	if risk == domain.RiskCritical || portal.CreaturesInside(now, cfg) > 0 {
-		return actions
-	}
-	if _, busy, err := domain.ActiveTransitObserverIndex(state.Observers, portal.ID, now); err != nil || busy {
-		return actions
-	}
-	_, available := domain.AvailableObserverIndex(state.Observers)
-	actions.CanSend = portal.ObserverFlow != domain.PortalFlowInbound && available
-	_, waiting, err := domain.LongestWaitingObserverIndex(state.Observers, portal.DestinationPlaneID)
-	actions.CanRecall = err == nil && waiting && portal.ObserverFlow != domain.PortalFlowOutbound &&
-		(portal.Kind != domain.PortalKindExtraction || portal.ExtractionSynchronizedAt != nil)
-	return actions
+	return result, nil
 }
 
 func countObserver(counts *ObserverCountsDTO, status domain.ObserverStatus) {

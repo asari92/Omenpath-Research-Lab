@@ -45,6 +45,7 @@ func TestPortalActionAvailability_ReturnsCommandCauseWithoutMutation(t *testing.
 		}, domain.ErrPortalCreaturesPresent},
 		{"busy", domain.PortalActionSend, func(s *domain.SimulationState) {
 			start, end, portalID := now, now.Add(5*time.Second), int64(1)
+			s.Portals[0].ObserverFlow = domain.PortalFlowOutbound
 			s.Observers[0].Status = domain.ObserverOutbound
 			s.Observers[0].ActivePortalID = &portalID
 			s.Observers[0].PhaseStartedAt = &start

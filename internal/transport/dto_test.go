@@ -62,7 +62,7 @@ func TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt(t *testing.T) {
 
 func TestBuildStateSnapshot_DoesNotExposeHiddenFields(t *testing.T) {
 	state := dtoSnapshot(testutil.BaseTime)
-	hidden := testutil.BaseTime.Add(time.Minute)
+	hidden := testutil.BaseTime.Add(30 * time.Second)
 	state.Simulation.Portals[0].Stability = domain.PortalUnstable
 	state.Simulation.Portals[0].InstabilityCollapseAt = &hidden
 	got, err := BuildStateSnapshot(state, testutil.BaseTime, config.Default())

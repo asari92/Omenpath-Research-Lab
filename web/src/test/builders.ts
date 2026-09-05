@@ -62,9 +62,13 @@ export function portalDetails(id = 42): PortalDetails {
       closed_at: null,
       quick_actions: {
         can_stabilize: false,
+        stabilize_unavailable_reason: 'PORTAL_ALREADY_STABLE',
         can_close: true,
+        close_unavailable_reason: null,
         can_send_observer: true,
+        send_observer_unavailable_reason: null,
         can_recall_observer: false,
+        recall_observer_unavailable_reason: 'NO_WAITING_OBSERVER',
       },
     },
     destination: {

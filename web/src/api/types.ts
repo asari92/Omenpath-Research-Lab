@@ -102,9 +102,13 @@ export interface PlaneDTO {
 
 export interface QuickActionsDTO {
   can_stabilize: boolean;
+  stabilize_unavailable_reason: string | null;
   can_close: boolean;
+  close_unavailable_reason: string | null;
   can_send_observer: boolean;
+  send_observer_unavailable_reason: string | null;
   can_recall_observer: boolean;
+  recall_observer_unavailable_reason: string | null;
 }
 
 export interface SlotPortalDTO {
