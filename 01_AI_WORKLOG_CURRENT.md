@@ -1570,3 +1570,54 @@ detailed plan Stages 15–21 после пользовательской про�
 - UI-001..006 остаются aggregate PARTIAL: foundation доказан, но player-facing
   screens реализуются только Stages 16–21. Stage 16 ещё не начат; Block E не
   начат.
+
+## Stage 16 — Dashboard via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Dashboard строится только из authoritative snapshot: полный Lab summary,
+  ровно семь Slots в `slot_index` order, Empty State, Leyline Override deadline
+  и один Needs Attention link без перестановки карточек.
+- Occupied и Empty Slot всегда показывают четыре gameplay-команды в одинаковом
+  порядке. Недоступные команды остаются focusable, показывают безопасную
+  причину и не выполняют POST; только реально выполняемая команда получает
+  native `disabled`. Ответ команды принимается через общий snapshot store без
+  optimistic domain mutation.
+- Portal Slot показывает Energy с одним десятичным и оставшееся время `mm:ss`,
+  но не показывает Risk, Recommendation, History и скрытые расчётные поля.
+- Responsive board подтверждён настоящим Chromium: desktop использует 4+3,
+  phone `390x760` — 2x4 с центрированным Slot 7; все семь Slots и 28 команд
+  видны без прокрутки доски или страницы.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 16A summary/Slots | `f7ded73` | отсутствовали Dashboard summary и фиксированные Portal/Empty Slot components | `2888deb` |
+| 16B actions/layout | `f0cf92f` | отсутствовали shared four-command control и responsive browser contract | `8825d8b` |
+
+Дополнительный contract-coverage commit `ae7e872` закрепил malformed Slot
+rejection, snapshot-driven availability/attention update, occupied-to-empty
+геометрию и явное разделение Vitest unit files от Playwright specs.
+
+### Corrections и verification
+
+- Первый phone E2E доказал, что сама Portal board помещалась, но vertical
+  padding shell делал всю страницу выше viewport. Мобильная shell-компоновка
+  уплотнена без скрытия Slots, summary или команд; повторный E2E прошёл.
+- Первый full Vitest run обнаружил, что default discovery захватывал
+  `web/e2e`; unit config теперь явно включает только `src/**/*.test.{ts,tsx}`.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test` — PASS.
+- `npm --prefix web run test:e2e -- dashboard.spec.ts` — 2 PASS, 2
+  intentionally skipped across mutually exclusive desktop/phone projects.
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- `UI-001`, `UI-002`, `UI-006`, `UI-007` и `SLOT-001` теперь GREEN;
+  `UI-003..005` остаются PLANNED для Stages 17, 19 и 21. Stage 17 ещё не
+  начат; Block E не начат.
