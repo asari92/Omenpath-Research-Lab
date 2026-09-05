@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
@@ -51,13 +51,14 @@ function renderDashboard(snapshot: StateSnapshot) {
     tutorialSignal: async () => snapshot,
     startLive: async () => snapshot,
   };
-  return render(
+  const view = render(
     <MemoryRouter>
       <SnapshotProvider api={api} store={store}>
         <DashboardPage />
       </SnapshotProvider>
     </MemoryRouter>,
   );
+  return { ...view, store };
 }
 
 describe("DashboardPage", () => {
@@ -151,5 +152,61 @@ describe("DashboardPage", () => {
         name: /stabilize|close|send observer|recall observer/i,
       }),
     ).toHaveLength(28);
+  });
+
+  it("rejects malformed Slot identities instead of rendering a partial board", () => {
+    const snapshot = snapshotAt();
+    snapshot.slots[6] = { slot_index: 6, portal: null };
+    renderDashboard(snapshot);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "State snapshot must contain exactly Slot 1..7",
+    );
+    expect(screen.queryByTestId("portal-board")).not.toBeInTheDocument();
+  });
+
+  it("applies later availability and attention snapshots without moving Slots", () => {
+    const initial = snapshotAt();
+    initial.slots[0].portal = portal(1, "Alara");
+    initial.slots[1].portal = portal(2, "Amonkhet");
+    initial.portals.active = 2;
+    initial.needs_attention_portal_id = 1;
+    const { store } = renderDashboard(initial);
+    const firstSlot = screen.getAllByTestId("portal-slot")[0];
+    expect(within(firstSlot).getByTestId("portal-canvas")).toHaveAttribute(
+      "data-density",
+      "high",
+    );
+    expect(
+      within(firstSlot).getByRole("button", { name: "Send Observer" }),
+    ).toHaveAttribute("aria-disabled", "true");
+
+    const update = snapshotAt("2026-09-05T10:00:01Z");
+    update.slots[0].portal = {
+      ...portal(1, "Alara"),
+      quick_actions: {
+        ...portal(1, "Alara").quick_actions,
+        can_send_observer: true,
+        send_observer_unavailable_reason: null,
+      },
+    };
+    update.portals.active = 1;
+    act(() => {
+      store.acceptSnapshot(update);
+    });
+
+    expect(screen.getAllByTestId("portal-slot")).toHaveLength(7);
+    expect(screen.getAllByTestId("portal-slot")[0]).toBe(firstSlot);
+    expect(screen.getAllByRole("button")).toHaveLength(28);
+    expect(
+      within(firstSlot).getByRole("button", { name: "Send Observer" }),
+    ).toHaveAttribute("aria-disabled", "false");
+    expect(within(firstSlot).getByTestId("portal-canvas")).toHaveAttribute(
+      "data-density",
+      "low",
+    );
+    expect(screen.getAllByTestId("portal-slot")[1]).toHaveTextContent(
+      "Awaiting Portal",
+    );
   });
 });

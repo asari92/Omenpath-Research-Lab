@@ -112,6 +112,7 @@ export function PortalEffect({
       <canvas
         aria-hidden="true"
         className={styles.canvas}
+        data-density={density}
         data-testid="portal-canvas"
         ref={canvasRef}
       />
