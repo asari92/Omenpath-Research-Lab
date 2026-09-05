@@ -146,5 +146,10 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/10:00:20/i);
     expect(screen.getByText(/waiting for an omenpath/i)).toBeInTheDocument();
     expect(screen.getAllByTestId("portal-slot")).toHaveLength(7);
+    expect(
+      screen.getAllByRole("button", {
+        name: /stabilize|close|send observer|recall observer/i,
+      }),
+    ).toHaveLength(28);
   });
 });
