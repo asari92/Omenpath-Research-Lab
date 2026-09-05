@@ -1725,3 +1725,47 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - Extraction UI evidence добавлен к `EXTRACTION-*`/`API-008`, confirm/error — к
   `API-010/011`; `UI-001..003` остаются GREEN. Stage 19 ещё не начат; Block E
   не начат.
+
+## Stage 19 — Global Event Log via TDD (2026-09-05)
+
+### Реализованный scope
+
+- `/events` использует общий EventList/EventRow и coalesced live resource для
+  полного `GET /api/events`; полученный chronological order не меняется и
+  pagination не добавляется. Payload закрыт по умолчанию, pretty-printed как
+  text и не интерпретируется как HTML.
+- Все 18 canonical `event_type` получили стабильные human labels. Можно выбрать
+  один или несколько типов и точные positive Portal/Observer/Plane IDs;
+  комбинация — logical AND, clear восстанавливает исходный порядок. Empty
+  source отличается от empty filtered result.
+- Accepted snapshot даёт не более одного trailing refresh. Route unmount aborts
+  текущий GET; появившиеся events отображаются без сброса активных фильтров.
+- Header navigation записывает one-shot Event Log intent. Только matching
+  `OPEN_EVENT_LOG` отправляет `EVENT_LOG_OPENED`; direct load и wrong step не
+  меняют Tutorial. Signal response принимается общим store.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 19A log/filters | `78229d1` | отсутствовали filter model/components и live Global Event Log | `569e89f` |
+| 19B realtime/signal | `1a57a6c` | Event Log не потреблял navigation intent и не отправлял matching signal | `ea87a2c` |
+
+### Corrections и verification
+
+- Abort test сначала завершал второй GET до unmount и поэтому не мог доказать
+  abort; fixture оставляет trailing request in-flight и проверяет его signal.
+- Browser locator `Action rejected` совпал с filter label, event type и message;
+  assertion ограничен exact type label внутри одной `event-row`.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test` — 24 files, 88 tests PASS.
+- `npm --prefix web run test:e2e -- events.spec.ts` — 2 PASS (desktop/phone).
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- `UI-004` теперь GREEN; frontend evidence добавлен к `EVENT-005`, `EVENT-011`
+  и `TUTORIAL-010`. Stage 20 ещё не начат; Block E не начат.
