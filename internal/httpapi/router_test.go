@@ -114,7 +114,7 @@ func httpSnapshot(now time.Time) persistence.Snapshot {
 	lastTick := now
 	return persistence.Snapshot{Simulation: domain.SimulationState{
 		Lab: domain.LabState{EnergyBase: 100, EnergyBaseAt: now}, Portals: []domain.Portal{p},
-		Planes: planes, Observers: domain.NewObserverRoster(10, now), NextPortalID: 2,
+		Planes: planes, Observers: domain.NewObserverRoster(config.Default().ObserverCount, now), NextPortalID: 2,
 		NaturalSpawn: domain.NaturalSpawnState{Paused: true}, LastTickAt: &lastTick,
 	}, App: domain.AppState{Mode: domain.ModeTutorial}}
 }

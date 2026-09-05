@@ -46,7 +46,7 @@ func simulationState(now time.Time) domain.SimulationState {
 	return domain.SimulationState{
 		Lab:          domain.LabState{EnergyBase: 100, EnergyBaseAt: now},
 		Planes:       simulationPlanes(),
-		Observers:    domain.NewObserverRoster(10, now),
+		Observers:    domain.NewObserverRoster(config.Default().ObserverCount, now),
 		NextPortalID: 1,
 		NaturalSpawn: scheduledSpawn(now, 10*time.Second),
 	}

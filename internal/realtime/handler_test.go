@@ -155,7 +155,7 @@ func realtimeSnapshot(at time.Time) persistence.Snapshot {
 			Lab:          domain.LabState{EnergyBase: 100, EnergyBaseAt: at},
 			Portals:      []domain.Portal{portal},
 			Planes:       planes,
-			Observers:    domain.NewObserverRoster(10, at),
+			Observers:    domain.NewObserverRoster(config.Default().ObserverCount, at),
 			NextPortalID: 2,
 			NaturalSpawn: domain.NaturalSpawnState{Paused: true},
 			LastTickAt:   &lastTick,

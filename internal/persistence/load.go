@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -167,7 +168,7 @@ func loadObservers(ctx context.Context, reader snapshotReader) ([]domain.Observe
 		return nil, fmt.Errorf("query observers: %w", err)
 	}
 	defer rows.Close()
-	observers := make([]domain.Observer, 0, 10)
+	observers := make([]domain.Observer, 0, config.Default().ObserverCount)
 	for rows.Next() {
 		var observer domain.Observer
 		var status string

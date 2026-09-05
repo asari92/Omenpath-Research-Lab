@@ -393,7 +393,7 @@ func TestManagerConcurrentReadsAndWrites_ReturnConsistentSnapshots(t *testing.T)
 		go func() {
 			<-start
 			state, err := manager.State(context.Background())
-			if err == nil && (len(state.Simulation.Planes) != 85 || len(state.Simulation.Observers) != 10 || len(state.Simulation.Portals) != 1) {
+			if err == nil && (len(state.Simulation.Planes) != 85 || len(state.Simulation.Observers) != config.Default().ObserverCount || len(state.Simulation.Portals) != 1) {
 				err = errors.New("torn snapshot")
 			}
 			results <- err

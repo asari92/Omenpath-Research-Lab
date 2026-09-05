@@ -21,7 +21,7 @@ func recommendationState(now time.Time) domain.SimulationState {
 	portal.ScheduledCloseAt = now.Add(time.Minute)
 	return domain.SimulationState{
 		Lab: domain.LabState{EnergyBase: 100, EnergyBaseAt: now}, Portals: []domain.Portal{portal},
-		Planes: planes, Observers: domain.NewObserverRoster(10, now), NextPortalID: 2,
+		Planes: planes, Observers: domain.NewObserverRoster(config.Default().ObserverCount, now), NextPortalID: 2,
 		NaturalSpawn: domain.NaturalSpawnState{Paused: true},
 	}
 }

@@ -32,7 +32,7 @@ func observerID(id int64) *int64 {
 func observerTickState(portal domain.Portal, observers ...domain.Observer) domain.SimulationState {
 	state := portalTickState(portal)
 	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, time.Minute)
-	state.Observers = domain.NewObserverRoster(10, testutil.BaseTime)
+	state.Observers = domain.NewObserverRoster(config.Default().ObserverCount, testutil.BaseTime)
 	for _, observer := range observers {
 		state.Observers[observer.ID-1] = observer
 	}

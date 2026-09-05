@@ -85,7 +85,7 @@ func Default() Config {
 		CreatureTransit:         2 * time.Second,
 		CreatureClearanceMargin: 2 * time.Second,
 
-		ObserverCount:      10,
+		ObserverCount:      20,
 		ObserverTransitMin: 5 * time.Second,
 		ObserverTransitMax: 15 * time.Second,
 		ResearchDuration:   20 * time.Second,

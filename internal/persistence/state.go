@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -90,7 +91,7 @@ func (s *Store) ResetTutorial(ctx context.Context, snapshot Snapshot) error {
 }
 
 func validateSnapshot(snapshot Snapshot) error {
-	if len(snapshot.Simulation.Planes) != 85 || len(snapshot.Simulation.Observers) != 10 ||
+	if len(snapshot.Simulation.Planes) != 85 || len(snapshot.Simulation.Observers) != config.Default().ObserverCount ||
 		snapshot.Simulation.NextPortalID <= 0 || !validAppMode(snapshot.App.Mode) || snapshot.App.TutorialStep < 0 ||
 		snapshot.Simulation.Lab.EnergyBase < 0 || snapshot.Simulation.Lab.EnergyBase > 100 {
 		return fmt.Errorf("invalid snapshot")

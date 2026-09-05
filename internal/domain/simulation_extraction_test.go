@@ -21,7 +21,7 @@ func extractionTickState(portals []domain.Portal, observers ...domain.Observer) 
 	state.Portals = portals
 	state.NextPortalID = int64(len(portals) + 1)
 	state.NaturalSpawn = scheduledSpawn(testutil.BaseTime, time.Minute)
-	state.Observers = domain.NewObserverRoster(10, testutil.BaseTime)
+	state.Observers = domain.NewObserverRoster(config.Default().ObserverCount, testutil.BaseTime)
 	for _, observer := range observers {
 		state.Observers[observer.ID-1] = observer
 	}

@@ -193,7 +193,7 @@ func managerSnapshot(now time.Time) persistence.Snapshot {
 		Simulation: domain.SimulationState{
 			Lab:          domain.LabState{EnergyBase: 100, EnergyBaseAt: now},
 			Planes:       planes,
-			Observers:    domain.NewObserverRoster(10, now),
+			Observers:    domain.NewObserverRoster(config.Default().ObserverCount, now),
 			NextPortalID: 1,
 			NaturalSpawn: domain.NaturalSpawnState{ScheduledAt: &scheduledAt, DueAt: &dueAt},
 			LastTickAt:   &lastTickAt,

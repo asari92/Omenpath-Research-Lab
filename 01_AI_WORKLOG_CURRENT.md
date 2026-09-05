@@ -2037,3 +2037,11 @@ PARTIAL/PLANNED до нового RED/GREEN evidence.
 cleanup остаются обязательными. Существующий untracked `omenpath.db` агент не
 удаляет и не изменяет автоматически: operator перед новым запуском явно удаляет
 или переименовывает его.
+
+### Block D corrective — DC-1 roster boundary
+
+В corrective TDD pass зафиксировано и реализовано требование ровно 20 permanent
+Observers: `config.Default().ObserverCount`, canonical persistence validation,
+bootstrap IDs 1–20, load capacity, tutorial reset fixtures и aggregate transport
+status теперь используют canonical count. Multi-lab/session semantics и UI в этот
+pass не входят.

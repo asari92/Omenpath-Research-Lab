@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -75,7 +76,7 @@ func completeSnapshot(now time.Time) Snapshot {
 		},
 	}
 
-	observers := make([]domain.Observer, 10)
+	observers := make([]domain.Observer, config.Default().ObserverCount)
 	for i := range observers {
 		observers[i] = domain.NewObserver(int64(i+1), openedAt)
 		observers[i].UpdatedAt = now

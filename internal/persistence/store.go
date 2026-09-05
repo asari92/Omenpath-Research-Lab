@@ -99,7 +99,7 @@ func (s *Store) Bootstrap(ctx context.Context, now time.Time, cfg config.Config)
 	if err := json.Unmarshal(seeddata.MTGPlanesExpandedSeed, &seed); err != nil {
 		return fmt.Errorf("decode plane seed: %w", err)
 	}
-	if len(seed.Planes) != 85 || cfg.ObserverCount != 10 || cfg.LabEnergyMax != 100 {
+	if len(seed.Planes) != 85 || cfg.ObserverCount != config.Default().ObserverCount || cfg.LabEnergyMax != 100 {
 		return fmt.Errorf("bootstrap: noncanonical configuration")
 	}
 
