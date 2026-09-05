@@ -143,7 +143,29 @@ func runServices(
 }
 
 func unexpectedServiceError(err error) error {
-	if err == nil || errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if err == nil {
+		return nil
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		unexpected := make([]error, 0, len(joined.Unwrap()))
+		for _, cause := range joined.Unwrap() {
+			if filtered := unexpectedServiceError(cause); filtered != nil {
+				unexpected = append(unexpected, filtered)
+			}
+		}
+		switch len(unexpected) {
+		case 0:
+			return nil
+		case 1:
+			return unexpected[0]
+		default:
+			return errors.Join(unexpected...)
+		}
+	}
+	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if cause := errors.Unwrap(err); cause != nil {
+			return unexpectedServiceError(cause)
+		}
 		return nil
 	}
 	return err
