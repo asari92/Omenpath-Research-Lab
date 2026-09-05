@@ -1,5 +1,5 @@
 # AI Worklog — Current
-## Stage: analysis & architecture
+## Stage: Blocks A–D / Stages 0–21 implementation
 
 > Это честный журнал процесса. Его нужно дополнять по мере реализации. Не переписывать задним числом под «идеальную историю».
 
