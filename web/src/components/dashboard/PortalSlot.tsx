@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { SlotPortalDTO } from "../../api/types";
 import { PortalActions } from "../../features/portal-actions/PortalActions";
 import { usePortalCommand } from "../../features/portal-actions/usePortalCommand";
+import { recordNavigationIntent } from "../../features/tutorial/navigation-signal";
 import { PortalEffect } from "../../portal-fx/PortalEffect";
 import { formatEnergy, formatRemaining } from "../../state/selectors";
 import styles from "./PortalSlot.module.css";
@@ -51,7 +52,14 @@ export function PortalSlot({
         portalId={portal.id}
         quickActions={portal.quick_actions}
       />
-      <Link to={`/portals/${portal.id}`}>Details</Link>
+      <Link
+        onClick={() =>
+          recordNavigationIntent({ kind: "portal", id: portal.id })
+        }
+        to={`/portals/${portal.id}`}
+      >
+        Details
+      </Link>
     </article>
   );
 }

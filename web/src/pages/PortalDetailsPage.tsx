@@ -1,11 +1,21 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useParams } from "react-router-dom";
 
 import { ApiError } from "../api/errors";
 import { createLiveResource } from "../api/live-resource";
+import { EventList } from "../components/events/EventList";
 import { DestinationFacts } from "../components/portal/DestinationFacts";
 import { Diagnostics } from "../components/portal/Diagnostics";
 import { PortalFacts } from "../components/portal/PortalFacts";
+import { PortalActions } from "../features/portal-actions/PortalActions";
+import { usePortalCommand } from "../features/portal-actions/usePortalCommand";
+import { consumeNavigationSignal } from "../features/tutorial/navigation-signal";
 import { PortalEffect } from "../portal-fx/PortalEffect";
 import {
   useSnapshotContext,
@@ -20,8 +30,11 @@ function parsePortalID(value: string | undefined): number | null {
 }
 
 function PortalDetailsResource({ id }: { id: number }) {
-  const { api } = useSnapshotContext();
+  const { api, store } = useSnapshotContext();
   const { snapshot } = useSnapshotState();
+  const [signalError, setSignalError] = useState<string | null>(null);
+  const lifecycle = useRef(0);
+  const command = usePortalCommand(id);
   const resource = useMemo(
     () => createLiveResource((signal) => api.portal(id, signal)),
     [api, id],
@@ -33,7 +46,30 @@ function PortalDetailsResource({ id }: { id: number }) {
   );
 
   useEffect(() => resource.refresh(), [resource, snapshot?.generated_at]);
-  useEffect(() => () => resource.dispose(), [resource]);
+  useEffect(() => {
+    lifecycle.current += 1;
+    const generation = lifecycle.current;
+    return () => {
+      queueMicrotask(() => {
+        if (lifecycle.current === generation) resource.dispose();
+      });
+    };
+  }, [resource]);
+  useEffect(() => {
+    const request = consumeNavigationSignal(snapshot?.app ?? null, {
+      kind: "portal",
+      id,
+    });
+    if (!request) return;
+    void api
+      .tutorialSignal(request)
+      .then((next) => store.acceptSnapshot(next))
+      .catch((error: unknown) => {
+        setSignalError(
+          error instanceof Error ? error.message : "Tutorial signal failed",
+        );
+      });
+  }, [api, id, snapshot?.app, store]);
 
   if (details.error instanceof ApiError && details.error.status === 404) {
     return <p role="alert">Portal Not Found</p>;
@@ -55,6 +91,7 @@ function PortalDetailsResource({ id }: { id: number }) {
   return (
     <>
       {details.loading && <p className={styles.refreshing}>Refreshing…</p>}
+      {signalError && <p role="status">{signalError}</p>}
       <div className={styles.hero}>
         <PortalEffect
           density="high"
@@ -70,6 +107,19 @@ function PortalDetailsResource({ id }: { id: number }) {
           risk={value.risk_level}
           recommendation={value.recommendation}
         />
+        <section>
+          <h2>History</h2>
+          <EventList events={value.history} />
+        </section>
+        <section>
+          <h2>Actions</h2>
+          <PortalActions
+            busyKey={command.busyKey}
+            onCommand={command.run}
+            portalId={id}
+            quickActions={value.portal.quick_actions}
+          />
+        </section>
       </div>
     </>
   );

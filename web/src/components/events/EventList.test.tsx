@@ -34,7 +34,9 @@ describe("EventList", () => {
       <EventList events={[event(1, "opened", { risk: "LOW", count: 2 })]} />,
     );
     const row = screen.getByTestId("event-row");
-    expect(within(row).queryByText(/"risk"/)).not.toBeInTheDocument();
+    const disclosure = within(row).getByText("Payload").closest("details");
+    expect(disclosure).not.toHaveAttribute("open");
+    expect(within(row).getByText(/"risk"/)).not.toBeVisible();
     await userEvent.setup().click(within(row).getByText("Payload"));
     expect(within(row).getByText(/"risk": "LOW"/)).toBeVisible();
   });

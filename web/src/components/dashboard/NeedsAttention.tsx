@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import type { StateSnapshot } from "../../api/types";
+import { recordNavigationIntent } from "../../features/tutorial/navigation-signal";
 import styles from "./NeedsAttention.module.css";
 
 export function NeedsAttention({ snapshot }: { snapshot: StateSnapshot }) {
@@ -12,6 +13,7 @@ export function NeedsAttention({ snapshot }: { snapshot: StateSnapshot }) {
     <Link
       aria-label={`Needs Attention: ${portal.name}`}
       className={styles.alert}
+      onClick={() => recordNavigationIntent({ kind: "portal", id: portal.id })}
       to={`/portals/${portal.id}`}
     >
       <span>Needs Attention</span>

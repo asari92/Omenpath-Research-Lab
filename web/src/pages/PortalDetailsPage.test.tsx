@@ -34,14 +34,18 @@ function apiFor(
     openExtraction: async () => snapshot,
     startTutorial: async () => snapshot,
     resetTutorial: async () => snapshot,
-    tutorialSignal: async () => snapshot,
+    tutorialSignal: vi.fn(async () => snapshot),
     startLive: async () => snapshot,
   };
 }
 
-function renderDetails(path: string, api: OmenpathApi) {
+function renderDetails(
+  path: string,
+  api: OmenpathApi,
+  initialSnapshot: StateSnapshot = snapshotAt(),
+) {
   const store = createSnapshotStore();
-  store.acceptSnapshot(snapshotAt());
+  store.acceptSnapshot(initialSnapshot);
   return render(
     <MemoryRouter initialEntries={[path]}>
       <SnapshotProvider api={api} store={store}>
@@ -195,7 +199,7 @@ describe("PortalDetailsPage", () => {
     snapshot.app.tutorial_portal_id = 42;
     const api = apiFor(portalDetails(), snapshot);
     recordNavigationIntent({ kind: "portal", id: 42 });
-    renderDetails("/portals/42", api);
+    renderDetails("/portals/42", api, snapshot);
     await screen.findByRole("heading", { name: "Diagnostics" });
     expect(api.tutorialSignal).toHaveBeenCalledOnce();
     expect(api.tutorialSignal).toHaveBeenCalledWith({
