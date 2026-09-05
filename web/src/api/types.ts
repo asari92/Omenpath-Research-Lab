@@ -1,58 +1,53 @@
-export type AppMode = 'TUTORIAL' | 'LIVE';
-export type TutorialPhase = '' | 'SEND_REPLACEMENT' | 'WAIT_RESEARCH' | 'RECALL_READY';
+export type AppMode = "TUTORIAL" | "LIVE";
+export type TutorialPhase =
+  "" | "SEND_REPLACEMENT" | "WAIT_RESEARCH" | "RECALL_READY";
 export type TutorialExpectedAction =
-  | 'COMPLETE_INTRO'
-  | 'OPEN_PORTAL_DETAILS'
-  | 'WAIT_CORRIDOR'
-  | 'SEND_OBSERVER'
-  | 'STABILIZE'
-  | 'ATTEMPT_CRITICAL_SEND'
-  | 'WAIT_RESEARCH'
-  | 'RECALL_OBSERVER'
-  | 'WAIT_RETURN'
-  | 'OPEN_EVENT_LOG'
-  | 'START_LIVE';
+  | "COMPLETE_INTRO"
+  | "OPEN_PORTAL_DETAILS"
+  | "WAIT_CORRIDOR"
+  | "SEND_OBSERVER"
+  | "STABILIZE"
+  | "ATTEMPT_CRITICAL_SEND"
+  | "WAIT_RESEARCH"
+  | "RECALL_OBSERVER"
+  | "WAIT_RETURN"
+  | "OPEN_EVENT_LOG"
+  | "START_LIVE";
 export type TutorialSignal =
-  | 'TUTORIAL_INTRO_COMPLETED'
-  | 'PORTAL_DETAILS_OPENED'
-  | 'EVENT_LOG_OPENED';
-export type PortalKind = 'NATURAL' | 'EXTRACTION';
-export type PortalStatus = 'OPEN' | 'CLOSED' | 'COLLAPSED';
-export type PortalStability = 'STABLE' | 'UNSTABLE';
-export type PortalFlow = 'NONE' | 'OUTBOUND' | 'INBOUND';
+  "TUTORIAL_INTRO_COMPLETED" | "PORTAL_DETAILS_OPENED" | "EVENT_LOG_OPENED";
+export type PortalKind = "NATURAL" | "EXTRACTION";
+export type PortalStatus = "OPEN" | "CLOSED" | "COLLAPSED";
+export type PortalStability = "STABLE" | "UNSTABLE";
+export type PortalFlow = "NONE" | "OUTBOUND" | "INBOUND";
 export type TerminationReason =
-  | ''
-  | 'NATURAL_CLOSE'
-  | 'MANUAL_CLOSE'
-  | 'ENERGY_DEPLETED'
-  | 'INSTABILITY';
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  "" | "NATURAL_CLOSE" | "MANUAL_CLOSE" | "ENERGY_DEPLETED" | "INSTABILITY";
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type Recommendation =
-  | 'LEAVE OPEN'
-  | 'STABILIZE'
-  | 'RECALL OBSERVER'
-  | 'WAIT FOR CORRIDOR'
-  | 'SEND OBSERVER'
-  | 'CLOSE';
+  | "LEAVE OPEN"
+  | "STABILIZE"
+  | "RECALL OBSERVER"
+  | "WAIT FOR CORRIDOR"
+  | "SEND OBSERVER"
+  | "CLOSE";
 export type EventType =
-  | 'PORTAL_OPENED'
-  | 'PORTAL_STABILIZED'
-  | 'PORTAL_CLOSED'
-  | 'PORTAL_COLLAPSED'
-  | 'RISK_LEVEL_CHANGED'
-  | 'OBSERVER_DISPATCHED'
-  | 'OBSERVER_ARRIVED'
-  | 'RESEARCH_STARTED'
-  | 'RESEARCH_COMPLETED'
-  | 'OBSERVER_RETURN_STARTED'
-  | 'OBSERVER_RETURNED'
-  | 'OBSERVER_LOST'
-  | 'PLANE_EXPLORED'
-  | 'EXTRACTION_PORTAL_OPENED'
-  | 'EXTRACTION_SYNCHRONIZED'
-  | 'LEYLINE_OVERRIDE_STARTED'
-  | 'LEYLINE_OVERRIDE_ENDED'
-  | 'ACTION_REJECTED';
+  | "PORTAL_OPENED"
+  | "PORTAL_STABILIZED"
+  | "PORTAL_CLOSED"
+  | "PORTAL_COLLAPSED"
+  | "RISK_LEVEL_CHANGED"
+  | "OBSERVER_DISPATCHED"
+  | "OBSERVER_ARRIVED"
+  | "RESEARCH_STARTED"
+  | "RESEARCH_COMPLETED"
+  | "OBSERVER_RETURN_STARTED"
+  | "OBSERVER_RETURNED"
+  | "OBSERVER_LOST"
+  | "PLANE_EXPLORED"
+  | "EXTRACTION_PORTAL_OPENED"
+  | "EXTRACTION_SYNCHRONIZED"
+  | "LEYLINE_OVERRIDE_STARTED"
+  | "LEYLINE_OVERRIDE_ENDED"
+  | "ACTION_REJECTED";
 
 export interface AppDTO {
   mode: AppMode;
@@ -143,7 +138,10 @@ export interface StateSnapshot {
   planes: PlaneDTO[];
 }
 
-export interface PortalViewDTO extends Omit<SlotPortalDTO, 'destination_plane_id' | 'destination_plane_name' | 'destination_explored'> {
+export interface PortalViewDTO extends Omit<
+  SlotPortalDTO,
+  "destination_plane_id" | "destination_plane_name" | "destination_explored"
+> {
   slot_index: number;
   kind: PortalKind;
   termination_reason: TerminationReason;
@@ -184,6 +182,6 @@ export interface PortalDetails {
 }
 
 export type TutorialSignalRequest =
-  | { signal: 'TUTORIAL_INTRO_COMPLETED' }
-  | { signal: 'PORTAL_DETAILS_OPENED'; portal_id: number }
-  | { signal: 'EVENT_LOG_OPENED' };
+  | { signal: "TUTORIAL_INTRO_COMPLETED" }
+  | { signal: "PORTAL_DETAILS_OPENED"; portal_id: number }
+  | { signal: "EVENT_LOG_OPENED" };

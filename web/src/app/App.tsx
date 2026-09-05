@@ -4,6 +4,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 
+import { SnapshotProvider } from "../state/SnapshotProvider";
 import { routes } from "./router";
 
 export interface AppProps {
@@ -15,5 +16,9 @@ export function App({ initialEntries }: AppProps) {
     ? createMemoryRouter(routes, { initialEntries })
     : createBrowserRouter(routes);
 
-  return <RouterProvider router={router} />;
+  return (
+    <SnapshotProvider>
+      <RouterProvider router={router} />
+    </SnapshotProvider>
+  );
 }

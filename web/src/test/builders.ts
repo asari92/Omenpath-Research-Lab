@@ -1,16 +1,19 @@
-import type { PortalDetails, StateSnapshot } from '../api/types';
+import type { PortalDetails, StateSnapshot } from "../api/types";
 
-export function snapshotAt(generatedAt = '2026-09-05T10:00:00Z', energy = 100): StateSnapshot {
+export function snapshotAt(
+  generatedAt = "2026-09-05T10:00:00Z",
+  energy = 100,
+): StateSnapshot {
   return {
     generated_at: generatedAt,
     app: {
-      mode: 'TUTORIAL',
+      mode: "TUTORIAL",
       tutorial_step: 0,
-      tutorial_phase: '',
+      tutorial_phase: "",
       tutorial_portal_id: null,
       tutorial_plane_id: null,
       tutorial_observer_id: null,
-      expected_action: 'COMPLETE_INTRO',
+      expected_action: "COMPLETE_INTRO",
     },
     lab: {
       current_energy: energy,
@@ -42,20 +45,20 @@ export function snapshotAt(generatedAt = '2026-09-05T10:00:00Z', energy = 100): 
 
 export function portalDetails(id = 42): PortalDetails {
   return {
-    generated_at: '2026-09-05T10:00:00Z',
+    generated_at: "2026-09-05T10:00:00Z",
     portal: {
       id,
       name: `Portal ${id}`,
       slot_index: 1,
-      kind: 'NATURAL',
-      status: 'OPEN',
-      termination_reason: '',
+      kind: "NATURAL",
+      status: "OPEN",
+      termination_reason: "",
       energy: 75,
-      stability: 'STABLE',
+      stability: "STABLE",
       time_remaining_seconds: 90,
       creatures_inside: 0,
-      observer_flow: 'NONE',
-      opened_at: '2026-09-05T09:59:00Z',
+      observer_flow: "NONE",
+      opened_at: "2026-09-05T09:59:00Z",
       closed_at: null,
       quick_actions: {
         can_stabilize: false,
@@ -66,16 +69,16 @@ export function portalDetails(id = 42): PortalDetails {
     },
     destination: {
       plane_id: 1,
-      name: 'Agyrem',
+      name: "Agyrem",
       aliases: [],
-      catalog_tier: 'A',
+      catalog_tier: "A",
       explored: false,
       observers_exploring: 0,
       observers_waiting_return: 0,
       previous_connection_count: 0,
     },
-    risk_level: 'LOW',
-    recommendation: 'SEND OBSERVER',
+    risk_level: "LOW",
+    recommendation: "SEND OBSERVER",
     history: [],
   };
 }
