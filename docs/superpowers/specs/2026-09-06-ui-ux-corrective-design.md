@@ -49,7 +49,7 @@
 2. Event Log;
 3. Help;
 4. Open Extraction и Artwork Credits как глобальные действия;
-5. AI Workflow — последний пункт.
+5. AI Worklog — последний пункт.
 
 Состояние realtime отображается тематически:
 
@@ -215,7 +215,7 @@ Remaining time вычисляется из authoritative timestamps и snapshot 
 - tutorial 7-second presentation queue и two-second replacement transition;
 - terminal grayscale, Risk/Recommendation treatments;
 - connection states, action pending/success/error feedback;
-- Help navigation и AI Workflow last;
+- Help navigation и AI Worklog last;
 - Event timestamp/content order;
 - artwork coverage всех 85 Planes;
 - reduced motion.

@@ -1190,7 +1190,7 @@ Event Log
 Help
 Open Extraction
 Artwork Credits
-AI Workflow
+AI Worklog
 ```
 
 ## 31. Backend architecture
@@ -1407,7 +1407,7 @@ Must contain:
 - verification;
 - future improvements.
 
-Navigation label `AI Workflow` является последним item и ведёт на AI Worklog.
+Navigation label `AI Worklog` является последним item и ведёт на `/ai-worklog`.
 
 ### 36.1 Help
 

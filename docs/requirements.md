@@ -330,7 +330,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | UI-008 | UI | Все routes используют одну цельную magical-laboratory surface; левая zone не отделяется собственным background/frame | §30.1 |
 | UI-009 | UI | Empty Slot controls действительно disabled; команды имеют pressed/pending/success/failure feedback и не дублируются | §24.1, §29 |
 | UI-010 | UI | Tutorial overlay не сдвигает layout; без More context; skipped completed step показывается 7 sec; Back не пропускает будущие steps | §28.3 |
-| UI-011 | UI | `/help` объясняет lore и все игровые механики; `AI Workflow` — последний navigation item и ведёт на `/ai-worklog` | §30.1, §36, §36.1 |
+| UI-011 | UI | `/help` объясняет lore и все игровые механики; `AI Worklog` — последний navigation item и ведёт на `/ai-worklog` | §30.1, §36, §36.1 |
 | UI-012 | UI | Terminal Portal grayscale; UNSTABLE card red; Override меняет весь Dashboard; reduced-motion сохраняет читаемость state | §24.1, §25.1, §30.1 |
 | UI-013 | UI | Все 85 Plane artworks локальны, без card text/frame; manifest сохраняет source/artist/policy metadata | §30.1 |
 | UI-014 | UI | Dashboard и Details показывают authoritative Observer transit direction и remaining time | §5, §25.1, §35.1 |
