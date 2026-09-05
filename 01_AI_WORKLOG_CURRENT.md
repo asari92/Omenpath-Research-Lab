@@ -1670,3 +1670,58 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - `UI-003` и `RECOMMENDATION-003` теперь GREEN; frontend evidence добавлен к
   уже GREEN `EVENT-004` и `TUTORIAL-010`. Stage 18 ещё не начат; Block E не
   начат.
+
+## Stage 18 — Extraction, confirmations and errors via TDD (2026-09-05)
+
+### Реализованный scope
+
+- State PlaneDTO additive расширен derived-полями `observers_in_plane` и
+  `observers_waiting_return`. Один observer pass считает EXPLORING,
+  WAITING_RETURN и RETURNING как присутствующих; waiting — точное подмножество.
+  OUTBOUND/AVAILABLE/LOST и другой Plane не учитываются; неизвестный Plane ID —
+  invariant error. Persistence schema не менялась.
+- Shared shell открывает Extraction chooser независимо от предсказанной
+  eligibility. Он показывает все 85 Plane с локальными изображениями,
+  name/alias search, четыре mutually-exclusive фильтра, explored/in-plane/
+  waiting badges, текущую Lab Energy и точную цену 30.
+- Submit отправляет один positive `plane_id`; success принимает authoritative
+  snapshot и закрывает dialog, а 404/409/network feedback сохраняет выбор.
+  Focus удерживается в dialog, Escape отменяет без POST; длинный список
+  прокручивается отдельно от всегда доступного footer.
+- Общий FeedbackProvider гарантирует один confirm modal и ordered toast queue.
+  Confirmable 409 повторяет точный command/id с `confirm=true`; cancel не
+  отправляет второй запрос и возвращает focus. Non-confirmable failure очищает
+  busy state. ConnectionState объявляет offline/reconnecting/connected и
+  позволяет retry без удаления последнего snapshot.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 18A Plane presence | `ca3ddb6` | PlaneDTO не содержал derived observer presence fields | `3543d54` |
+| 18B Extraction chooser | `a27bc24` | отсутствовали filters, dialog и local-art chooser flow | `a2f9eb4` |
+| 18C confirmations/errors | `40812bf` | отсутствовали confirm modal, feedback provider, connection retry и confirm orchestration | `3b1b72b` |
+
+### Corrections и verification
+
+- Focused backend run без escalation дошёл до WebSocket tests и упал только на
+  sandbox запрете loopback listener; идентичный run с локальными sockets прошёл.
+- Первый local-art assertion ожидал `/assets/planes/`, но канонический manifest
+  использует `/planes/`; исправлен тест, не resolver.
+- Первый Extraction E2E жёстко ожидал отсутствующее в seed имя `Agyrem`; тест
+  стал выбирать первую authoritative карточку. Следующий E2E выявил реальный
+  Grid overflow: список вытеснял footer. Явная `minmax(0,1fr)` строка оставляет
+  прокрутку только списку, повторный desktop/phone run прошёл.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test` — 21 files, 78 tests PASS.
+- Stage 18 browser suite — 8 PASS, 2 intentional project skips.
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- Extraction UI evidence добавлен к `EXTRACTION-*`/`API-008`, confirm/error — к
+  `API-010/011`; `UI-001..003` остаются GREEN. Stage 19 ещё не начат; Block E
+  не начат.
