@@ -1275,6 +1275,11 @@ Session rows хранят только hash opaque token, `lab_id`, expiry и la
 Raw session token не сохраняется. Expired laboratory удаляется каскадно после
 проверки, что session не была продлена конкурентным request.
 
+Migration переносит существующий singleton state в специальную legacy
+laboratory. Первый request без cookie атомарно присоединяет новую session к
+ещё не занятой legacy laboratory; только последующие посетители получают новый
+canonical bootstrap. Так upgrade не делает существующий progress недоступным.
+
 Do not update derived realtime fields each second.
 
 Persist meaningful transitions and baselines.
@@ -1370,9 +1375,9 @@ database                   token hash only
 laboratory. Expired/cleared cookie создаёт новую игру; перенос progress между
 devices без общей session не поддерживается.
 
-Activity означает успешный REST request либо живое WebSocket connection.
-Connected WebSocket не позволяет cleanup удалить laboratory; session renewal
-обновляется с bounded interval, а не database write на каждый tick.
+Activity означает успешно разрешённый REST request либо WebSocket handshake.
+Уже connected WebSocket не позволяет cleanup удалить laboratory до disconnect,
+но не выполняет database write на каждый tick.
 
 Все REST routes и `/ws/lab` проходят одну session resolution boundary. В
 WebSocket client регистрируется только в Hub соответствующего `lab_id`.
@@ -1456,6 +1461,13 @@ OBSERVER_COUNT = 20
 OBSERVER_TRANSIT_MIN = 5
 OBSERVER_TRANSIT_MAX = 15
 RESEARCH_DURATION = 20
+
+SESSION_TTL = 30 days
+SESSION_REFRESH_INTERVAL = 12 hours
+SESSION_CLEANUP_INTERVAL = 1 hour
+SESSION_TOKEN_BYTES = 32
+LAB_ID_BYTES = 16
+SESSION_COOKIE_NAME = omenpath_session
 
 LAB_ENERGY_MAX = 100
 LAB_REGEN_PER_SEC = 1

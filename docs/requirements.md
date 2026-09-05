@@ -344,17 +344,18 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | PERSIST-003 | BEH | Persist meaningful transitions and baselines | §34 |
 | PERSIST-004 | BEH | Restart recovery из persisted state | Roadmap Stage 10 |
 | PERSIST-005 | INV | Каждый tenant-owned read/write scoped по `lab_id`; keys/FKs не допускают cross-lab references | §34, §39 |
-| PERSIST-006 | BEH | Existing singleton state мигрирует в legacy lab; expired lab удаляется каскадно без race с renewal/action | §34, §35.1 |
+| PERSIST-006 | BEH | Existing singleton state мигрирует в claimable legacy lab для первой anonymous session; expired lab удаляется каскадно без race с renewal/action | §34, §35.1 |
 
 ### SESSION
 
 | ID | Type | Rule | Spec |
 |---|---|---|---|
 | SESSION-001 | BEH | Первый request без valid cookie атомарно создаёт lab, bootstrap state и anonymous session | §35.1 |
-| SESSION-002 | BEH | Session имеет sliding expiry 30 days; REST/active WS считаются activity; browser restart сохраняет игру, expired/cleared cookie начинает новую | §35.1 |
+| SESSION-002 | BEH | Session имеет sliding expiry 30 days; REST/WS handshake считаются activity, active WS защищает от cleanup; browser restart сохраняет игру | §35.1, §37 |
 | SESSION-003 | SEC | Cookie `HttpOnly`, `SameSite=Lax`, production `Secure`; token содержит ≥256 bits entropy и хранится только как hash | §35.1, §39 |
 | SESSION-004 | INV | Один browser profile/tabs используют одну lab; другой profile/device получает изолированную lab | §35.1 |
 | SESSION-005 | BEH | Background cleanup удаляет expired sessions/labs и не удаляет конкурентно продлённую active lab | §34, §35.1 |
+| SESSION-006 | BAL | Refresh не чаще 12 hours; cleanup каждый 1 hour; token 32 random bytes; lab ID 16 random bytes; cookie `omenpath_session` | §37 |
 
 ---
 
