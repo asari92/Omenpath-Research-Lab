@@ -1769,3 +1769,57 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - `go test -count=1 ./...` — PASS.
 - `UI-004` теперь GREEN; frontend evidence добавлен к `EVENT-005`, `EVENT-011`
   и `TUTORIAL-010`. Stage 20 ещё не начат; Block E не начат.
+
+## Stage 20 — Tutorial UI via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Persistent non-blocking Tutorial panel показывает authoritative step/phase,
+  target IDs, одно текущее действие и порционную English copy для всех шагов
+  0–9. Step 0 ограничен lore/interface/lab overview; цены, риски, направления
+  и lifecycle объясняются только на соответствующих шагах.
+- Точный target Slot и требуемая команда подсвечиваются без сортировки карточек.
+  SEND на CRITICAL force-enabled только для matching
+  `ATTEMPT_CRITICAL_SEND` target и только при причине
+  `PORTAL_CRITICAL_RISK`; другие step/portal/reason не получают исключения.
+- BEGIN PRACTICE, TRY SEND, Reset и START LIVE используют обычные backend
+  endpoints/signals и shared command locks. Frontend не двигает Tutorial
+  локально. Ожидаемый critical 409 не превращается в общий error toast, а UI
+  ждёт последующий authoritative WebSocket snapshot.
+- Reset требует явного подтверждения последствий. Tutorial panel исчезает
+  только после принятия snapshot с mode `LIVE`.
+- Реальный Playwright journey прошёл Step 0→9→Live за 54.8 s без
+  `waitForTimeout`: в конце 0/7 OPEN Portals, а Energy, Events, Observers,
+  exploration и Plane state сохраняют continuity.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 20A guidance/panel | `ff48bbd` | отсутствовали таблица contextual copy, persistent panel и target outline | `a5d1493` |
+| 20B actions/journey | `81eed80` | отсутствовали CTA orchestration, exact critical override, reset/live handoff и browser journey | `e0e9e9a` |
+
+### Corrections и verification
+
+- Первый guidance run выявил несколько слишком неточных English формулировок
+  и скрытый первый paragraph в collapsed disclosure; copy и видимая структура
+  приведены к проверяемому смыслу плана.
+- Double-click fixture сначала возвращал нереалистичный Step 0 snapshot после
+  успешного intro. Он исправлен на реальный Step 1 response; command lock и
+  authoritative expected action предотвращают повторный POST.
+- Первый Go suite без специального cache упёрся в read-only системный cache, а
+  sandbox-run — в запрет loopback `httptest`; повтор с cache в `/tmp` и
+  разрешёнными local sockets прошёл без изменения кода.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run test` — 27 files, 111 tests PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test:e2e -- tutorial.spec.ts` — 1 desktop PASS in
+  54.8 s, 1 intentional phone skip.
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- `TUTORIAL-016` и `TUTORIAL-019` теперь GREEN; frontend evidence добавлен к
+  lifecycle/signal/reset/live rows. Stage 21 ещё не начат; Block E не начат.
