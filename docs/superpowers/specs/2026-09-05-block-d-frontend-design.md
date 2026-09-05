@@ -11,10 +11,15 @@ It defines presentation and frontend integration choices for Block D without
 changing gameplay semantics completed in Stages 0–14. The implementation must
 consume the existing REST, WebSocket, Tutorial, Event and persistence contracts.
 
-One narrow corrective transport extension is approved for Stage 15: the backend
-will expose a machine-readable reason when a quick command is unavailable. This
-does not alter command rules. It makes the existing backend rules explainable in
-the UI without sending a rejected command merely to learn why it would fail.
+Two narrow additive transport extensions support approved UI behavior without
+changing gameplay rules:
+
+1. Stage 15 exposes a machine-readable reason when a quick command is
+   unavailable. This makes existing backend rules explainable without sending a
+   rejected command merely to learn why it would fail.
+2. Stage 18 adds authoritative current Observer presence counts to each Plane
+   item used by the Extraction chooser. This avoids reconstructing current state
+   from historical Events in the browser.
 
 Block E and its delivery work remain out of scope.
 
@@ -274,6 +279,25 @@ errors become a toast and optional inline action message. Network errors preserv
 the authoritative screen and offer retry. `401` handling is not invented because
 authentication is outside the Final Spec.
 
+### 7.4 Additive Plane presence contract
+
+`PlaneDTO` keeps its existing fields and adds:
+
+```json
+{
+  "observers_in_plane": 2,
+  "observers_waiting_return": 1
+}
+```
+
+`observers_in_plane` counts Observers whose current Plane ID matches the Plane,
+including EXPLORING, WAITING_RETURN and RETURNING until a successful return.
+`observers_waiting_return` is the actionable subset used to explain Extraction
+choices. Both values are derived from the same resolved snapshot as the rest of
+`StateSnapshot`; they are not persisted columns and do not alter observer
+lifecycle. The Extraction chooser uses these fields for badges and the
+`OBSERVER PRESENT` filter.
+
 ## 8. Screens and features by stage
 
 ### Stage 15 — Frontend foundation
@@ -303,6 +327,10 @@ Plane choices use the same artwork resolver and support search plus `ALL`,
 `UNEXPLORED`, `EXPLORED` and `OBSERVER PRESENT` filters. A card shows Plane name,
 exploration state and Observer presence. Selection clearly shows the 30 Energy
 cost before submission. Backend state and errors remain authoritative.
+
+Before the chooser consumes Observer badges, Stage 18 performs the additive
+`PlaneDTO` presence pass described in §7.4 and proves that the derived counts use
+the same snapshot timestamp as the rest of the response.
 
 This stage completes reusable confirmation, toast, inline, reconnect and not-found
 states across Dashboard and Details.
