@@ -9,6 +9,14 @@ import "time"
 
 // Config holds all tunable balance parameters.
 type Config struct {
+	// Anonymous laboratory sessions (Final Spec §§35.1, 37).
+	SessionTTL             time.Duration
+	SessionRefreshInterval time.Duration
+	SessionCleanupInterval time.Duration
+	SessionTokenBytes      int
+	LabIDBytes             int
+	SessionCookieName      string
+
 	// Slots & natural spawn.
 	MaxActivePortals int
 	SpawnDelayMin    time.Duration
@@ -65,9 +73,15 @@ type Config struct {
 // Default returns the balance values fixed by Final Spec §37.
 func Default() Config {
 	return Config{
-		MaxActivePortals: 7,
-		SpawnDelayMin:    0,
-		SpawnDelayMax:    20 * time.Second,
+		SessionTTL:             30 * 24 * time.Hour,
+		SessionRefreshInterval: 12 * time.Hour,
+		SessionCleanupInterval: time.Hour,
+		SessionTokenBytes:      32,
+		LabIDBytes:             16,
+		SessionCookieName:      "omenpath_session",
+		MaxActivePortals:       7,
+		SpawnDelayMin:          0,
+		SpawnDelayMax:          20 * time.Second,
 
 		NaturalTTLMin: 10 * time.Second,
 		NaturalTTLMax: 300 * time.Second,

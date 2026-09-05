@@ -17,3 +17,18 @@ func TestDefault_MatchesSessionContract(t *testing.T) {
 		})
 	}
 }
+
+func TestCookieSecure_RequiresExplicitSecureInProduction(t *testing.T) {
+	for _, tc := range []struct {
+		value                  string
+		production, want, fail bool
+	}{{"", false, false, false}, {"true", true, true, false}, {"false", false, false, false}, {"false", true, false, true}, {"", true, false, true}, {"wrong", false, false, true}} {
+		got, err := CookieSecure(tc.value, tc.production)
+		if tc.fail {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		}
+	}
+}

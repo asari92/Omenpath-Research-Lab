@@ -2089,3 +2089,40 @@ HTTP/WS suites запущены с разрешёнными localhost sockets п
 Race suite остаётся обязательным на границе полного corrective block.
 PERSIST-001/005 — GREEN на persistence boundary; PERSIST-006 — PARTIAL, поскольку
 session lifecycle и race-safe expiry cleanup относятся к DC-3. UI не менялся.
+
+### Block D corrective — DC-3 anonymous session lifecycle
+
+Добавлен `internal/session`: cryptographic entropy (с injected clock/reader для
+тестов), base64url token из 32 bytes и lowercase hex LabID из 16 bytes.
+SQLite получает только SHA256 encoded raw cookie. Service возвращает raw token
+только при создании; bounded refresh возвращает `Reissue`, и будущий middleware
+переиспользует incoming cookie без сохранения token в service. Ошибки service
+не раскрывают entropy, cookie или внутренние database messages.
+
+`Store.CreateSession` использует общий private `bootstrapTx`: lab, 85 Planes,
+20 Observers, Lab/App state и session создаются одной transaction. Trigger
+failures на каждом участке и duplicate hash откатывают новый lab полностью.
+`ResolveSession` до 12h не записывает ни session, ни lab; в точности 12h
+атомарно обновляет обе expiry/last-activity пары до now+30d. На expiry incoming
+token уже недействителен и resolution создаёт новую laboratory.
+
+`ExpiredLabs` возвращает только candidates; `DeleteExpiredLab` повторно
+проверяет expiry в DELETE и каскадно удаляет данные. Stale candidate после
+успешного renewal не удаляется. Runtime idle gate/connected WS и hourly worker
+остаются DC-4: persistence helper сам по себе не обещает active-client safety.
+Добавлены шесть session defaults и parser `config.CookieSecure`, запрещающий
+production configuration без `OMENPATH_COOKIE_SECURE=true`.
+
+TDD: test-only RED `5843e2a` компилируется и падает на отсутствующих шести
+config fields и session lifecycle persistence contract. До production code
+добавлены typed service lifecycle/entropy/concurrency tests; они сначала
+зафиксировали отсутствие `New`, `Resolution` и cookie parser. Focused GREEN
+покрывает token encoding/hash lookup, expiry/refresh boundaries, rollback,
+short entropy/error redaction и 8 concurrent complete isolated labs.
+
+Verification: focused session/persistence/config suite и полный
+`go test -count=1 ./...` — PASS; `gofmt -l .` — empty;
+`go vet ./...` и `go build ./...` — PASS с
+`GOCACHE=/tmp/omenpath-dc3-go-cache.MOmtZ8` после read-only default cache.
+SESSION-006 — GREEN; SESSION-001..005 и PERSIST-006 — PARTIAL до HTTP/WS,
+cookie emission и runtime cleanup integration в DC-4. Race — на block boundary.

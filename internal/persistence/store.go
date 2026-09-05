@@ -95,11 +95,7 @@ func (s *LabRepository) Bootstrap(ctx context.Context, now time.Time, cfg config
 	if !s.valid() || now.IsZero() || now.Location() != time.UTC {
 		return fmt.Errorf("bootstrap: invalid input")
 	}
-	var seed catalogSeed
-	if err := json.Unmarshal(seeddata.MTGPlanesExpandedSeed, &seed); err != nil {
-		return fmt.Errorf("decode plane seed: %w", err)
-	}
-	if len(seed.Planes) != 85 || cfg.ObserverCount != config.Default().ObserverCount || cfg.LabEnergyMax != 100 {
+	if cfg.ObserverCount != config.Default().ObserverCount || cfg.LabEnergyMax != 100 {
 		return fmt.Errorf("bootstrap: noncanonical configuration")
 	}
 
@@ -115,8 +111,27 @@ func (s *LabRepository) Bootstrap(ctx context.Context, now time.Time, cfg config
 	if exists != 0 {
 		return tx.Commit()
 	}
+	if err := s.bootstrapTx(ctx, tx, now, cfg); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit bootstrap: %w", err)
+	}
+	return nil
+}
+
+// bootstrapTx is shared by explicit lab bootstrap and atomic session creation.
+// The caller owns the transaction; no externally visible partial lab can exist.
+func (s *LabRepository) bootstrapTx(ctx context.Context, tx *sql.Tx, now time.Time, cfg config.Config) error {
+	var seed catalogSeed
+	if err := json.Unmarshal(seeddata.MTGPlanesExpandedSeed, &seed); err != nil {
+		return fmt.Errorf("decode plane seed: %w", err)
+	}
+	if len(seed.Planes) != 85 || cfg.ObserverCount != config.Default().ObserverCount || cfg.LabEnergyMax != 100 {
+		return fmt.Errorf("bootstrap: noncanonical configuration")
+	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO labs(id, created_at, expires_at, last_active_at)
-		VALUES (?, ?, ?, ?)`, s.labID, now.UnixNano(), now.Add(30*24*time.Hour).UnixNano(), now.UnixNano()); err != nil {
+		VALUES (?, ?, ?, ?)`, s.labID, now.UnixNano(), now.Add(cfg.SessionTTL).UnixNano(), now.UnixNano()); err != nil {
 		return fmt.Errorf("insert laboratory: %w", err)
 	}
 	for _, plane := range seed.Planes {
@@ -152,9 +167,6 @@ func (s *LabRepository) Bootstrap(ctx context.Context, now time.Time, cfg config
 		VALUES (?, ?, 0, 1, NULL, NULL, 1, NULL)`, s.labID, domain.ModeTutorial,
 	); err != nil {
 		return fmt.Errorf("insert app state: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit bootstrap: %w", err)
 	}
 	return nil
 }

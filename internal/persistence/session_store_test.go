@@ -78,12 +78,16 @@ func TestSessionStore_BoundedRefreshAndConditionalCleanup(t *testing.T) {
 	require.NoError(t, api.CreateSession(ctx, id, hash, now, cfg))
 	_, err := s.db.Exec("CREATE TRIGGER no_write BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT, 'unexpected write'); END")
 	require.NoError(t, err)
+	_, err = s.db.Exec("CREATE TRIGGER no_lab_write BEFORE UPDATE ON labs BEGIN SELECT RAISE(ABORT, 'unexpected lab write'); END")
+	require.NoError(t, err)
 	got, expires, refresh, err := api.ResolveSession(ctx, hash, now.Add(12*time.Hour-time.Nanosecond), cfg)
 	require.NoError(t, err)
 	require.Equal(t, id, got)
 	require.False(t, refresh)
 	require.Equal(t, now.Add(30*24*time.Hour), expires)
 	_, err = s.db.Exec("DROP TRIGGER no_write")
+	require.NoError(t, err)
+	_, err = s.db.Exec("DROP TRIGGER no_lab_write")
 	require.NoError(t, err)
 	// Cleanup reads a candidate before a concurrent request commits its renewal.
 	candidates, err := api.ExpiredLabs(ctx, now.Add(30*24*time.Hour))
@@ -113,4 +117,41 @@ func TestSessionStore_BoundedRefreshAndConditionalCleanup(t *testing.T) {
 		require.NoError(t, s.db.QueryRow("SELECT COUNT(*) FROM "+table).Scan(&n))
 		require.Zero(t, n, table)
 	}
+}
+
+func TestSessionStore_RefreshRollsBackBothDeadlinesOnLabUpdateFailure(t *testing.T) {
+	s := openMigratedStore(t)
+	api := sessionAPI(t, s)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	id := LabID("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	hash := sha256.Sum256([]byte("token"))
+	require.NoError(t, api.CreateSession(ctx, id, hash, now, config.Default()))
+	_, err := s.db.Exec("CREATE TRIGGER no_refresh BEFORE UPDATE ON labs BEGIN SELECT RAISE(ABORT, 'injected'); END")
+	require.NoError(t, err)
+	_, _, _, err = api.ResolveSession(ctx, hash, now.Add(12*time.Hour), config.Default())
+	require.Error(t, err)
+	var sessionExpiry, labExpiry, seen, active int64
+	require.NoError(t, s.db.QueryRow(`SELECT sessions.expires_at,labs.expires_at,last_seen_at,last_active_at FROM sessions JOIN labs ON labs.id=sessions.lab_id WHERE labs.id=?`, id).Scan(&sessionExpiry, &labExpiry, &seen, &active))
+	require.Equal(t, now.Add(30*24*time.Hour).UnixNano(), sessionExpiry)
+	require.Equal(t, sessionExpiry, labExpiry)
+	require.Equal(t, now.UnixNano(), seen)
+	require.Equal(t, seen, active)
+}
+
+func TestSessionStore_DuplicateTokenCannotLeaveOrOverwriteLaboratory(t *testing.T) {
+	s := openMigratedStore(t)
+	api := sessionAPI(t, s)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	id := LabID("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	hash := sha256.Sum256([]byte("token"))
+	require.NoError(t, api.CreateSession(ctx, id, hash, now, config.Default()))
+	require.Error(t, api.CreateSession(ctx, LabID("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), hash, now, config.Default()))
+	ids, err := api.ExpiredLabs(ctx, now.Add(31*24*time.Hour))
+	require.NoError(t, err)
+	require.Equal(t, []LabID{id}, ids)
+	got, _, _, err := api.ResolveSession(ctx, hash, now, config.Default())
+	require.NoError(t, err)
+	require.Equal(t, id, got)
 }
