@@ -1428,3 +1428,62 @@ Stage 14 и Block C завершены. Stage 15 не начат; выполне
 Roadmap-аудит не меняет product semantics, requirement statuses или код.
 Block D implementation и Stage 15 всё ещё не начаты; следующий шаг — отдельный
 detailed plan Stages 15–21 после пользовательской проверки roadmap.
+
+## Block D — frontend design и detailed TDD plan (2026-09-05)
+
+### Утверждённая UX-граница
+
+- Подготовлен и пользовательски принят дизайн
+  `docs/superpowers/specs/2026-09-05-block-d-frontend-design.md`: English UI в
+  стилистике Mission Control, маршруты Dashboard / Portal Details / Event Log /
+  AI Worklog и единый authoritative client store поверх REST + WebSocket.
+- Dashboard всегда показывает все семь фиксированных Portal Slots без
+  горизонтального или вертикального scrolling самих slots: desktop layout
+  `4 + 3`, phone command-board layout `2 x 4` с центрированным Slot 7.
+- В каждом slot постоянно видны четыре gameplay-команды: STABILIZE, CLOSE,
+  SEND OBSERVER и RECALL OBSERVER. DETAILS остаётся навигацией. Недоступная
+  команда сохраняет кликабельное объяснение причины, но не отправляет POST.
+- Tutorial Step 5 является намеренным исключением: ожидаемый
+  `ATTEMPT_CRITICAL_SEND` даёт кнопку `TRY SEND`, которая выполняет реальный
+  отклоняемый запрос, создаёт `ACTION_REJECTED` и позволяет backend state
+  machine продвинуть обучение без UI soft-lock.
+- Portal visual использует локальный Plane artwork и Canvas 2D sparks по
+  окружности: чистое изображение внутри, без внутренних колец и полос. Один
+  общий animation scheduler, лимиты частиц, pause вне viewport и статичный
+  `prefers-reduced-motion` сохраняют семь одновременно видимых Portals
+  управляемыми по производительности.
+- Extraction chooser использует локальные оптимизированные WebP assets,
+  поиск и фильтры ALL / UNEXPLORED / EXPLORED / OBSERVER PRESENT. Runtime
+  hotlink внешних изображений запрещён; manifest хранит attribution и fallback.
+- Tutorial copy распределён по действиям и system effects соответствующих
+  шагов: Step 0 даёт только lore/interface/lab orientation, а цены, risk,
+  direction, collapse и Observer outcomes объясняются тогда, когда становятся
+  practically relevant.
+
+### Доказанные integration additions
+
+- Для честного disabled-state UX Stage 15 добавляет в Portal DTO только
+  вычисляемые `can_*` и `*_reason_code`; они переиспользуют существующие
+  backend validators и не меняют gameplay semantics.
+- Для фильтра OBSERVER PRESENT Stage 18 добавляет в Plane DTO агрегаты
+  `observers_in_plane` и `observers_waiting_return`. Они вычисляются из
+  authoritative Observer state и не раскрывают hidden simulation data.
+- Portal recommendation остаётся backend-owned. Frontend отображает уже
+  определённый Stage 12 contract и не вводит собственный decision algorithm.
+- Изменения transport contract выполняются как отдельные RED/GREEN TDD
+  checkpoints внутри соответствующей стадии и сопровождаются traceability.
+
+### Planning evidence и текущий статус
+
+- Design baseline зафиксирован commits `e0688e5`, `72fc16e`, `6076561`;
+  два последних commits закрывают соответственно observer-presence transport
+  gap и critical-send Tutorial progression.
+- Создан корневой execution plan `12_BLOCK_D_STAGE_15_21_TDD.md`. Он описывает
+  Stages 15–21 checkpoint-by-checkpoint: точные файлы, тестовые границы,
+  наблюдаемый RED, minimal GREEN, stage verification, traceability/worklog и
+  stage-level commits.
+- Локальные визуальные прототипы `.superpowers/` добавлены в `.gitignore` и не
+  являются production assets или частью Stage 15.
+- Stage 15 implementation не начат. Block E / Stage 22 не начаты и остаются
+  запрещены до полного Block D boundary verification и пользовательской
+  сверки часов.
