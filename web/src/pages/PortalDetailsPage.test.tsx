@@ -9,6 +9,10 @@ import type { PortalDetails, StateSnapshot } from "../api/types";
 import { SnapshotProvider } from "../state/SnapshotProvider";
 import { createSnapshotStore } from "../state/snapshot-store";
 import { portalDetails, snapshotAt } from "../test/builders";
+import {
+  recordNavigationIntent,
+  resetNavigationIntentForTests,
+} from "../features/tutorial/navigation-signal";
 import { PortalDetailsPage } from "./PortalDetailsPage";
 
 function apiFor(
@@ -141,5 +145,63 @@ describe("PortalDetailsPage", () => {
       .setup()
       .click(screen.getByRole("button", { name: "Retry" }));
     expect(api.portal).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders API-provided History in order and the same four actions", async () => {
+    const details = portalDetails();
+    details.history = [
+      {
+        id: 2,
+        event_type: "PORTAL_STABILIZED",
+        portal_id: 42,
+        observer_id: null,
+        plane_id: 1,
+        message: "second",
+        payload_json: {},
+        created_at: "2026-09-05T10:00:02Z",
+      },
+      {
+        id: 1,
+        event_type: "PORTAL_OPENED",
+        portal_id: 42,
+        observer_id: null,
+        plane_id: 1,
+        message: "first",
+        payload_json: {},
+        created_at: "2026-09-05T10:00:01Z",
+      },
+    ];
+    renderDetails("/portals/42", apiFor(details));
+    expect(
+      await screen.findByRole("heading", { name: "History" }),
+    ).toBeVisible();
+    expect(
+      screen.getAllByTestId("event-row").map((row) => row.textContent),
+    ).toEqual([
+      expect.stringContaining("second"),
+      expect.stringContaining("first"),
+    ]);
+    expect(
+      screen.getAllByRole("button", {
+        name: /stabilize|close|send observer|recall observer/i,
+      }),
+    ).toHaveLength(4);
+  });
+
+  it("emits one matching signal from explicit intent and none on direct load", async () => {
+    resetNavigationIntentForTests();
+    const snapshot = snapshotAt();
+    snapshot.app.expected_action = "OPEN_PORTAL_DETAILS";
+    snapshot.app.tutorial_portal_id = 42;
+    const api = apiFor(portalDetails(), snapshot);
+    recordNavigationIntent({ kind: "portal", id: 42 });
+    renderDetails("/portals/42", api);
+    await screen.findByRole("heading", { name: "Diagnostics" });
+    expect(api.tutorialSignal).toHaveBeenCalledOnce();
+    expect(api.tutorialSignal).toHaveBeenCalledWith({
+      signal: "PORTAL_DETAILS_OPENED",
+      portal_id: 42,
+    });
+    resetNavigationIntentForTests();
   });
 });
