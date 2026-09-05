@@ -2314,3 +2314,8 @@ Event Log and Live. No command or recommendation-engine semantics changed.
 Verification: focused 21 tests, full frontend 35 files / 152 tests,
 typecheck/lint/build PASS; responsive Details browser tests 6/6 PASS, including
 all facts/actions inside viewport and expanded History-only scrolling.
+
+DC-7 follow-up: expanded Help regression covers all ten numbered Tutorial steps
+in canonical order. Observed RED caught the compressed/misnumbered recap tail;
+GREEN separates Step 6 RECALL/RETURNING, Step 7 wait/AVAILABLE+EXPLORED,
+Step 8 Event Log and Step 9 Live. Focused Help regression PASS.

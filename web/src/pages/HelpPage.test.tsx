@@ -44,6 +44,9 @@ it("provides every field-guide chapter and concrete mechanics", () => {
     name: "Tutorial recap",
   }).parentElement;
   expect(recap).toHaveTextContent(
-    /Step 3.*SEND.*Step 4.*STABILIZE.*Step 5.*CRITICAL/,
+    /Step 0.*introduction.*Step 1.*Details.*Step 2.*creatures.*Step 3.*SEND.*OUTBOUND.*Step 4.*STABILIZE.*Step 5.*CRITICAL.*Step 6.*RECALL.*RETURNING.*Step 7.*Wait.*AVAILABLE.*EXPLORED.*Step 8.*Event Log.*Step 9.*Live/,
+  );
+  expect(recap?.textContent?.match(/Step \d+/g)).toEqual(
+    Array.from({ length: 10 }, (_, index) => `Step ${index}`),
   );
 });
