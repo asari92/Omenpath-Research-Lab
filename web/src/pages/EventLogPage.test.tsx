@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -9,6 +9,10 @@ import { SnapshotProvider } from "../state/SnapshotProvider";
 import { createSnapshotStore } from "../state/snapshot-store";
 import { snapshotAt } from "../test/builders";
 import { EventLogPage } from "./EventLogPage";
+import {
+  recordNavigationIntent,
+  resetNavigationIntentForTests,
+} from "../features/tutorial/navigation-signal";
 
 function event(id: number, type: EventType): EventDTO {
   return {
@@ -23,13 +27,15 @@ function event(id: number, type: EventType): EventDTO {
   };
 }
 
-function setup(events: readonly EventDTO[]) {
-  const snapshot = snapshotAt();
+function setup(events: readonly EventDTO[], snapshot = snapshotAt()) {
   const store = createSnapshotStore();
   store.acceptSnapshot(snapshot);
+  const eventsRequest = vi.fn(async () => [...events]);
+  const tutorialSignal = vi.fn(async () => snapshot);
   const api = {
     state: async () => snapshot,
-    events: vi.fn(async () => [...events]),
+    events: eventsRequest,
+    tutorialSignal,
   } as unknown as OmenpathApi;
   const view = render(
     <MemoryRouter>
@@ -38,7 +44,7 @@ function setup(events: readonly EventDTO[]) {
       </SnapshotProvider>
     </MemoryRouter>,
   );
-  return { ...view, api, store };
+  return { ...view, api, store, eventsRequest, tutorialSignal };
 }
 
 describe("EventLogPage", () => {
@@ -68,5 +74,63 @@ describe("EventLogPage", () => {
       .setup()
       .click(screen.getByRole("button", { name: "Clear filters" }));
     expect(screen.getByTestId("event-row")).toHaveTextContent("message 1");
+  });
+
+  it("coalesces realtime edges and aborts the route request on unmount", async () => {
+    let resolveFirst!: (events: EventDTO[]) => void;
+    const signals: AbortSignal[] = [];
+    const eventsRequest = vi
+      .fn()
+      .mockImplementationOnce((signal: AbortSignal) => {
+        signals.push(signal);
+        return new Promise<EventDTO[]>((resolve) => {
+          resolveFirst = resolve;
+        });
+      })
+      .mockImplementationOnce((signal: AbortSignal) => {
+        signals.push(signal);
+        return new Promise<EventDTO[]>(() => undefined);
+      });
+    const snapshot = snapshotAt();
+    const store = createSnapshotStore();
+    store.acceptSnapshot(snapshot);
+    const api = {
+      state: async () => snapshot,
+      events: eventsRequest,
+    } as unknown as OmenpathApi;
+    const view = render(
+      <MemoryRouter>
+        <SnapshotProvider api={api} store={store}>
+          <EventLogPage />
+        </SnapshotProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(eventsRequest).toHaveBeenCalledOnce());
+    act(() => {
+      store.acceptSnapshot(snapshotAt("2026-09-05T10:00:01Z"));
+      store.acceptSnapshot(snapshotAt("2026-09-05T10:00:02Z"));
+      store.acceptSnapshot(snapshotAt("2026-09-05T10:00:03Z"));
+    });
+    resolveFirst([event(1, "PORTAL_OPENED")]);
+    await waitFor(() => expect(eventsRequest).toHaveBeenCalledTimes(2));
+    view.unmount();
+    await Promise.resolve();
+    expect(signals.at(-1)?.aborted).toBe(true);
+  });
+
+  it("emits one matching Event Log signal and direct loads emit none", async () => {
+    resetNavigationIntentForTests();
+    const snapshot = snapshotAt();
+    snapshot.app.tutorial_step = 8;
+    snapshot.app.expected_action = "OPEN_EVENT_LOG";
+    recordNavigationIntent({ kind: "events" });
+    const first = setup([], snapshot);
+    await screen.findByText("No events recorded yet.");
+    await waitFor(() => expect(first.tutorialSignal).toHaveBeenCalledOnce());
+    first.unmount();
+    const direct = setup([], snapshot);
+    await screen.findByText("No events recorded yet.");
+    expect(direct.tutorialSignal).not.toHaveBeenCalled();
+    resetNavigationIntentForTests();
   });
 });

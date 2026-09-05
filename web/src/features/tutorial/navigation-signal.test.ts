@@ -53,4 +53,18 @@ describe("navigation signal", () => {
       consumeNavigationSignal(expectedDetails(42), { kind: "portal", id: 42 }),
     ).toBeNull();
   });
+
+  it("matches Event Log only at the expected Tutorial step", () => {
+    const app = {
+      ...expectedDetails(42),
+      tutorial_step: 8,
+      expected_action: "OPEN_EVENT_LOG" as const,
+    };
+    expect(matchingNavigationSignal(app, { kind: "events" })).toEqual({
+      signal: "EVENT_LOG_OPENED",
+    });
+    expect(
+      matchingNavigationSignal(expectedDetails(42), { kind: "events" }),
+    ).toBeNull();
+  });
 });
