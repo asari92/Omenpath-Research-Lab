@@ -98,6 +98,8 @@ export interface PlaneDTO {
   catalog_tier: string;
   explored: boolean;
   explored_at: string | null;
+  observers_in_plane: number;
+  observers_waiting_return: number;
 }
 
 export interface QuickActionsDTO {

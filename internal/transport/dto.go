@@ -57,12 +57,14 @@ type PortalCountsDTO struct {
 }
 
 type PlaneDTO struct {
-	ID          int64      `json:"id"`
-	Name        string     `json:"name"`
-	Aliases     []string   `json:"aliases"`
-	CatalogTier string     `json:"catalog_tier"`
-	Explored    bool       `json:"explored"`
-	ExploredAt  *time.Time `json:"explored_at"`
+	ID                     int64      `json:"id"`
+	Name                   string     `json:"name"`
+	Aliases                []string   `json:"aliases"`
+	CatalogTier            string     `json:"catalog_tier"`
+	Explored               bool       `json:"explored"`
+	ExploredAt             *time.Time `json:"explored_at"`
+	ObserversInPlane       int        `json:"observers_in_plane"`
+	ObserversWaitingReturn int        `json:"observers_waiting_return"`
 }
 
 type QuickActionsDTO struct {
@@ -158,6 +160,7 @@ type PortalDetails struct {
 func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config.Config) (StateSnapshot, error) {
 	now = now.UTC()
 	planes := make(map[int64]domain.Plane, len(snapshot.Simulation.Planes))
+	planeIndexes := make(map[int64]int, len(snapshot.Simulation.Planes))
 	result := StateSnapshot{
 		GeneratedAt: now,
 		App: AppDTO{
@@ -187,6 +190,7 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 			return StateSnapshot{}, domain.ErrSimulationInvariant
 		}
 		planes[plane.ID] = plane
+		planeIndexes[plane.ID] = len(result.Planes)
 		if plane.Explored {
 			result.Exploration.Explored++
 		}
@@ -195,6 +199,20 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 	}
 	for _, observer := range snapshot.Simulation.Observers {
 		countObserver(&result.Observers, observer.Status)
+		if observer.CurrentPlaneID == nil {
+			continue
+		}
+		index, ok := planeIndexes[*observer.CurrentPlaneID]
+		if !ok {
+			return StateSnapshot{}, domain.ErrSimulationInvariant
+		}
+		switch observer.Status {
+		case domain.ObserverExploring, domain.ObserverWaitingReturn, domain.ObserverReturning:
+			result.Planes[index].ObserversInPlane++
+			if observer.Status == domain.ObserverWaitingReturn {
+				result.Planes[index].ObserversWaitingReturn++
+			}
+		}
 	}
 	for i := range result.Slots {
 		result.Slots[i].SlotIndex = i + 1

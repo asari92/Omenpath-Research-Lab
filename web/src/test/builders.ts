@@ -1,4 +1,17 @@
-import type { PortalDetails, StateSnapshot } from "../api/types";
+import type { PlaneDTO, PortalDetails, StateSnapshot } from "../api/types";
+
+export function planeDTO(id: number, name = `Plane ${id}`): PlaneDTO {
+  return {
+    id,
+    name,
+    aliases: [],
+    catalog_tier: "core",
+    explored: false,
+    explored_at: null,
+    observers_in_plane: 0,
+    observers_waiting_return: 0,
+  };
+}
 
 export function snapshotAt(
   generatedAt = "2026-09-05T10:00:00Z",
