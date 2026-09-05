@@ -1,6 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../api/client";
 import type { SlotPortalDTO, StateSnapshot } from "../api/types";
@@ -65,6 +65,30 @@ function renderDashboard(snapshot: StateSnapshot) {
 }
 
 describe("DashboardPage", () => {
+  it("keeps a replaced tutorial target as a disabled ghost for exactly 2000ms", () => {
+    vi.useFakeTimers();
+    try {
+      const initial = snapshotAt();
+      initial.app.tutorial_step = 3;
+      initial.app.tutorial_portal_id = 1;
+      initial.slots[0].portal = portal(1, "Alara");
+      const { store } = renderDashboard(initial);
+      const next = snapshotAt("2026-09-05T10:00:01Z");
+      next.app = { ...initial.app, tutorial_portal_id: 2 };
+      next.slots[0].portal = portal(2, "Alara");
+      act(() => { store.acceptSnapshot(next); });
+      expect(store.getState().snapshot?.slots[0].portal?.id).toBe(2);
+      const ghost = screen.getByTestId("portal-ghost");
+      expect(ghost).toHaveTextContent("Omenpath #0001");
+      expect(within(ghost).queryByRole("link")).not.toBeInTheDocument();
+      for (const button of within(ghost).getAllByRole("button")) expect(button).toBeDisabled();
+      act(() => { vi.advanceTimersByTime(1999); });
+      expect(screen.getByTestId("portal-ghost")).toBeInTheDocument();
+      act(() => { vi.advanceTimersByTime(1); });
+      expect(screen.queryByTestId("portal-ghost")).not.toBeInTheDocument();
+      expect(screen.getAllByTestId("portal-slot")[0]).toHaveTextContent("Omenpath #0002");
+    } finally { vi.useRealTimers(); }
+  });
   it("shows the scoped transit and whole-card instability while empty commands are disabled", () => {
     const snapshot = snapshotAt();
     snapshot.slots[0].portal = portal(1, "Alara");

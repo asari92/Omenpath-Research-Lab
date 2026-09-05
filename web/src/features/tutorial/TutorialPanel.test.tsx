@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -10,7 +10,7 @@ import { snapshotAt } from "../../test/builders";
 import { TutorialPanel } from "./TutorialPanel";
 
 beforeEach(() => vi.stubGlobal("WebSocket", undefined));
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 function setup(
   step: number,
@@ -126,4 +126,50 @@ it("START LIVE removes the panel only after an authoritative LIVE snapshot", asy
   expect(
     screen.queryByRole("complementary", { name: "Tutorial" }),
   ).not.toBeInTheDocument();
+});
+
+it("shows all context, system action and completion without expandable copy", () => {
+  setup(1);
+  expect(screen.queryByText("More context")).not.toBeInTheDocument();
+  expect(screen.getByText(/Portal Details explains/)).toBeVisible();
+  expect(screen.getByText(/System:/)).toBeVisible();
+  expect(screen.getByText(/Complete when:/)).toBeVisible();
+});
+
+it("replays a skipped Step 2 for exactly seven seconds without delaying the snapshot", () => {
+  vi.useFakeTimers();
+  const { store, api } = setup(1);
+  const next = snapshotAt("2026-09-05T10:00:02Z");
+  next.app.tutorial_step = 3;
+  act(() => { store.acceptSnapshot(next); });
+  expect(store.getState().snapshot?.app.tutorial_step).toBe(3);
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Completed");
+  act(() => { vi.advanceTimersByTime(6999); });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+  act(() => { vi.advanceTimersByTime(1); });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+  fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+  expect(screen.getByRole("button", { name: "Forward" })).toBeDisabled();
+  expect(api.tutorialSignal).not.toHaveBeenCalled();
+});
+
+it("normal sequential progress is immediate and reset cancels replay timers and history", () => {
+  vi.useFakeTimers();
+  const { store } = setup(2);
+  const next = snapshotAt("2026-09-05T10:00:02Z");
+  next.app.tutorial_step = 3;
+  act(() => { store.acceptSnapshot(next); });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+  const jump = snapshotAt("2026-09-05T10:00:03Z");
+  jump.app.tutorial_step = 6;
+  act(() => { store.acceptSnapshot(jump); });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 4");
+  act(() => { store.acceptSnapshot(snapshotAt("2026-09-05T10:00:04Z")); });
+  act(() => { vi.advanceTimersByTime(30000); });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 0");
+  expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
 });
