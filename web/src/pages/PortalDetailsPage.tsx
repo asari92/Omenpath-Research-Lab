@@ -26,6 +26,7 @@ import {
   useSnapshotState,
 } from "../state/SnapshotProvider";
 import styles from "./PortalDetailsPage.module.css";
+import { commandsEnabled } from "../state/command-health";
 
 function parsePortalID(value: string | undefined): number | null {
   if (!value || !/^\d+$/.test(value)) return null;
@@ -35,7 +36,9 @@ function parsePortalID(value: string | undefined): number | null {
 
 function PortalDetailsResource({ id }: { id: number }) {
   const { api, store } = useSnapshotContext();
-  const { snapshot } = useSnapshotState();
+  const snapshotState = useSnapshotState();
+  const { snapshot } = snapshotState;
+  const enabled = commandsEnabled(snapshotState);
   const [signalError, setSignalError] = useState<string | null>(null);
   const lifecycle = useRef(0);
   const command = usePortalCommand(id);
@@ -60,6 +63,7 @@ function PortalDetailsResource({ id }: { id: number }) {
     };
   }, [resource]);
   useEffect(() => {
+    if (!commandsEnabled(store.getState())) return;
     const request = consumeNavigationSignal(snapshot?.app ?? null, {
       kind: "portal",
       id,
@@ -73,7 +77,7 @@ function PortalDetailsResource({ id }: { id: number }) {
           error instanceof Error ? error.message : "Tutorial signal failed",
         );
       });
-  }, [api, id, snapshot?.app, store]);
+  }, [api, id, snapshot?.app, store, enabled]);
 
   if (details.error instanceof ApiError && details.error.status === 404) {
     return <p role="alert">Portal Not Found</p>;
@@ -119,6 +123,8 @@ function PortalDetailsResource({ id }: { id: number }) {
         <section>
           <h2>Actions</h2>
           <PortalActions
+            offline={!enabled}
+            outcome={command.outcome}
             busyKey={command.busyKey}
             expectedCriticalSend={
               snapshot ? isExpectedCriticalSend(snapshot.app, id) : false

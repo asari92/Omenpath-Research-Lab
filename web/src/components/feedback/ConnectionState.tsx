@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { connectionHealth } from "../../state/command-health";
 
 import {
   useSnapshotContext,
@@ -7,21 +8,18 @@ import {
 
 export function ConnectionState() {
   const { api, store } = useSnapshotContext();
-  const { bootstrap, connection, protocolError } = useSnapshotState();
+  const state = useSnapshotState();
+  const { bootstrap, protocolError } = state;
+  const health = connectionHealth(state);
   const [retrying, setRetrying] = useState(false);
   const failed = bootstrap === "failed" || protocolError !== null;
   return (
-    <aside
-      aria-label="Connection state"
-      data-connection={
-        failed || connection === "offline" ? "disconnected" : connection
-      }
-    >
+    <aside aria-label="Connection state" data-connection={health}>
       <p aria-live="polite" role="status">
         <span aria-hidden="true">● </span>
-        {failed || connection === "offline"
+        {health === "disconnected"
           ? "Disconnected from the planes"
-          : connection === "connected"
+          : health === "connected"
             ? "Planar link stable"
             : "Planar paths unstable"}
       </p>

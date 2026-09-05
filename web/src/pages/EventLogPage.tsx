@@ -20,6 +20,7 @@ import {
   useSnapshotState,
 } from "../state/SnapshotProvider";
 import styles from "./EventLogPage.module.css";
+import { commandsEnabled } from "../state/command-health";
 
 const emptyFilter: EventFilter = {
   eventTypes: new Set(),
@@ -30,7 +31,9 @@ const emptyFilter: EventFilter = {
 
 export function EventLogPage() {
   const { api, store } = useSnapshotContext();
-  const { snapshot } = useSnapshotState();
+  const snapshotState = useSnapshotState();
+  const { snapshot } = snapshotState;
+  const enabled = commandsEnabled(snapshotState);
   const feedback = useFeedback();
   const [filter, setFilter] = useState<EventFilter>(emptyFilter);
   const lifecycle = useRef(0);
@@ -53,6 +56,7 @@ export function EventLogPage() {
       });
   }, [resource]);
   useEffect(() => {
+    if (!commandsEnabled(store.getState())) return;
     const request = consumeNavigationSignal(snapshot?.app ?? null, {
       kind: "events",
     });
@@ -65,7 +69,7 @@ export function EventLogPage() {
           error instanceof Error ? error.message : "Tutorial signal failed",
         ),
       );
-  }, [api, feedback, snapshot?.app, store]);
+  }, [api, feedback, snapshot?.app, store, enabled]);
 
   const visible = filterEvents(state.data ?? [], filter);
   return (

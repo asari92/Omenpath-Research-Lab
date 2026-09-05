@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../../api/client";
 import { ApiError } from "../../api/errors";
@@ -9,6 +9,9 @@ import { createSnapshotStore } from "../../state/snapshot-store";
 import { planeDTO, snapshotAt } from "../../test/builders";
 import { ExtractionDialog } from "./ExtractionDialog";
 
+beforeEach(() => vi.stubGlobal("WebSocket", undefined));
+afterEach(() => vi.unstubAllGlobals());
+
 function setup(result = snapshotAt("2026-09-05T10:00:01Z")) {
   const initial = snapshotAt();
   initial.planes = Array.from({ length: 85 }, (_, index) =>
@@ -16,6 +19,7 @@ function setup(result = snapshotAt("2026-09-05T10:00:01Z")) {
   );
   const store = createSnapshotStore();
   store.acceptSnapshot(initial);
+  store.setConnection("connected");
   const openExtraction = vi.fn(async () => {
     if (result instanceof Error) throw result;
     return result;

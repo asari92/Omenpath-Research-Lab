@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../api/client";
 import type { EventDTO, EventType } from "../api/types";
@@ -13,6 +13,9 @@ import {
   recordNavigationIntent,
   resetNavigationIntentForTests,
 } from "../features/tutorial/navigation-signal";
+
+beforeEach(() => vi.stubGlobal("WebSocket", undefined));
+afterEach(() => vi.unstubAllGlobals());
 
 function event(id: number, type: EventType): EventDTO {
   return {
@@ -30,6 +33,7 @@ function event(id: number, type: EventType): EventDTO {
 function setup(events: readonly EventDTO[], snapshot = snapshotAt()) {
   const store = createSnapshotStore();
   store.acceptSnapshot(snapshot);
+  store.setConnection("connected");
   const eventsRequest = vi.fn(async () => [...events]);
   const tutorialSignal = vi.fn(async () => snapshot);
   const api = {
@@ -94,6 +98,7 @@ describe("EventLogPage", () => {
     const snapshot = snapshotAt();
     const store = createSnapshotStore();
     store.acceptSnapshot(snapshot);
+    store.setConnection("connected");
     const api = {
       state: async () => snapshot,
       events: eventsRequest,
@@ -145,6 +150,7 @@ describe("EventLogPage", () => {
       .mockResolvedValueOnce([first, matching, excluded]);
     const store = createSnapshotStore();
     store.acceptSnapshot(snapshot);
+    store.setConnection("connected");
     const api = {
       state: async () => snapshot,
       events: eventsRequest,

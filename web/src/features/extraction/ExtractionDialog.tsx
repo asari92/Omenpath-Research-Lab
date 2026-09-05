@@ -7,6 +7,7 @@ import {
 } from "../../state/SnapshotProvider";
 import { filterPlanes, type PlaneFilter } from "./plane-filter";
 import styles from "./ExtractionDialog.module.css";
+import { commandsEnabled } from "../../state/command-health";
 
 const filters: readonly { value: PlaneFilter; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -23,7 +24,8 @@ export function ExtractionDialog({
   onClose(): void;
 }) {
   const { api, store } = useSnapshotContext();
-  const { snapshot } = useSnapshotState();
+  const state = useSnapshotState();
+  const { snapshot } = state;
   const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PlaneFilter>("ALL");
@@ -144,9 +146,14 @@ export function ExtractionDialog({
           </p>
           {error && <p role="alert">{error}</p>}
           <button
-            disabled={selected === null || busy}
+            disabled={selected === null || busy || !commandsEnabled(state)}
             onClick={() => {
-              if (selected === null || busy) return;
+              if (
+                selected === null ||
+                busy ||
+                !commandsEnabled(store.getState())
+              )
+                return;
               setBusy(true);
               setError(null);
               void api

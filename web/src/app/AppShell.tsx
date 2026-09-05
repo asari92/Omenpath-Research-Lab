@@ -10,9 +10,11 @@ import { TutorialPanel } from "../features/tutorial/TutorialPanel";
 import styles from "./AppShell.module.css";
 import { LabSummary } from "../components/dashboard/LabSummary";
 import { useSnapshotState } from "../state/SnapshotProvider";
+import { commandsEnabled } from "../state/command-health";
 
 export function AppShell() {
-  const { snapshot, connection } = useSnapshotState();
+  const state = useSnapshotState();
+  const { snapshot } = state;
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [extractionOpen, setExtractionOpen] = useState(false);
   return (
@@ -42,7 +44,7 @@ export function AppShell() {
             className={styles.credits}
             onClick={() => setExtractionOpen(true)}
             type="button"
-            disabled={connection !== "connected"}
+            disabled={!commandsEnabled(state)}
           >
             Open Extraction
           </button>

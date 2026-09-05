@@ -6,8 +6,8 @@ const apiState = async (
 
 test("the visible Tutorial journey reaches Live without client-side progress", async ({
   page,
-  request,
 }, testInfo) => {
+  const request = page.request;
   test.skip(testInfo.project.name !== "desktop");
   test.setTimeout(240_000);
   await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });

@@ -84,20 +84,28 @@ describe("usePortalCommand confirmation", () => {
     await user.click(screen.getByRole("button", { name: "Confirm Close" }));
     expect(close).toHaveBeenCalledTimes(1);
   });
-  it("blocks offline commands without POST or losing the accepted snapshot", async () => {
-    const close = vi.fn();
-    const { store } = setup(close);
-    const snapshot = store.getState().snapshot;
-    act(() => store.setConnection("reconnecting"));
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Close" }));
-    expect(close).not.toHaveBeenCalled();
-    expect(store.getState().snapshot).toBe(snapshot);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Planar paths unstable",
-    );
-  });
+  it.each(["reconnecting", "protocol", "bootstrap"])(
+    "blocks unhealthy %s commands without POST or losing the accepted snapshot",
+    async (failure) => {
+      const close = vi.fn();
+      const { store } = setup(close);
+      const snapshot = store.getState().snapshot;
+      await act(async () => {});
+      act(() => {
+        if (failure === "protocol") store.setProtocolError("Invalid snapshot");
+        else if (failure === "bootstrap") store.setBootstrap("failed");
+        else store.setConnection("reconnecting");
+      });
+      await userEvent
+        .setup()
+        .click(screen.getByRole("button", { name: "Close" }));
+      expect(close).not.toHaveBeenCalled();
+      expect(store.getState().snapshot).toBe(snapshot);
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Planar paths unstable",
+      );
+    },
+  );
 
   it("shows pending, prevents a duplicate and acknowledges authoritative success", async () => {
     let finish!: (value: ReturnType<typeof snapshotAt>) => void;

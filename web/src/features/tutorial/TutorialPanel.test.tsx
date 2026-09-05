@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../../api/client";
 import { FeedbackProvider } from "../../components/feedback/FeedbackProvider";
@@ -8,6 +8,9 @@ import { SnapshotProvider } from "../../state/SnapshotProvider";
 import { createSnapshotStore } from "../../state/snapshot-store";
 import { snapshotAt } from "../../test/builders";
 import { TutorialPanel } from "./TutorialPanel";
+
+beforeEach(() => vi.stubGlobal("WebSocket", undefined));
+afterEach(() => vi.unstubAllGlobals());
 
 function setup(
   step: number,
@@ -18,6 +21,7 @@ function setup(
   Object.assign(snapshot.app, overrides);
   const store = createSnapshotStore();
   store.acceptSnapshot(snapshot);
+  store.setConnection("connected");
   const next = snapshotAt("2026-09-05T10:00:01Z");
   const api = {
     state: async () => snapshot,

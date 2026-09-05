@@ -5,10 +5,12 @@ import { useSnapshotState } from "../../state/SnapshotProvider";
 import { isExpectedCriticalSend } from "./tutorial-actions";
 import { tutorialGuidance } from "./tutorial-copy";
 import styles from "./TutorialPanel.module.css";
+import { commandsEnabled } from "../../state/command-health";
 
 export function TutorialPanel() {
   const { api, store } = useSnapshotContext();
-  const { commandKeys, snapshot } = useSnapshotState();
+  const state = useSnapshotState();
+  const { commandKeys, snapshot } = state;
   const feedback = useFeedback();
   if (!snapshot) return null;
   const guidance = tutorialGuidance(snapshot.app);
@@ -25,6 +27,7 @@ export function TutorialPanel() {
   const ctaBusy = ctaKey !== null && commandKeys.has(ctaKey);
 
   const runCTA = async () => {
+    if (!commandsEnabled(store.getState())) return;
     if (!guidance.cta || !ctaKey || store.getState().commandKeys.has(ctaKey)) {
       return;
     }
@@ -72,6 +75,7 @@ export function TutorialPanel() {
   };
 
   const reset = async () => {
+    if (!commandsEnabled(store.getState())) return;
     const key = "TUTORIAL:RESET";
     if (store.getState().commandKeys.has(key)) return;
     store.beginCommand(key);
@@ -81,7 +85,7 @@ export function TutorialPanel() {
         "Tutorial progress",
         "Energy, Observers, exploration and Tutorial Event history will be reset by the Laboratory.",
       );
-      if (!confirmed) return;
+      if (!confirmed || !commandsEnabled(store.getState())) return;
       store.acceptSnapshot(await api.resetTutorial());
     } catch (error: unknown) {
       feedback.notify(
@@ -114,7 +118,7 @@ export function TutorialPanel() {
       <div className={styles.actions}>
         {ctaLabel && (
           <button
-            disabled={ctaBusy}
+            disabled={ctaBusy || !commandsEnabled(state)}
             onClick={() => void runCTA()}
             type="button"
           >
@@ -122,7 +126,9 @@ export function TutorialPanel() {
           </button>
         )}
         <button
-          disabled={commandKeys.has("TUTORIAL:RESET")}
+          disabled={
+            commandKeys.has("TUTORIAL:RESET") || !commandsEnabled(state)
+          }
           onClick={() => void reset()}
           type="button"
         >

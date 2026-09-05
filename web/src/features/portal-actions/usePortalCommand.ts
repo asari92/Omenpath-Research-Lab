@@ -8,6 +8,7 @@ import {
 } from "../../state/SnapshotProvider";
 import type { PortalCommand } from "./PortalActions";
 import { isExpectedCriticalSend } from "../tutorial/tutorial-actions";
+import { commandsEnabled } from "../../state/command-health";
 
 export function usePortalCommand(portalId: number) {
   const [outcome, setOutcome] = useState<"success" | "error" | null>(null);
@@ -19,7 +20,7 @@ export function usePortalCommand(portalId: number) {
 
   const run = useCallback(
     async (command: PortalCommand) => {
-      if (store.getState().connection !== "connected") {
+      if (!commandsEnabled(store.getState())) {
         feedback.notify("Planar paths unstable. Wait for the link to recover.");
         setOutcome("error");
         return;
@@ -34,7 +35,7 @@ export function usePortalCommand(portalId: number) {
         appAtStart !== undefined &&
         isExpectedCriticalSend(appAtStart, portalId);
       const invoke = (confirm: boolean) => {
-        if (store.getState().connection !== "connected") {
+        if (!commandsEnabled(store.getState())) {
           throw new Error(
             "Planar paths unstable. Wait for the link to recover.",
           );

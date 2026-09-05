@@ -2231,3 +2231,25 @@ Verification: gofmt empty; vet/build/full Go tests PASS (integration listeners
 desktop/phone Dashboard E2E — 4 PASS, 2 project-specific skips. UI-001 GREEN;
 UI-008–012 и UI-014 честно PARTIAL до следующих corrective checkpoints.
 Новые dependencies не устанавливались. Stage 22 не начат.
+
+#### DC-6 review corrective — единый health gate для mutations
+
+Spec-review обнаружил оставшиеся обходы offline blocking: уже открытый
+Extraction chooser, Tutorial CTA/reset, navigation signals и protocol-error
+при формально connected WebSocket. Добавлены 10 behavioral regression tests:
+в RED controls оставались enabled и Tutorial/navigation выполняли POST.
+`connectionHealth` теперь единый source для indicator и `commandsEnabled`:
+commands разрешены только при ready snapshot, connected link и отсутствии
+protocol error. Все mutation sites проверяют его непосредственно перед request;
+Reset/Portal confirmation повторно проверяют после await. Непринятый navigation
+intent сохраняется до восстановления link. Reads остаются доступными.
+
+В existing online unit fixtures connection теперь явно connected; сетевой
+WebSocket отключён только в этих component fixtures. Hook дополнительно
+проверен на protocol/bootstrap failure. Tutorial browser test исправлен на
+`page.request`: отдельный Playwright request fixture имел другую session cookie
+и ошибочно проверял другую лабораторию (step0 вместо текущего step6).
+
+Verification corrective: 31 frontend files / 138 tests PASS, typecheck/lint/
+production build PASS. Responsive Dashboard + Extraction — 6 PASS; исправленный
+desktop Tutorial journey — PASS (50.4s), включая переход в LIVE.

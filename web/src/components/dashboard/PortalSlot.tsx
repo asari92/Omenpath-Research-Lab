@@ -17,6 +17,7 @@ import {
 import { ObserverTransit } from "../portal/ObserverTransit";
 import styles from "./PortalSlot.module.css";
 import { useSnapshotState } from "../../state/SnapshotProvider";
+import { commandsEnabled } from "../../state/command-health";
 
 export function PortalSlot({
   slotIndex,
@@ -29,7 +30,8 @@ export function PortalSlot({
   needsAttention: boolean;
   tutorialTarget?: boolean;
 }) {
-  const { snapshot, connection } = useSnapshotState();
+  const state = useSnapshotState();
+  const { snapshot } = state;
   const command = usePortalCommand(portal.id);
   const target = snapshot ? tutorialCommandTarget(snapshot.app) : null;
   return (
@@ -79,7 +81,7 @@ export function PortalSlot({
         )}
       </div>
       <PortalActions
-        offline={connection !== "connected"}
+        offline={!commandsEnabled(state)}
         outcome={command.outcome}
         busyKey={command.busyKey}
         expectedCriticalSend={

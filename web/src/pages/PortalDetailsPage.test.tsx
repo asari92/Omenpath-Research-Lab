@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../api/client";
 import { ApiError } from "../api/errors";
@@ -14,6 +14,9 @@ import {
   resetNavigationIntentForTests,
 } from "../features/tutorial/navigation-signal";
 import { PortalDetailsPage } from "./PortalDetailsPage";
+
+beforeEach(() => vi.stubGlobal("WebSocket", undefined));
+afterEach(() => vi.unstubAllGlobals());
 
 function apiFor(
   result: PortalDetails | Error,
