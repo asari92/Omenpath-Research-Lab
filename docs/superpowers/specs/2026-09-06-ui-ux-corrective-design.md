@@ -14,7 +14,7 @@
 1. Начальный и максимальный roster увеличивается с 10 до 20 Observers.
 2. Один server deployment обслуживает несколько изолированных лабораторий.
 3. Первый посетитель автоматически получает анонимную игровую сессию на 30 дней без регистрации.
-4. Срок сессии скользящий: активность продлевает его до 30 дней. После истечения создаётся новая лаборатория, старая удаляется фоновой очисткой.
+4. Срок сессии скользящий: успешный REST request или активное WebSocket connection продлевает его до 30 дней. После истечения создаётся новая лаборатория, старая удаляется фоновой очисткой.
 5. Один browser profile и его вкладки используют одну лабораторию. Другой browser/profile/device получает отдельную лабораторию.
 6. Добавляется Help с лором, устройством лаборатории и описанием игровых механик.
 7. RU/EN localization не входит в обязательный corrective pass и выполняется только при оставшемся времени. Текущий обязательный UI остаётся английским.
@@ -182,7 +182,7 @@ Raw token в database не хранится. Token должен иметь не 
 
 Engine/manager registry keyed by `lab_id` обеспечивает отдельную serialization boundary и update stream для каждой лаборатории. WebSocket handshake разрешает session через ту же cookie и подписывает client только на hub соответствующего `lab_id`. Broadcast между лабораториями запрещён архитектурно.
 
-Фоновая cleanup job удаляет expired sessions и labs каскадно. Cleanup, session refresh и gameplay mutations должны иметь определённый transaction/locking order, чтобы избежать удаления активной лаборатории.
+Фоновая cleanup job удаляет expired sessions и labs каскадно. Живое WebSocket connection защищает laboratory от cleanup; renewal выполняется с bounded interval, а не database write на каждый tick. Cleanup, session refresh и gameplay mutations должны иметь определённый transaction/locking order, чтобы избежать удаления активной лаборатории.
 
 Migration присваивает существующим singleton данным специальный legacy `lab_id`; новые чистые базы сразу создаются в multi-lab schema.
 

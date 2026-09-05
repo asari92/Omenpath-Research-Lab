@@ -139,7 +139,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 
 | ID | Type | Rule | Spec |
 |---|---|---|---|
-| OBSERVER-001 | INV | Ровно 10 permanent Observer entities | §15 |
+| OBSERVER-001 | INV | Ровно 20 permanent Observer entities | §15, §37 |
 | OBSERVER-002 | BEH | Initial status AVAILABLE | §15 |
 | OBSERVER-003 | INV | AVAILABLE = Laboratory (`current_plane_id = null`) | §15 |
 | OBSERVER-004 | BEH | Lifecycle: AVAILABLE → OUTBOUND → EXPLORING → WAITING_RETURN → RETURNING → AVAILABLE | §15 |
@@ -152,7 +152,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | OBSERVER-011 | BEH | Успешный RETURNING → AVAILABLE, поля обнуляются | §16 |
 | OBSERVER-012 | BEH | Portal стал CLOSED во время transit (OUTBOUND/RETURNING) → Observer LOST | §16 |
 | OBSERVER-013 | BEH | Portal стал COLLAPSED во время transit → Observer LOST | §16 |
-| OBSERVER-014 | BEH | Несколько Observers в одном Plane разрешены (включая все 10) | §15 |
+| OBSERVER-014 | BEH | Несколько Observers в одном Plane разрешены (включая все 20) | §15 |
 | OBSERVER-015 | BEH | SEND в уже EXPLORED Plane разрешён без warning | §15, §18 |
 | OBSERVER-016 | BEH | RECALL при нескольких WAITING_RETURN выбирает longest-waiting | §19 |
 
@@ -283,10 +283,11 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | TUTORIAL-017 | INV | Prepared Portals детерминированы требуемыми свойствами; broken target получает новый ID | §28.1–28.2 |
 | TUTORIAL-018 | INV | Natural Generator отключён во всём Tutorial и запускается только при переходе в Live | §28.1–28.2 |
 | TUTORIAL-019 | UI | Step 0 содержит только лор, цель и карту интерфейса; цены и правила показываются на релевантных шагах | §28.2 |
+| TUTORIAL-020 | UI | Tutorial — overlay без layout shift/More context; skipped completed step показывается 7 sec; Back/Forward не пропускают gameplay | §28.3 |
 
 ---
 
-## Транспорт / UI / Persistence (детализируются в Stage 9–14; выведены напрямую из Final Spec)
+## Транспорт / UI / Persistence / Sessions (выведены напрямую из Final Spec)
 
 ### API
 
@@ -304,6 +305,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | API-010 | BEH | Confirmation flow: повтор того же endpoint с `{"confirm": true}` | §29 |
 | API-011 | BEH | Backend возвращает domain errors; типичный conflict — `409` | §29 |
 | API-012 | BEH | `POST /api/tutorial/signal` принимает закрытый enum UI-сигналов и не смешивает reads с mutations | §28.1, §35 |
+| API-013 | INV | Каждый REST request разрешает anonymous session и выполняется только в её `lab_id`; cross-lab entity выглядит как not found | §35.1, §39 |
 
 ### WS
 
@@ -312,27 +314,47 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | WS-001 | BEH | Endpoint `/ws/lab` | §35 |
 | WS-002 | BEH | Broadcast authoritative snapshot ~1/sec (тик симуляции) | §33, §35 |
 | WS-003 | BEH | Немедленный snapshot после значимых действий | §35 |
+| WS-004 | INV | `/ws/lab` использует ту же anonymous session и получает broadcasts только своей `lab_id` | §31, §35.1 |
 
 ### UI
 
 | ID | Type | Rule | Spec |
 |---|---|---|---|
-| UI-001 | UI | Dashboard: 7 фиксированных Slots (не сортируются), summary, quick actions, Needs Attention, Empty State | §5, §24, §27 |
+| UI-001 | UI | Dashboard: 7 равных фиксированных Slots без scrolling; desktop `4 + centered 3`, compact `2+2+2+1`; summary, actions, Needs Attention, Empty State | §5, §24, §24.1, §27 |
 | UI-002 | UI | Dashboard Slot НЕ показывает Risk / Recommendation / History | §5 |
-| UI-003 | UI | Portal Details `/portals/:id`: секции Portal / Destination / Diagnostics (Risk, Recommendation, How Risk Works) / History / Actions | §25 |
-| UI-004 | UI | Global Event Log `/events` | §26 |
+| UI-003 | UI | Portal Details `/portals/:id` без page scrolling: центральный Portal/Actions, боковые facts/diagnostics и внутренняя scrolling History | §25, §25.1 |
+| UI-004 | UI | Global Event Log `/events`; timestamp → title → details, формат `HH:mm:ss-dd-MM-yyyy` | §26 |
 | UI-005 | UI | AI Worklog `/ai-worklog` с требуемым содержимым | §36 |
 | UI-006 | UI | Energy показывается с одним десятичным; Risk number / decay / hidden timestamp / energy_lifetime не показываются | §9, §13 |
 | UI-007 | UI | Needs Attention: один priority портал (highest risk_score → UNSTABLE → lower effective_lifetime → older opened_at); Risk number не показывается | §6 |
+| UI-008 | UI | Все routes используют одну цельную magical-laboratory surface; левая zone не отделяется собственным background/frame | §30.1 |
+| UI-009 | UI | Empty Slot controls действительно disabled; команды имеют pressed/pending/success/failure feedback и не дублируются | §24.1, §29 |
+| UI-010 | UI | Tutorial overlay не сдвигает layout; без More context; skipped completed step показывается 7 sec; Back не пропускает будущие steps | §28.3 |
+| UI-011 | UI | `/help` объясняет lore и все игровые механики; `AI Workflow` — последний navigation item и ведёт на `/ai-worklog` | §30.1, §36, §36.1 |
+| UI-012 | UI | Terminal Portal grayscale; UNSTABLE card red; Override меняет весь Dashboard; reduced-motion сохраняет читаемость state | §24.1, §25.1, §30.1 |
+| UI-013 | UI | Все 85 Plane artworks локальны, без card text/frame; manifest сохраняет source/artist/policy metadata | §30.1 |
+| UI-014 | UI | Dashboard и Details показывают authoritative Observer transit direction и remaining time | §5, §25.1, §35.1 |
 
 ### PERSIST
 
 | ID | Type | Rule | Spec |
 |---|---|---|---|
-| PERSIST-001 | BEH | Таблицы: planes, portals, observers, events, lab_state, app_state | §34 |
+| PERSIST-001 | BEH | Таблицы `labs`, `sessions`, `planes`, `portals`, `observers`, `events`, `lab_state`, `app_state`; gameplay rows принадлежат `lab_id` | §34 |
 | PERSIST-002 | INV | Не обновлять derived realtime поля (energy и т.п.) каждую секунду | §34 |
 | PERSIST-003 | BEH | Persist meaningful transitions and baselines | §34 |
 | PERSIST-004 | BEH | Restart recovery из persisted state | Roadmap Stage 10 |
+| PERSIST-005 | INV | Каждый tenant-owned read/write scoped по `lab_id`; keys/FKs не допускают cross-lab references | §34, §39 |
+| PERSIST-006 | BEH | Existing singleton state мигрирует в legacy lab; expired lab удаляется каскадно без race с renewal/action | §34, §35.1 |
+
+### SESSION
+
+| ID | Type | Rule | Spec |
+|---|---|---|---|
+| SESSION-001 | BEH | Первый request без valid cookie атомарно создаёт lab, bootstrap state и anonymous session | §35.1 |
+| SESSION-002 | BEH | Session имеет sliding expiry 30 days; REST/active WS считаются activity; browser restart сохраняет игру, expired/cleared cookie начинает новую | §35.1 |
+| SESSION-003 | SEC | Cookie `HttpOnly`, `SameSite=Lax`, production `Secure`; token содержит ≥256 bits entropy и хранится только как hash | §35.1, §39 |
+| SESSION-004 | INV | Один browser profile/tabs используют одну lab; другой profile/device получает изолированную lab | §35.1 |
+| SESSION-005 | BEH | Background cleanup удаляет expired sessions/labs и не удаляет конкурентно продлённую active lab | §34, §35.1 |
 
 ---
 

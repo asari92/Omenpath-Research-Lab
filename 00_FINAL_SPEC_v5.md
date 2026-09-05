@@ -1,6 +1,10 @@
 # Omenpath Research Lab — Final Spec v5
 
 > **Canonical source of truth.** Все stage plans, тесты и реализация должны соответствовать этому документу. Core-rule нельзя менять молча: изменение сначала фиксируется здесь, затем отражается в тестах/планах/Worklog.
+>
+> Revision 2026-09-06: утверждены 20 Observers, anonymous multi-lab sessions и
+> Block D UI/UX corrective contract. Filename сохраняется для стабильности
+> существующих ссылок.
 
 ## 1. Product goal
 
@@ -23,6 +27,8 @@ Victory condition: `85 / 85 Planes EXPLORED`.
 - `Portal`
 - `Observer`
 - `LabState`
+- `Laboratory`
+- `Session`
 - `AppState`
 - `Event`
 
@@ -135,6 +141,7 @@ Stability
 Time Remaining
 Creatures Inside
 Status
+Active Observer Transit (Observer, direction, remaining time), when present
 Quick Actions
 ```
 
@@ -449,7 +456,7 @@ EXTRACTION       30
 
 ## 15. Observer
 
-10 permanent Observer entities.
+20 permanent Observer entities.
 
 Current-state fields only:
 ```text
@@ -489,7 +496,7 @@ AVAILABLE
 
 LOST is terminal.
 
-Multiple Observers may exist in same Plane, including all 10.
+Multiple Observers may exist in same Plane, including all 20.
 
 Sending into already EXPLORED Plane is allowed without warning.
 
@@ -790,7 +797,7 @@ Summary:
 ```text
 Planes Explored       X / 85
 Laboratory Energy     X / 100
-Observers in Lab      X / 10
+Observers in Lab      X / 20
 Observers in Worlds   X
 Observers in Transit  X
 Observers Lost        X
@@ -807,6 +814,30 @@ Quick actions in Slot.
 Risk/Recommendation/History only in Details.
 
 Needs Attention points to one priority Portal.
+
+### 24.1 Dashboard presentation
+
+Dashboard должен полностью помещаться в viewport без page/board scrolling.
+Все 7 Slots имеют одинаковые размеры независимо от наличия Portal.
+
+Desktop layout:
+```text
+4 Slots в верхнем ряду
+3 Slots строго по центру нижнего ряда
+```
+
+Compact/mobile layout:
+```text
+2 + 2 + 2 + 1
+```
+
+Все 7 Slots и все 4 Quick Actions каждого occupied Slot остаются видимыми.
+Controls пустого Slot присутствуют для сохранения геометрии, но являются
+настоящими disabled controls и не обрабатывают pointer/keyboard activation.
+
+UNSTABLE выделяет фон всей карточки заметным red danger treatment. Активный
+Leyline Override меняет оформление всего Dashboard, а не только локальный
+indicator.
 
 ## 25. Portal Details
 
@@ -850,6 +881,34 @@ Events filtered by `portal_id`.
 Actions:
 Same backend commands as Dashboard.
 
+### 25.1 Portal Details presentation
+
+Portal Details полностью помещается в viewport без page scrolling:
+
+- крупный Portal по центру;
+- Actions непосредственно под Portal без отдельной framed section;
+- Portal state/Energy/time/active Observer transit слева;
+- Destination/research/creatures/Risk/Recommendation справа;
+- компактная History-полоса снизу.
+
+History обязательна. При раскрытии прокручивается только её внутренний список,
+не вся страница.
+
+Для CLOSED/COLLAPSED Portal destination image, Portal visual, glow и decoration
+полностью обесцвечиваются. Background refresh не показывает постоянную
+`Refreshing...` надпись.
+
+Risk presentation:
+```text
+LOW       green
+MEDIUM    yellow
+HIGH      orange
+CRITICAL  red
+```
+
+Recommendation дополнительно получает различимые цвет, icon и explanation для
+safe / suggested / urgent / unavailable state.
+
 ## 26. Event Log
 
 Global page:
@@ -892,6 +951,16 @@ message
 payload_json
 created_at
 ```
+
+UI показывает Event в порядке:
+```text
+HH:mm:ss-dd-MM-yyyy
+Event title
+Event details
+```
+
+Event type дополнительно различается цветом и icon. Event Log может
+прокручивать внутренний список, так как история не ограничена высотой viewport.
 
 Risk event only when level changes.
 
@@ -1026,6 +1095,25 @@ Completed Portals продолжают обычный lifecycle. Бесплат�
 очистка всех оставшихся OPEN Tutorial Portals выполняется только при переходе
 в Live.
 
+### 28.3 Tutorial presentation
+
+Tutorial отображается как floating overlay поверх Dashboard и не меняет layout
+остальной страницы. `More context` отсутствует: весь contextual text текущего
+step виден сразу.
+
+Выполнение ожидаемого action немедленно показывает следующий authoritative
+step. Если между UI renders сервер успел завершить промежуточный step, UI
+помещает его в presentation queue, показывает как completed ровно 7 sec и затем
+автоматически догоняет текущий authoritative step. Это не откатывает gameplay
+state.
+
+`Back` открывает уже показанные steps. `Forward` возвращает к текущему step;
+будущие невыполненные задания пропустить нельзя.
+
+При пересоздании terminal Tutorial Portal backend semantics остаются
+немедленными, но UI показывает exit animation старого Portal и entrance нового
+с общей visual delay 2 sec.
+
 ## 29. UI actions / errors
 
 Dashboard is one React page containing 7 Slot components, not seven pages.
@@ -1035,6 +1123,18 @@ Actions available both on Dashboard and Portal Details.
 Backend returns domain errors.
 
 Normal errors → toast/inline.
+
+Любой command немедленно показывает pressed state, затем pending state и
+блокирует повторную отправку до response. Success и failure имеют различимые
+visual feedback и содержательное сообщение.
+
+При потере realtime connection последний accepted snapshot остаётся видимым, а
+commands временно блокируются. Connection labels:
+```text
+Planar link stable
+Planar paths unstable
+Disconnected from the planes
+```
 
 Confirmation-required → modal, then retry same endpoint with:
 ```json
@@ -1064,6 +1164,35 @@ TypeScript
 Vite
 ```
 
+### 30.1 Frontend visual contract
+
+Все routes используют одну цельную dark-fantasy magical laboratory surface.
+Левая information/navigation zone не имеет отдельного background, тяжёлого
+vertical separator или самостоятельной application frame. Одна decorative
+frame окружает весь viewport; ley-line, stone, bronze, leather и glass motifs
+продолжаются через всю страницу. Branding и proprietary UI assets других игр
+не копируются.
+
+Portal entrance/terminal transitions, UNSTABLE и Override имеют motion. При
+`prefers-reduced-motion` смысл состояния сохраняется через opacity, icon, text
+и color без длительного движения.
+
+Все 85 Planes имеют локальное изображение без card text/frame. Сначала
+используется проверенный landscape/art crop; при его отсутствии создаётся
+оригинальное изображение по каноническому описанию Plane. Runtime не зависит от
+remote artwork URLs; source/artist/policy metadata поддерживается для каждого
+asset.
+
+Navigation order:
+```text
+Dashboard
+Event Log
+Help
+Open Extraction
+Artwork Credits
+AI Workflow
+```
+
 ## 31. Backend architecture
 
 ```text
@@ -1073,21 +1202,26 @@ React
                                 ▼
                               Go API
                                 │
-                            LabManager
+                       LabManager Registry
                     ┌───────────┼───────────┐
                     │           │           │
                    REST     Simulation    WS Hub
                     │           │           │
                     └───────────┼───────────┘
                                 │
-                           Active State
+                      Active State by lab_id
                                 │
                               SQLite
 ```
 
+Каждая laboratory имеет отдельный `LabManager` serialization boundary и update
+stream, keyed by `lab_id`. REST и WebSocket одного клиента разрешают один и тот
+же `lab_id`; cross-lab reads, mutations и broadcasts запрещены.
+
 ## 32. Concurrency
 
-Shared active state protected atomically (initially `sync.RWMutex`, potentially channels where useful).
+Active state каждой laboratory защищён atomically собственным LabManager.
+Manager registry отдельно синхронизирует создание, lookup и cleanup managers.
 
 Simulation and REST action can occur concurrently; exactly one valid transition wins.
 
@@ -1102,7 +1236,7 @@ go test -race ./...
 
 1 sec tick.
 
-Per tick:
+Per active laboratory tick:
 1. current Lab Energy;
 2. Portal Energy;
 3. Creatures;
@@ -1123,6 +1257,8 @@ Per tick:
 
 SQLite tables:
 ```text
+labs
+sessions
 planes
 portals
 observers
@@ -1130,6 +1266,14 @@ events
 lab_state
 app_state
 ```
+
+Все gameplay tables содержат обязательный `lab_id`. Singleton state становится
+singleton-per-lab. Entity/foreign keys включают `lab_id`; каждый persistence
+read/write явно scoped по resolved laboratory.
+
+Session rows хранят только hash opaque token, `lab_id`, expiry и last activity.
+Raw session token не сохраняется. Expired laboratory удаляется каскадно после
+проверки, что session не была продлена конкурентным request.
 
 Do not update derived realtime fields each second.
 
@@ -1207,6 +1351,37 @@ WebSocket:
 
 Backend broadcasts authoritative snapshot about once/sec and immediately after important actions.
 
+### 35.1 Anonymous laboratory session
+
+Первый request без действительной session cookie атомарно создаёт новую
+laboratory, canonical bootstrap state и анонимную session.
+
+Session contract:
+```text
+sliding expiry             30 days since last activity
+cookie                     HttpOnly; SameSite=Lax
+production cookie          Secure; HTTPS required
+token entropy              at least 256 bits
+database                   token hash only
+```
+
+Закрытие browser не завершает session. Один browser profile и его вкладки
+используют одну laboratory. Другой browser/profile/device получает отдельную
+laboratory. Expired/cleared cookie создаёт новую игру; перенос progress между
+devices без общей session не поддерживается.
+
+Activity означает успешный REST request либо живое WebSocket connection.
+Connected WebSocket не позволяет cleanup удалить laboratory; session renewal
+обновляется с bounded interval, а не database write на каждый tick.
+
+Все REST routes и `/ws/lab` проходят одну session resolution boundary. В
+WebSocket client регистрируется только в Hub соответствующего `lab_id`.
+
+Authoritative state/Details DTO показывают active Observer transit как минимум
+через `observer_id`, `portal_id`, direction/phase, `started_at` и
+`completes_at`. Remaining time вычисляется из этих timestamps и resolved
+snapshot time.
+
 ## 36. AI Worklog
 
 App route:
@@ -1226,6 +1401,31 @@ Must contain:
 - manual rewrites;
 - verification;
 - future improvements.
+
+Navigation label `AI Workflow` является последним item и ведёт на AI Worklog.
+
+### 36.1 Help
+
+App route:
+```text
+/help
+```
+
+Help содержит:
+- Multiverse lore и цель Laboratory;
+- карту интерфейса;
+- Lab Energy и Portal Energy;
+- Portal lifecycle, Stability, Risk и terminal outcomes;
+- Observers, transit, research, return и LOST;
+- Creatures и corridor;
+- SEND / RECALL / CLOSE / STABILIZE;
+- Extraction;
+- Leyline Override;
+- Recommendations;
+- Tutorial recap и glossary.
+
+Обязательный UI остаётся English. Переключение English/Russian относится к
+optional post-MVP scope и реализуется только при оставшемся времени.
 
 ## 37. Balance config
 
@@ -1252,7 +1452,7 @@ CREATURE_MAX = 10
 CREATURE_TRANSIT_SEC = 2
 CREATURE_CLEARANCE_MARGIN = 2
 
-OBSERVER_COUNT = 10
+OBSERVER_COUNT = 20
 OBSERVER_TRANSIT_MIN = 5
 OBSERVER_TRANSIT_MAX = 15
 RESEARCH_DURATION = 20
@@ -1303,11 +1503,29 @@ Required major coverage:
 - persistence/restart;
 - REST domain errors;
 - WS snapshots;
+- anonymous session creation/renewal/expiry;
+- cross-lab REST/WebSocket/persistence isolation;
+- expired-lab cleanup races;
+- fixed no-scroll Dashboard and Portal Details layouts;
+- Tutorial presentation queue and action feedback;
+- local artwork coverage for all 85 Planes;
 - race/concurrency.
 
 ## 39. Security
 
 No secrets/tokens in repo.
+
+Anonymous session token:
+- генерируется cryptographically secure RNG;
+- передаётся только cookie;
+- хранится в SQLite только как hash;
+- не принимается через path/query/body;
+- не логируется;
+- production cookie требует HTTPS и `Secure`.
+
+Каждый tenant-owned persistence query обязан включать `lab_id`. Cross-lab
+object lookup возвращает обычный not found и не раскрывает существование entity
+в другой laboratory.
 
 Provide:
 ```text
@@ -1337,6 +1555,12 @@ Evaluator can:
 - see exploration progress;
 - use Needs Attention;
 - open Event Log and AI Worklog;
+- open Help and understand lore/mechanics;
+- see all 7 equal Slots without Dashboard scrolling;
+- use Portal Details without page scrolling;
+- see Observer transit direction and remaining time;
+- return after browser restart and continue the same unexpired laboratory;
+- open a different browser profile and receive an isolated laboratory;
 - run repository/tests from README;
 - not hit a broken primary flow.
 
@@ -1345,9 +1569,12 @@ Evaluator can:
 This is not a large game.
 
 Out of scope:
-- auth;
+- registered username/password/social auth;
 - roles;
-- multiplayer;
+- shared/cooperative multiplayer laboratory;
+- progress transfer between devices;
+- horizontal multi-instance scaling;
+- mandatory English/Russian localization;
 - microservices;
 - Redis/Kafka/Kubernetes;
 - runtime LLM recommendations;

@@ -1,5 +1,5 @@
 # AI Worklog — Current
-## Stage: Blocks A–D / Stages 0–21 implementation
+## Stage: Blocks A–D / Stages 0–21 implementation + approved Block D corrective gate
 
 > Это честный журнал процесса. Его нужно дополнять по мере реализации. Не переписывать задним числом под «идеальную историю».
 
@@ -1947,3 +1947,82 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 
 Disk report после Block D: `web/node_modules` — 241 MB;
 `/tmp/omenpath-npm-cache` — 446 MB. Ничего автоматически не удалялось.
+
+## Post-Block D пользовательская UI/UX сверка и corrective product update (2026-09-06)
+
+### Почему прежний GREEN оказался недостаточным
+
+Автоматические проверки Block D доказали функциональность routes, actions,
+responsive visibility и tutorial journey, но пользовательская ручная проверка
+выявила, что это не гарантировало достаточное визуальное качество и понятность:
+
+- desktop lower row был сдвинут вправо вместо строгого центрирования `4 + 3`;
+- Dashboard получил нежелательную прокрутку, а empty/occupied Slots различались
+  по геометрии;
+- connection, pending actions, Observer transit, UNSTABLE и Override были
+  недостаточно выразительны;
+- Tutorial сдвигал layout, прятал часть copy и мог почти мгновенно показать
+  промежуточный Step 2;
+- Portal Details и Event Log не соответствовали требуемой визуальной иерархии;
+- 21 generated artwork fallback и несколько card-text images ухудшали атмосферу;
+- исходный sci-fi/Mission Control visual direction был отвергнут.
+
+Поэтому историческое завершение Stages 15–21 не удалено, но общий статус Block D
+понижен до PARTIAL до отдельного corrective TDD pass.
+
+### Согласованный новый UI/UX contract
+
+- единая dark-fantasy magical-laboratory surface на весь viewport без визуально
+  отдельного sidebar;
+- показатели лаборатории сверху левой zone, navigation снизу, AI Worklog
+  последним;
+- 7 equal Slots без Dashboard scrolling: desktop `4 + centered 3`, compact
+  `2 + 2 + 2 + 1`;
+- Portal Details также без page scrolling; только раскрытая History получает
+  внутренний scroll;
+- Help объясняет lore, Laboratory и все игровые механики;
+- Event hierarchy: `HH:mm:ss-dd-MM-yyyy` → title → details;
+- Tutorial становится overlay, показывает весь current copy без More context,
+  автоматически следует gameplay и воспроизводит пропущенный completed step
+  7 seconds;
+- terminal tutorial replacement получает 2-second visual transition без
+  изменения немедленной backend recreation semantics;
+- action feedback, Observer transit, terminal grayscale, Risk/Recommendation
+  treatments, red UNSTABLE и whole-Dashboard Override становятся обязательными;
+- все 85 artwork assets должны быть локальными и не содержать card text/frame.
+
+Первый HTML visual prototype был отвергнут как набор коричневых вложенных рамок.
+После этого AI перестал развивать его и подготовил новый цельный visual concept;
+пользователь утвердил направление. Принципы и ограничения зафиксированы в
+`docs/superpowers/specs/2026-09-06-ui-ux-corrective-design.md` (`b74f7f0`).
+
+### Product changes поверх завершённых stages
+
+Пользователь явно изменил permanent roster с 10 на 20 Observers. Прежние
+упоминания 10 в ранних разделах этого Worklog остаются историей решения, а не
+текущим контрактом.
+
+При обсуждении deployment обнаружено, что текущий server имеет один global
+LabManager/SQLite state/WS Hub: разные браузеры управляли бы одной общей игрой.
+Пользователь утвердил anonymous 30-day sliding sessions и независимую laboratory
+для каждого browser profile.
+
+После сравнения вариантов выбран один shared SQLite schema с обязательным
+`lab_id`, а не отдельные tables или database files на laboratory:
+
+- `labs` и hashed-token `sessions`;
+- `lab_id` во всех gameplay tables и keys/FKs;
+- REST middleware и per-lab manager registry;
+- WebSocket subscription только своей laboratory;
+- race-safe expiry cleanup;
+- current browser продолжает игру после restart, а expired/cleared cookie
+  начинает новую;
+- full account auth и cross-device progress остаются out of scope.
+
+### Документационная последовательность
+
+Перед detailed implementation plan пользователь потребовал сначала обновить
+source-of-truth hierarchy. Final Spec, requirements, roadmap, traceability и
+этот Worklog актуализируются отдельным documentation commit. Production code и
+Block E на этом шаге не начинаются. Изменённые requirements честно получают
+PARTIAL/PLANNED до нового RED/GREEN evidence.
