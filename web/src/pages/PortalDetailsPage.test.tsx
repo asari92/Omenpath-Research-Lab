@@ -8,7 +8,7 @@ import { ApiError } from "../api/errors";
 import type { PortalDetails, StateSnapshot } from "../api/types";
 import { SnapshotProvider } from "../state/SnapshotProvider";
 import { createSnapshotStore } from "../state/snapshot-store";
-import { portalDetails, snapshotAt } from "../test/builders";
+import { observerTransit, portalDetails, snapshotAt } from "../test/builders";
 import {
   recordNavigationIntent,
   resetNavigationIntentForTests,
@@ -62,6 +62,23 @@ function renderDetails(
 }
 
 describe("PortalDetailsPage", () => {
+  it("shows authoritative transit and collapses History with its count", async () => {
+    const details = portalDetails();
+    details.observer_transit = observerTransit(42, 7, "RETURNING");
+    renderDetails("/portals/42", apiFor(details));
+    expect(await screen.findByLabelText("Observer transit")).toHaveTextContent("7");
+    expect(screen.getByLabelText("Observer transit")).toHaveTextContent(/Returning.*00:05/i);
+    const history = screen.getByText("History (0)").closest("details");
+    expect(history).not.toHaveAttribute("open");
+    expect(screen.queryByText(/Refreshing/)).not.toBeInTheDocument();
+  });
+  it.each(["CLOSED", "COLLAPSED"] as const)("passes terminal %s into the entire portal visual", async (status) => {
+    const details = portalDetails();
+    details.portal.status = status;
+    renderDetails("/portals/42", apiFor(details));
+    await screen.findByText(status);
+    expect(screen.getByRole("img", { name: "Agyrem" }).parentElement).toHaveAttribute("data-status", status);
+  });
   it.each(["abc", "0", "-1", "1.5"])(
     "rejects non-positive-integer route id %s before an API call",
     async (id) => {
@@ -181,8 +198,9 @@ describe("PortalDetailsPage", () => {
     ];
     renderDetails("/portals/42", apiFor(details));
     expect(
-      await screen.findByRole("heading", { name: "History" }),
+      await screen.findByText("History (2)"),
     ).toBeVisible();
+    await userEvent.setup().click(screen.getByText("History (2)"));
     expect(
       screen.getAllByTestId("event-row").map((row) => row.textContent),
     ).toEqual([
