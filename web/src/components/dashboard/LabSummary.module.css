@@ -1,0 +1,42 @@
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.item {
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+
+.item dt {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.item dd {
+  margin: 0.2rem 0 0;
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .item {
+    padding: 0.3rem;
+    font-size: clamp(0.62rem, 2.3vw, 0.8rem);
+  }
+}

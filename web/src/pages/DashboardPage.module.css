@@ -1,0 +1,56 @@
+.dashboard {
+  display: grid;
+  min-height: 0;
+  gap: 0.55rem;
+}
+
+.dashboard > h1 {
+  margin: 0;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.board > :nth-child(5) {
+  grid-column: 2;
+}
+
+.override,
+.waiting {
+  margin: 0;
+  text-align: center;
+}
+
+.override {
+  padding: 0.35rem;
+  border: 1px solid #a67cff;
+  color: #d7c1ff;
+}
+
+@media (max-width: 720px) {
+  .dashboard {
+    height: calc(100dvh - 8rem);
+  }
+
+  .board {
+    min-height: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .board > :nth-child(5) {
+    grid-column: auto;
+  }
+
+  .board > :nth-child(7) {
+    width: calc(50% - 0.125rem);
+    grid-column: 1 / 3;
+    justify-self: center;
+  }
+}

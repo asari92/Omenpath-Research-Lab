@@ -1,0 +1,22 @@
+.alert,
+.nominal {
+  min-height: 2rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-color: #ffb85c;
+  color: #ffd9a8;
+  text-decoration: none;
+}
+
+.nominal {
+  color: var(--text-muted);
+}
