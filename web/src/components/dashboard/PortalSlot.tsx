@@ -12,14 +12,20 @@ export function PortalSlot({
   slotIndex,
   portal,
   needsAttention,
+  tutorialTarget = false,
 }: {
   slotIndex: number;
   portal: SlotPortalDTO;
   needsAttention: boolean;
+  tutorialTarget?: boolean;
 }) {
   const command = usePortalCommand(portal.id);
   return (
-    <article className={styles.slot} data-testid="portal-slot">
+    <article
+      className={styles.slot}
+      data-testid="portal-slot"
+      data-tutorial-target={tutorialTarget || undefined}
+    >
       <header>
         <span>Slot {slotIndex}</span>
         <span>{portal.stability}</span>

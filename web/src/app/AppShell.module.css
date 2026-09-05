@@ -47,6 +47,9 @@
 }
 
 .main {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.45rem;
   min-width: 0;
   min-height: 0;
   padding: clamp(1rem, 3vw, 2.5rem);

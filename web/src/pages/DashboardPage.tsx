@@ -60,6 +60,10 @@ export function DashboardPage() {
               }
               portal={slot.portal}
               slotIndex={slot.slot_index}
+              tutorialTarget={
+                snapshot.app.mode === "TUTORIAL" &&
+                snapshot.app.tutorial_portal_id === slot.portal.id
+              }
             />
           ) : (
             <EmptyPortalSlot

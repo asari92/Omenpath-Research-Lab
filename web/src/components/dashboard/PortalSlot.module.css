@@ -13,6 +13,11 @@
   background: linear-gradient(155deg, var(--surface-raised), var(--surface));
 }
 
+.slot[data-tutorial-target="true"] {
+  border-color: #b99cff;
+  box-shadow: 0 0 0 2px #7f5dcc;
+}
+
 .slot > header {
   display: flex;
   width: 100%;

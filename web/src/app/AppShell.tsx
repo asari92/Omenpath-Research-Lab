@@ -6,6 +6,7 @@ import { ConnectionState } from "../components/feedback/ConnectionState";
 import { FeedbackProvider } from "../components/feedback/FeedbackProvider";
 import { ExtractionDialog } from "../features/extraction/ExtractionDialog";
 import { recordNavigationIntent } from "../features/tutorial/navigation-signal";
+import { TutorialPanel } from "../features/tutorial/TutorialPanel";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -45,6 +46,7 @@ export function AppShell() {
         </header>
         <main className={styles.main}>
           <ConnectionState />
+          <TutorialPanel />
           <Outlet />
         </main>
         <div aria-live="polite" data-testid="toast-host" />

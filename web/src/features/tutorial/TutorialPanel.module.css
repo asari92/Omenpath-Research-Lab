@@ -1,0 +1,30 @@
+.panel {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #6f57b8;
+  border-radius: 0.5rem;
+  background: #171329;
+}
+.panel header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.panel p {
+  margin: 0;
+}
+.instruction {
+  color: var(--text-strong);
+}
+@media (max-width: 600px) {
+  .panel {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.76rem;
+  }
+  .panel details {
+    max-height: 4rem;
+    overflow: auto;
+  }
+}
