@@ -60,6 +60,41 @@ func TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt(t *testing.T) {
 	require.Equal(t, 0, got.Slots[0].Portal.CreaturesInside)
 }
 
+func TestBuildStateSnapshot_PlaneObserverPresence(t *testing.T) {
+	now := testutil.BaseTime
+	state := dtoSnapshot(now)
+	state.Simulation.Portals = nil
+	planeID, otherPlaneID := int64(1), int64(2)
+	state.Simulation.Observers = []domain.Observer{
+		{ID: 1, Status: domain.ObserverExploring, CurrentPlaneID: &planeID},
+		{ID: 2, Status: domain.ObserverWaitingReturn, CurrentPlaneID: &planeID},
+		{ID: 3, Status: domain.ObserverReturning, CurrentPlaneID: &planeID},
+		{ID: 4, Status: domain.ObserverOutbound},
+		{ID: 5, Status: domain.ObserverAvailable},
+		{ID: 6, Status: domain.ObserverLost},
+		{ID: 7, Status: domain.ObserverExploring, CurrentPlaneID: &otherPlaneID},
+	}
+
+	view, err := BuildStateSnapshot(state, now, config.Default())
+	require.NoError(t, err)
+	require.Equal(t, 3, view.Planes[0].ObserversInPlane)
+	require.Equal(t, 1, view.Planes[0].ObserversWaitingReturn)
+	require.Equal(t, 1, view.Planes[1].ObserversInPlane)
+	require.Equal(t, 0, view.Planes[1].ObserversWaitingReturn)
+}
+
+func TestBuildStateSnapshot_PlaneObserverPresenceRejectsUnknownPlane(t *testing.T) {
+	state := dtoSnapshot(testutil.BaseTime)
+	state.Simulation.Portals = nil
+	unknown := int64(999)
+	state.Simulation.Observers = []domain.Observer{{
+		ID: 1, Status: domain.ObserverExploring, CurrentPlaneID: &unknown,
+	}}
+
+	_, err := BuildStateSnapshot(state, testutil.BaseTime, config.Default())
+	require.ErrorIs(t, err, domain.ErrSimulationInvariant)
+}
+
 func TestBuildStateSnapshot_DoesNotExposeHiddenFields(t *testing.T) {
 	state := dtoSnapshot(testutil.BaseTime)
 	hidden := testutil.BaseTime.Add(30 * time.Second)
