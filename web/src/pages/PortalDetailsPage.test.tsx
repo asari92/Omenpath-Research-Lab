@@ -1,0 +1,145 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { describe, expect, it, vi } from "vitest";
+
+import type { OmenpathApi } from "../api/client";
+import { ApiError } from "../api/errors";
+import type { PortalDetails, StateSnapshot } from "../api/types";
+import { SnapshotProvider } from "../state/SnapshotProvider";
+import { createSnapshotStore } from "../state/snapshot-store";
+import { portalDetails, snapshotAt } from "../test/builders";
+import { PortalDetailsPage } from "./PortalDetailsPage";
+
+function apiFor(
+  result: PortalDetails | Error,
+  snapshot: StateSnapshot = snapshotAt(),
+): OmenpathApi {
+  const portal = vi.fn(async () => {
+    if (result instanceof Error) throw result;
+    return result;
+  });
+  return {
+    state: async () => snapshot,
+    portal,
+    events: async () => [],
+    stabilize: async () => snapshot,
+    close: async () => snapshot,
+    sendObserver: async () => snapshot,
+    recallObserver: async () => snapshot,
+    openExtraction: async () => snapshot,
+    startTutorial: async () => snapshot,
+    resetTutorial: async () => snapshot,
+    tutorialSignal: async () => snapshot,
+    startLive: async () => snapshot,
+  };
+}
+
+function renderDetails(path: string, api: OmenpathApi) {
+  const store = createSnapshotStore();
+  store.acceptSnapshot(snapshotAt());
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <SnapshotProvider api={api} store={store}>
+        <Routes>
+          <Route path="/portals/:id" element={<PortalDetailsPage />} />
+        </Routes>
+      </SnapshotProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("PortalDetailsPage", () => {
+  it.each(["abc", "0", "-1", "1.5"])(
+    "rejects non-positive-integer route id %s before an API call",
+    async (id) => {
+      const api = apiFor(portalDetails());
+      renderDetails(`/portals/${id}`, api);
+      expect(screen.getByRole("alert")).toHaveTextContent("Invalid Portal ID");
+      expect(api.portal).not.toHaveBeenCalled();
+    },
+  );
+
+  it("renders every required Portal, Destination and Diagnostics field", async () => {
+    const details = portalDetails(42);
+    details.portal.energy = 64.26;
+    details.portal.time_remaining_seconds = 125;
+    details.portal.creatures_inside = 3;
+    details.portal.observer_flow = "OUTBOUND";
+    details.destination = {
+      ...details.destination,
+      name: "Agyrem",
+      explored: false,
+      observers_exploring: 2,
+      observers_waiting_return: 1,
+      previous_connection_count: 4,
+    };
+    details.risk_level = "HIGH";
+    details.recommendation = "STABILIZE";
+    renderDetails("/portals/42", apiFor(details));
+
+    expect(
+      await screen.findByRole("heading", { name: "Portal" }),
+    ).toBeVisible();
+    const text = document.body.textContent ?? "";
+    for (const value of [
+      "Portal 42",
+      "OPEN",
+      "64.3%",
+      "STABLE",
+      "02:05",
+      "3",
+      "OUTBOUND",
+      "Agyrem",
+      "UNEXPLORED",
+      "2",
+      "1",
+      "4",
+      "HIGH",
+      "STABILIZE",
+    ]) {
+      expect(text).toContain(value);
+    }
+  });
+
+  it("renders terminal diagnostics as Not applicable", async () => {
+    const details = portalDetails();
+    details.portal.status = "CLOSED";
+    details.risk_level = null;
+    details.recommendation = null;
+    renderDetails("/portals/42", apiFor(details));
+    await screen.findByText("CLOSED");
+    expect(screen.getAllByText("Not applicable")).toHaveLength(2);
+  });
+
+  it("explains risk bands without leaking calculations", async () => {
+    renderDetails("/portals/42", apiFor(portalDetails()));
+    const disclosure = await screen.findByText("How Risk Works");
+    await userEvent.setup().click(disclosure);
+    const explanation = screen.getByTestId("risk-explanation");
+    expect(explanation).toHaveTextContent(/LOW.*MEDIUM.*HIGH.*CRITICAL/i);
+    expect(explanation).toHaveTextContent(/guidance, not a restriction/i);
+    expect(explanation).not.toHaveTextContent(
+      /risk_score|decay|lifetime|timestamp/i,
+    );
+  });
+
+  it("renders 404 separately and retries transient errors", async () => {
+    const missing = apiFor(
+      new ApiError(404, "PORTAL_NOT_FOUND", false, "missing"),
+    );
+    const first = renderDetails("/portals/42", missing);
+    expect(await screen.findByText("Portal Not Found")).toBeVisible();
+    first.unmount();
+
+    const api = apiFor(new Error("network unavailable"));
+    renderDetails("/portals/42", api);
+    expect(
+      await screen.findByText("Unable to load Portal Details."),
+    ).toBeVisible();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Retry" }));
+    expect(api.portal).toHaveBeenCalledTimes(2);
+  });
+});
