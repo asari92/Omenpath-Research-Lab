@@ -29,16 +29,16 @@ func resetSnapshot(now time.Time) Snapshot {
 
 func TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	now := time.Date(2026, 9, 5, 2, 0, 0, 0, time.UTC)
 	before := completeSnapshot(now)
 	portalID := before.Simulation.Portals[0].ID
-	_, err := store.Commit(ctx, before, []domain.EventDraft{eventDraft(now, domain.EventPortalOpened, &portalID)})
+	_, err := testLab(t, store).Commit(ctx, before, []domain.EventDraft{eventDraft(now, domain.EventPortalOpened, &portalID)})
 	require.NoError(t, err)
 	want := resetSnapshot(now.Add(time.Minute))
 
-	require.NoError(t, store.ResetTutorial(ctx, want))
-	got, err := store.Load(ctx)
+	require.NoError(t, testLab(t, store).ResetTutorial(ctx, want))
+	got, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 	require.Len(t, got.Simulation.Observers, 20)
@@ -46,29 +46,29 @@ func TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory(t *testing.
 		require.Equal(t, int64(expectedID+1), observer.ID)
 		require.Equal(t, domain.ObserverAvailable, observer.Status)
 	}
-	events, err := store.ListEvents(ctx, nil)
+	events, err := testLab(t, store).ListEvents(ctx, nil)
 	require.NoError(t, err)
 	require.Empty(t, events)
 }
 
 func TestTutorialReset_TransactionFailureRollsBackEverything(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	now := time.Date(2026, 9, 5, 2, 10, 0, 0, time.UTC)
 	before := completeSnapshot(now)
 	portalID := before.Simulation.Portals[0].ID
-	_, err := store.Commit(ctx, before, []domain.EventDraft{eventDraft(now, domain.EventPortalOpened, &portalID)})
+	_, err := testLab(t, store).Commit(ctx, before, []domain.EventDraft{eventDraft(now, domain.EventPortalOpened, &portalID)})
 	require.NoError(t, err)
 	_, err = store.db.ExecContext(ctx, `CREATE TRIGGER fail_tutorial_reset BEFORE DELETE ON portals
 		BEGIN SELECT RAISE(ABORT, 'forced reset failure'); END`)
 	require.NoError(t, err)
 
-	err = store.ResetTutorial(ctx, resetSnapshot(now.Add(time.Minute)))
+	err = testLab(t, store).ResetTutorial(ctx, resetSnapshot(now.Add(time.Minute)))
 	require.Error(t, err)
-	got, loadErr := store.Load(ctx)
+	got, loadErr := testLab(t, store).Load(ctx)
 	require.NoError(t, loadErr)
 	require.Equal(t, before, got)
-	events, listErr := store.ListEvents(ctx, nil)
+	events, listErr := testLab(t, store).ListEvents(ctx, nil)
 	require.NoError(t, listErr)
 	require.Len(t, events, 1)
 }

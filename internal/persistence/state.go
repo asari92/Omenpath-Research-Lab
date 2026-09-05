@@ -11,12 +11,12 @@ import (
 	"omenpath-lab/internal/domain"
 )
 
-func (s *Store) Commit(
+func (s *LabRepository) Commit(
 	ctx context.Context,
 	snapshot Snapshot,
 	drafts []domain.EventDraft,
 ) ([]domain.Event, error) {
-	if s == nil || s.db == nil {
+	if !s.valid() {
 		return nil, fmt.Errorf("commit: nil store")
 	}
 	if err := validateSnapshot(snapshot); err != nil {
@@ -32,17 +32,17 @@ func (s *Store) Commit(
 		return orderedDrafts[i].CreatedAt.Before(orderedDrafts[j].CreatedAt)
 	})
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin state commit: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if err := persistSnapshot(ctx, tx, snapshot); err != nil {
+	if err := persistSnapshot(ctx, tx, s.labID, snapshot); err != nil {
 		return nil, err
 	}
 	events := make([]domain.Event, 0, len(orderedDrafts))
 	for i := range orderedDrafts {
-		event, err := insertEvent(ctx, tx, orderedDrafts[i])
+		event, err := insertEvent(ctx, tx, s.labID, orderedDrafts[i])
 		if err != nil {
 			return nil, fmt.Errorf("insert event %d: %w", i, err)
 		}
@@ -56,32 +56,32 @@ func (s *Store) Commit(
 
 // ResetTutorial replaces all mutable state and removes prior history in one
 // transaction. The supplied canonical snapshot is validated before deletion.
-func (s *Store) ResetTutorial(ctx context.Context, snapshot Snapshot) error {
-	if s == nil || s.db == nil {
+func (s *LabRepository) ResetTutorial(ctx context.Context, snapshot Snapshot) error {
+	if !s.valid() {
 		return fmt.Errorf("reset tutorial: nil store")
 	}
 	if err := validateSnapshot(snapshot); err != nil {
 		return err
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tutorial reset: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM events`); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM events WHERE lab_id = ?`, s.labID); err != nil {
 		return fmt.Errorf("clear tutorial events: %w", err)
 	}
 	// Active Observer rows may reference Portals. Persist the canonical
 	// AVAILABLE roster first so foreign-key enforcement remains enabled.
 	for _, observer := range snapshot.Simulation.Observers {
-		if err := persistObserver(ctx, tx, observer); err != nil {
+		if err := persistObserver(ctx, tx, s.labID, observer); err != nil {
 			return err
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM portals`); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM portals WHERE lab_id = ?`, s.labID); err != nil {
 		return fmt.Errorf("clear tutorial portals: %w", err)
 	}
-	if err := persistSnapshot(ctx, tx, snapshot); err != nil {
+	if err := persistSnapshot(ctx, tx, s.labID, snapshot); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -206,7 +206,7 @@ func snapshotValidationTime(state domain.SimulationState) time.Time {
 	return latest
 }
 
-func persistSnapshot(ctx context.Context, tx *sql.Tx, snapshot Snapshot) error {
+func persistSnapshot(ctx context.Context, tx *sql.Tx, labID LabID, snapshot Snapshot) error {
 	for _, plane := range snapshot.Simulation.Planes {
 		aliases, err := encodeAliases(plane.Aliases)
 		if err != nil {
@@ -217,32 +217,32 @@ func persistSnapshot(ctx context.Context, tx *sql.Tx, snapshot Snapshot) error {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO planes
-			(id, name, aliases_json, catalog_tier, explored, explored_at)
-			VALUES (?, ?, ?, ?, ?, ?)
-			ON CONFLICT(id) DO UPDATE SET name=excluded.name, aliases_json=excluded.aliases_json,
+			(lab_id, id, name, aliases_json, catalog_tier, explored, explored_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(lab_id, id) DO UPDATE SET name=excluded.name, aliases_json=excluded.aliases_json,
 			catalog_tier=excluded.catalog_tier, explored=excluded.explored, explored_at=excluded.explored_at`,
-			plane.ID, plane.Name, aliases, plane.CatalogTier, plane.Explored, exploredAt,
+			labID, plane.ID, plane.Name, aliases, plane.CatalogTier, plane.Explored, exploredAt,
 		); err != nil {
 			return fmt.Errorf("persist plane %d: %w", plane.ID, err)
 		}
 	}
 	for _, portal := range snapshot.Simulation.Portals {
-		if err := persistPortal(ctx, tx, portal); err != nil {
+		if err := persistPortal(ctx, tx, labID, portal); err != nil {
 			return err
 		}
 	}
 	for _, observer := range snapshot.Simulation.Observers {
-		if err := persistObserver(ctx, tx, observer); err != nil {
+		if err := persistObserver(ctx, tx, labID, observer); err != nil {
 			return err
 		}
 	}
 	labEnergyAt, _ := encodeTime(snapshot.Simulation.Lab.EnergyBaseAt, "lab.energy_base_at")
 	overrideUntil, _ := encodeOptionalTime(snapshot.Simulation.Lab.LeylineOverrideUntil, "lab.override_until")
-	if _, err := tx.ExecContext(ctx, `INSERT INTO lab_state(id, energy_base, energy_base_at, override_until)
-		VALUES (1, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET energy_base=excluded.energy_base,
+	if _, err := tx.ExecContext(ctx, `INSERT INTO lab_state(lab_id, energy_base, energy_base_at, override_until)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(lab_id) DO UPDATE SET energy_base=excluded.energy_base,
 		energy_base_at=excluded.energy_base_at, override_until=excluded.override_until`,
-		snapshot.Simulation.Lab.EnergyBase, labEnergyAt, overrideUntil,
+		labID, snapshot.Simulation.Lab.EnergyBase, labEnergyAt, overrideUntil,
 	); err != nil {
 		return fmt.Errorf("persist lab state: %w", err)
 	}
@@ -250,16 +250,16 @@ func persistSnapshot(ctx context.Context, tx *sql.Tx, snapshot Snapshot) error {
 	dueAt, _ := encodeOptionalTime(snapshot.Simulation.NaturalSpawn.DueAt, "app.spawn_due_at")
 	lastTickAt, _ := encodeOptionalTime(snapshot.Simulation.LastTickAt, "app.last_tick_at")
 	if _, err := tx.ExecContext(ctx, `INSERT INTO app_state
-		(id, mode, tutorial_step, tutorial_phase, tutorial_portal_id, tutorial_plane_id,
+		(lab_id, mode, tutorial_step, tutorial_phase, tutorial_portal_id, tutorial_plane_id,
 		 tutorial_observer_id, next_portal_id, spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at)
-		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET mode=excluded.mode, tutorial_step=excluded.tutorial_step,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(lab_id) DO UPDATE SET mode=excluded.mode, tutorial_step=excluded.tutorial_step,
 		tutorial_phase=excluded.tutorial_phase, tutorial_portal_id=excluded.tutorial_portal_id,
 		tutorial_plane_id=excluded.tutorial_plane_id, tutorial_observer_id=excluded.tutorial_observer_id,
 		next_portal_id=excluded.next_portal_id, spawn_scheduled_at=excluded.spawn_scheduled_at,
 		spawn_due_at=excluded.spawn_due_at, spawn_paused=excluded.spawn_paused,
 		last_tick_at=excluded.last_tick_at`,
-		snapshot.App.Mode, snapshot.App.TutorialStep, snapshot.App.TutorialPhase,
+		labID, snapshot.App.Mode, snapshot.App.TutorialStep, snapshot.App.TutorialPhase,
 		snapshot.App.TutorialPortalID, snapshot.App.TutorialPlaneID, snapshot.App.TutorialObserverID,
 		snapshot.Simulation.NextPortalID,
 		scheduledAt, dueAt, snapshot.Simulation.NaturalSpawn.Paused, lastTickAt,
@@ -285,7 +285,7 @@ func validTutorialContext(app domain.AppState) bool {
 
 func validOptionalID(id *int64) bool { return id == nil || *id > 0 }
 
-func persistPortal(ctx context.Context, tx *sql.Tx, portal domain.Portal) error {
+func persistPortal(ctx context.Context, tx *sql.Tx, labID LabID, portal domain.Portal) error {
 	energyAt, _ := encodeTime(portal.EnergyBaseAt, "portal.energy_base_at")
 	openedAt, _ := encodeTime(portal.OpenedAt, "portal.opened_at")
 	scheduledCloseAt, _ := encodeTime(portal.ScheduledCloseAt, "portal.scheduled_close_at")
@@ -295,12 +295,12 @@ func persistPortal(ctx context.Context, tx *sql.Tx, portal domain.Portal) error 
 	createdAt, _ := encodeTime(portal.CreatedAt, "portal.created_at")
 	updatedAt, _ := encodeTime(portal.UpdatedAt, "portal.updated_at")
 	_, err := tx.ExecContext(ctx, `INSERT INTO portals
-		(id, name, slot_index, kind, destination_plane_id, energy_base, energy_base_at,
+		(lab_id, id, name, slot_index, kind, destination_plane_id, energy_base, energy_base_at,
 		 energy_decay_rate, stability, opened_at, scheduled_close_at, instability_collapse_at,
 		 creatures_initial, observer_flow, extraction_synchronized_at, status,
 		 termination_reason, closed_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET name=excluded.name, slot_index=excluded.slot_index,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(lab_id, id) DO UPDATE SET name=excluded.name, slot_index=excluded.slot_index,
 		kind=excluded.kind, destination_plane_id=excluded.destination_plane_id,
 		energy_base=excluded.energy_base, energy_base_at=excluded.energy_base_at,
 		energy_decay_rate=excluded.energy_decay_rate, stability=excluded.stability,
@@ -310,7 +310,7 @@ func persistPortal(ctx context.Context, tx *sql.Tx, portal domain.Portal) error 
 		extraction_synchronized_at=excluded.extraction_synchronized_at, status=excluded.status,
 		termination_reason=excluded.termination_reason, closed_at=excluded.closed_at,
 		created_at=excluded.created_at, updated_at=excluded.updated_at`,
-		portal.ID, portal.Name, portal.SlotIndex, portal.Kind, portal.DestinationPlaneID,
+		labID, portal.ID, portal.Name, portal.SlotIndex, portal.Kind, portal.DestinationPlaneID,
 		portal.EnergyBase, energyAt, portal.EnergyDecayRate, portal.Stability, openedAt,
 		scheduledCloseAt, instabilityAt, portal.CreaturesInitial, portal.ObserverFlow,
 		extractionAt, portal.Status, portal.TerminationReason, closedAt, createdAt, updatedAt,
@@ -321,19 +321,19 @@ func persistPortal(ctx context.Context, tx *sql.Tx, portal domain.Portal) error 
 	return nil
 }
 
-func persistObserver(ctx context.Context, tx *sql.Tx, observer domain.Observer) error {
+func persistObserver(ctx context.Context, tx *sql.Tx, labID LabID, observer domain.Observer) error {
 	phaseStartedAt, _ := encodeOptionalTime(observer.PhaseStartedAt, "observer.phase_started_at")
 	phaseEndsAt, _ := encodeOptionalTime(observer.PhaseEndsAt, "observer.phase_ends_at")
 	createdAt, _ := encodeTime(observer.CreatedAt, "observer.created_at")
 	updatedAt, _ := encodeTime(observer.UpdatedAt, "observer.updated_at")
 	_, err := tx.ExecContext(ctx, `INSERT INTO observers
-		(id, status, current_plane_id, active_portal_id, phase_started_at, phase_ends_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET status=excluded.status,
+		(lab_id, id, status, current_plane_id, active_portal_id, phase_started_at, phase_ends_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(lab_id, id) DO UPDATE SET status=excluded.status,
 		current_plane_id=excluded.current_plane_id, active_portal_id=excluded.active_portal_id,
 		phase_started_at=excluded.phase_started_at, phase_ends_at=excluded.phase_ends_at,
 		created_at=excluded.created_at, updated_at=excluded.updated_at`,
-		observer.ID, observer.Status, encodeOptionalInt64(observer.CurrentPlaneID),
+		labID, observer.ID, observer.Status, encodeOptionalInt64(observer.CurrentPlaneID),
 		encodeOptionalInt64(observer.ActivePortalID), phaseStartedAt, phaseEndsAt, createdAt, updatedAt,
 	)
 	if err != nil {
@@ -342,17 +342,17 @@ func persistObserver(ctx context.Context, tx *sql.Tx, observer domain.Observer) 
 	return nil
 }
 
-func insertEvent(ctx context.Context, tx *sql.Tx, draft domain.EventDraft) (domain.Event, error) {
+func insertEvent(ctx context.Context, tx *sql.Tx, labID LabID, draft domain.EventDraft) (domain.Event, error) {
 	createdAt, _ := encodeTime(draft.CreatedAt, "event.created_at")
-	result, err := tx.ExecContext(ctx, `INSERT INTO events
-		(event_type, portal_id, observer_id, plane_id, message, payload_json, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, draft.EventType, encodeOptionalInt64(draft.PortalID),
-		encodeOptionalInt64(draft.ObserverID), encodeOptionalInt64(draft.PlaneID),
-		draft.Message, draft.PayloadJSON, createdAt)
-	if err != nil {
+	var id int64
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM events WHERE lab_id = ?`, labID).Scan(&id); err != nil {
 		return domain.Event{}, err
 	}
-	id, err := result.LastInsertId()
+	_, err := tx.ExecContext(ctx, `INSERT INTO events
+		(lab_id, id, event_type, portal_id, observer_id, plane_id, message, payload_json, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, labID, id, draft.EventType, encodeOptionalInt64(draft.PortalID),
+		encodeOptionalInt64(draft.ObserverID), encodeOptionalInt64(draft.PlaneID),
+		draft.Message, draft.PayloadJSON, createdAt)
 	if err != nil {
 		return domain.Event{}, err
 	}

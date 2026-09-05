@@ -25,16 +25,25 @@ func (*minimumCheckpointRandom) FloatRange(min, _ float64) float64 { return min 
 func (*minimumCheckpointRandom) MarshalBinary() ([]byte, error)    { return []byte{}, nil }
 func (*minimumCheckpointRandom) UnmarshalBinary([]byte) error      { return nil }
 
-func openTutorialE2EStore(t *testing.T, path string, now time.Time) *persistence.Store {
+type tutorialE2EStore struct {
+	*persistence.LabRepository
+	store *persistence.Store
+}
+
+func (s *tutorialE2EStore) Close() error { return s.store.Close() }
+
+func openTutorialE2EStore(t *testing.T, path string, now time.Time) *tutorialE2EStore {
 	t.Helper()
 	store, err := persistence.Open(context.Background(), path)
 	require.NoError(t, err)
 	require.NoError(t, store.Migrate(context.Background()))
-	require.NoError(t, store.Bootstrap(context.Background(), now, config.Default()))
-	return store
+	repository, err := store.ForLab("0123456789abcdef0123456789abcdef")
+	require.NoError(t, err)
+	require.NoError(t, repository.Bootstrap(context.Background(), now, config.Default()))
+	return &tutorialE2EStore{LabRepository: repository, store: store}
 }
 
-func persistTutorialPortal(t *testing.T, store *persistence.Store, snapshot persistence.Snapshot, profile domain.TutorialPortalProfile, step int, phase domain.TutorialPhase, now time.Time) persistence.Snapshot {
+func persistTutorialPortal(t *testing.T, store *tutorialE2EStore, snapshot persistence.Snapshot, profile domain.TutorialPortalProfile, step int, phase domain.TutorialPhase, now time.Time) persistence.Snapshot {
 	t.Helper()
 	before := snapshot
 	portal, err := domain.NewTutorialPortal(profile, snapshot.Simulation.NextPortalID, 1, 1, now, config.Default())

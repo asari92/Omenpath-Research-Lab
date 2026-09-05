@@ -116,24 +116,24 @@ func completeSnapshot(now time.Time) Snapshot {
 
 func TestStoreCommitAndLoad_RoundTripsCompleteSnapshot(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	want := completeSnapshot(time.Date(2026, 9, 4, 12, 0, 0, 123, time.UTC))
 
-	_, err := store.Commit(ctx, want, nil)
+	_, err := testLab(t, store).Commit(ctx, want, nil)
 	require.NoError(t, err)
-	got, err := store.Load(ctx)
+	got, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 }
 
 func TestStoreCommit_PreservesExtractionAndOverrideTimestamps(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	want := completeSnapshot(time.Date(2026, 9, 4, 12, 10, 0, 456, time.UTC))
 
-	_, err := store.Commit(ctx, want, nil)
+	_, err := testLab(t, store).Commit(ctx, want, nil)
 	require.NoError(t, err)
-	got, err := store.Load(ctx)
+	got, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want.Simulation.Lab.LeylineOverrideUntil, got.Simulation.Lab.LeylineOverrideUntil)
 	require.Equal(t, want.Simulation.Portals[1].ExtractionSynchronizedAt, got.Simulation.Portals[1].ExtractionSynchronizedAt)
@@ -141,12 +141,12 @@ func TestStoreCommit_PreservesExtractionAndOverrideTimestamps(t *testing.T) {
 
 func TestStoreCommit_PersistsSchedulerAndNextPortalID(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	want := completeSnapshot(time.Date(2026, 9, 4, 12, 20, 0, 789, time.UTC))
 
-	_, err := store.Commit(ctx, want, nil)
+	_, err := testLab(t, store).Commit(ctx, want, nil)
 	require.NoError(t, err)
-	got, err := store.Load(ctx)
+	got, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want.Simulation.NextPortalID, got.Simulation.NextPortalID)
 	require.Equal(t, want.Simulation.NaturalSpawn, got.Simulation.NaturalSpawn)
@@ -155,22 +155,22 @@ func TestStoreCommit_PersistsSchedulerAndNextPortalID(t *testing.T) {
 
 func TestStoreLoad_RecoversOverdueStateWithoutResolvingIt(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	want := completeSnapshot(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))
 	want.Simulation.Portals[0].ScheduledCloseAt = want.Simulation.LastTickAt.Add(time.Second)
 	want.Simulation.Portals[0].Stability = domain.PortalStable
 	want.Simulation.Portals[0].InstabilityCollapseAt = nil
 
-	_, err := store.Commit(ctx, want, nil)
+	_, err := testLab(t, store).Commit(ctx, want, nil)
 	require.NoError(t, err)
-	got, err := store.Load(ctx)
+	got, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, domain.PortalStatusOpen, got.Simulation.Portals[0].Status)
 	require.Equal(t, want.Simulation.Portals[0].ScheduledCloseAt, got.Simulation.Portals[0].ScheduledCloseAt)
 }
 
 func TestSchema_HasNoDerivedRealtimeColumns(t *testing.T) {
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 
 	for table, forbidden := range map[string][]string{
 		"portals":   {"current_energy", "creatures_current", "risk", "risk_score", "remaining_time", "energy_lifetime"},

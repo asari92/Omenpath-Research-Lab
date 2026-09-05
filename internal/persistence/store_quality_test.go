@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"modernc.org/sqlite"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -22,29 +23,29 @@ var loadBarrierSequence atomic.Uint64
 
 func TestStoreCommitAndLoad_AcceptsStructurallyValidCustomTimingSnapshot(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	snapshot := completeSnapshot(time.Date(2026, 9, 4, 16, 0, 0, 0, time.UTC))
 	customSynchronization := snapshot.Simulation.Portals[1].OpenedAt.Add(6 * time.Second)
 	snapshot.Simulation.Portals[1].ExtractionSynchronizedAt = &customSynchronization
 
-	_, err := store.Commit(ctx, snapshot, nil)
+	_, err := testLab(t, store).Commit(ctx, snapshot, nil)
 	require.NoError(t, err)
-	loaded, err := store.Load(ctx)
+	loaded, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, snapshot, loaded)
 }
 
 func TestStoreCommitAndLoad_AcceptsCommandUpdatesAfterLastTick(t *testing.T) {
 	ctx := context.Background()
-	store := openMigratedStore(t)
+	store := openBootstrappedStore(t)
 	now := time.Date(2026, 9, 4, 16, 10, 0, 0, time.UTC)
 	snapshot := completeSnapshot(now)
 	lastTick := now.Add(-10 * time.Second)
 	snapshot.Simulation.LastTickAt = &lastTick
 
-	_, err := store.Commit(ctx, snapshot, nil)
+	_, err := testLab(t, store).Commit(ctx, snapshot, nil)
 	require.NoError(t, err)
-	loaded, err := store.Load(ctx)
+	loaded, err := testLab(t, store).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, snapshot, loaded)
 }
@@ -73,20 +74,21 @@ func TestStoreOpen_SharedMemoryURIWorksAcrossConnectionsAndThenVanishes(t *testi
 	first, err := Open(ctx, uri)
 	require.NoError(t, err)
 	require.NoError(t, first.Migrate(ctx))
+	require.NoError(t, testLab(t, first).Bootstrap(ctx, time.Now().UTC(), config.Default()))
 	want := completeSnapshot(time.Date(2026, 9, 4, 16, 20, 0, 0, time.UTC))
-	_, err = first.Commit(ctx, want, nil)
+	_, err = testLab(t, first).Commit(ctx, want, nil)
 	require.NoError(t, err)
 
 	second, err := Open(ctx, uri)
 	require.NoError(t, err)
-	got, err := second.Load(ctx)
+	got, err := testLab(t, second).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 	require.NoError(t, first.Close())
 
 	third, err := Open(ctx, uri)
 	require.NoError(t, err)
-	got, err = third.Load(ctx)
+	got, err = testLab(t, third).Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
 	require.NoError(t, third.Close())
@@ -95,7 +97,7 @@ func TestStoreOpen_SharedMemoryURIWorksAcrossConnectionsAndThenVanishes(t *testi
 	fresh, err := Open(ctx, uri)
 	require.NoError(t, err)
 	defer func() { require.NoError(t, fresh.Close()) }()
-	_, err = fresh.Load(ctx)
+	_, err = testLab(t, fresh).Load(ctx)
 	require.Error(t, err, "named memory database must disappear after its last connection closes")
 }
 
@@ -163,11 +165,11 @@ func TestStoreCommit_RejectsStructurallyImpossibleSnapshots(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			store := openMigratedStore(t)
+			store := openBootstrappedStore(t)
 			snapshot := completeSnapshot(now)
 			test.mutate(&snapshot)
 
-			_, err := store.Commit(context.Background(), snapshot, nil)
+			_, err := testLab(t, store).Commit(context.Background(), snapshot, nil)
 			require.Error(t, err)
 		})
 	}
@@ -189,11 +191,11 @@ func TestStoreCommit_RejectsNonFinitePortalEnergy(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			store := openMigratedStore(t)
+			store := openBootstrappedStore(t)
 			snapshot := completeSnapshot(now)
 			test.mutate(&snapshot.Simulation.Portals[0])
 
-			_, err := store.Commit(context.Background(), snapshot, nil)
+			_, err := testLab(t, store).Commit(context.Background(), snapshot, nil)
 			require.Error(t, err)
 		})
 	}
@@ -235,13 +237,13 @@ func TestStoreLoad_RejectsStructurallyCorruptRows(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
-			store := openMigratedStore(t)
-			_, err := store.Commit(ctx, completeSnapshot(now), nil)
+			store := openBootstrappedStore(t)
+			_, err := testLab(t, store).Commit(ctx, completeSnapshot(now), nil)
 			require.NoError(t, err)
 			_, err = store.db.ExecContext(ctx, test.sql, test.args...)
 			require.NoError(t, err)
 
-			_, err = store.Load(ctx)
+			_, err = testLab(t, store).Load(ctx)
 			require.Error(t, err)
 		})
 	}
@@ -272,8 +274,9 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, store.Close()) })
 	require.NoError(t, store.Migrate(ctx))
+	require.NoError(t, testLab(t, store).Bootstrap(ctx, time.Now().UTC(), config.Default()))
 	before := completeSnapshot(time.Date(2026, 9, 4, 15, 30, 0, 0, time.UTC))
-	_, err = store.Commit(ctx, before, nil)
+	_, err = testLab(t, store).Commit(ctx, before, nil)
 	require.NoError(t, err)
 
 	var journalMode string
@@ -282,7 +285,7 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	_, err = store.db.ExecContext(ctx, `ALTER TABLE app_state RENAME TO app_state_rows`)
 	require.NoError(t, err)
 	_, err = store.db.ExecContext(ctx, fmt.Sprintf(`CREATE VIEW app_state AS
-		SELECT id,
+		SELECT lab_id,
 			CASE %s() WHEN 1 THEN mode ELSE mode END AS mode,
 			tutorial_step, tutorial_phase, tutorial_portal_id, tutorial_plane_id,
 			tutorial_observer_id, next_portal_id, spawn_scheduled_at, spawn_due_at,
@@ -300,7 +303,7 @@ func TestStoreLoad_ReadsOneConsistentSnapshotDuringConcurrentWrite(t *testing.T)
 	}
 	loaded := make(chan loadResult, 1)
 	go func() {
-		snapshot, loadErr := store.Load(ctx)
+		snapshot, loadErr := testLab(t, store).Load(ctx)
 		loaded <- loadResult{snapshot: snapshot, err: loadErr}
 	}()
 

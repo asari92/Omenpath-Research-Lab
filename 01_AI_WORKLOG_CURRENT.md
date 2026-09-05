@@ -2045,3 +2045,47 @@ Observers: `config.Default().ObserverCount`, canonical persistence validation,
 bootstrap IDs 1–20, load capacity, tutorial reset fixtures и aggregate transport
 status теперь используют canonical count. Multi-lab/session semantics и UI в этот
 pass не входят.
+
+### Block D corrective — DC-2 tenant persistence boundary
+
+`001_initial.sql` теперь сразу создаёт fresh multi-lab schema: `labs`,
+hashed-token `sessions` и шесть gameplay tables с обязательным `lab_id`.
+Entity PK/FK включают laboratory; open Slot uniqueness и event indexes также
+scoped по laboratory. `002_tutorial_context.sql` сохранён как additive migration
+для tenant-aware `app_state`; migration 003, legacy import/claim и автоматическое
+удаление database отсутствуют. Один `Migrate` не создаёт gameplay/lab rows.
+
+Добавлены strict lowercase 32-hex `LabID` и `Store.ForLab`. Gameplay API
+`Bootstrap`, `Load`, `Commit`, `ListEvents`, `ResetTutorial` принадлежит только
+`LabRepository`; `Store` владеет connection/migrations. Все gameplay queries и
+upserts используют bound `lab_id`. Bootstrap атомарно создаёт lab metadata
+(initial 30-day expiry), 85 Planes, 20 Observers и per-lab singleton state;
+повторный bootstrap проверяет только собственный `app_state` и не меняет progress
+или expiry. Event IDs выделяются через per-lab `MAX(id)+1` внутри существующей
+single-connection transaction, сохраняя chronological/stable semantic ordering.
+Commit/reset atomicity, strict codecs, restart recovery и отсутствие derived
+realtime writes сохранены.
+
+TDD evidence: test-only RED commit `b3be801` выполнил
+`go test -count=1 ./internal/persistence` и получил функциональные failures:
+нет `labs`/`sessions`, неверные global PK/indexes, отсутствует `Store.ForLab`.
+Reflection только в contract test позволил выполнить schema assertions до
+появления нового named API, без package compilation failure. GREEN покрывает
+две лаборатории с одинаковыми entity IDs/Slots, отдельные event sequences,
+изолированные Load/Commit/ListEvents/ResetTutorial, restart, cross-lab FK reject,
+session hash/uniqueness constraints, cascade delete и bootstrap rollback.
+
+Для независимой сборки DC-2 `cmd/server` временно связывает repository с local
+`transitionalLabID`; DC-4 удалит этот bridge при подключении session/runtime
+routing. Это ещё не browser/session isolation. Canonical integration fixtures
+адаптированы к bound repository; fake engine repositories не изменены.
+
+Verification: `gofmt -l .` (empty), `go vet ./...`, `go build ./...`,
+`go test -count=1 ./internal/persistence`,
+`go test -count=1 ./internal/engine ./internal/httpapi ./internal/realtime` и
+`go test -count=1 ./...` прошли. Для quality commands использован temporary
+`GOCACHE=/tmp/omenpath-dc2-go-cache.VISEDF`: default cache оказался read-only.
+HTTP/WS suites запущены с разрешёнными localhost sockets после sandbox failure.
+Race suite остаётся обязательным на границе полного corrective block.
+PERSIST-001/005 — GREEN на persistence boundary; PERSIST-006 — PARTIAL, поскольку
+session lifecycle и race-safe expiry cleanup относятся к DC-3. UI не менялся.

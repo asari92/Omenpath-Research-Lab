@@ -53,12 +53,16 @@ func TestTenantSchema_FreshKeysForeignKeysIndexesAndEmptyState(t *testing.T) {
 			require.NoError(t, err)
 			keys := map[int]string{}
 			columns := map[string]bool{}
+			types := map[string]string{}
+			requiredColumns := map[string]int{}
 			for rows.Next() {
 				var cid, required, pk int
 				var name, typ string
 				var defaultValue any
 				require.NoError(t, rows.Scan(&cid, &name, &typ, &required, &defaultValue, &pk))
 				columns[name] = true
+				types[name] = typ
+				requiredColumns[name] = required
 				if pk > 0 {
 					keys[pk] = name
 				}
@@ -68,6 +72,18 @@ func TestTenantSchema_FreshKeysForeignKeysIndexesAndEmptyState(t *testing.T) {
 			}
 			require.NoError(t, rows.Err())
 			require.NoError(t, rows.Close())
+			if table == "labs" || table == "sessions" {
+				wantTypes := map[string]string{"id": "TEXT", "created_at": "INTEGER", "expires_at": "INTEGER", "last_active_at": "INTEGER"}
+				if table == "sessions" {
+					wantTypes = map[string]string{"id": "INTEGER", "token_hash": "BLOB", "lab_id": "TEXT", "expires_at": "INTEGER", "last_seen_at": "INTEGER"}
+				}
+				require.Equal(t, wantTypes, types)
+				for name := range wantTypes {
+					if name != "id" {
+						require.Equal(t, 1, requiredColumns[name], name)
+					}
+				}
+			}
 			switch table {
 			case "labs", "sessions":
 				require.Equal(t, map[int]string{1: "id"}, keys)
@@ -160,6 +176,11 @@ func TestTenantRepository_IsolatesBootstrapCommitLoadEventsResetAndRestart(t *te
 	for _, repo := range []tenantRepository{a, b} {
 		require.NoError(t, repo.Bootstrap(ctx, now, config.Default()))
 	}
+	var createdAt, expiresAt, lastActiveAt int64
+	require.NoError(t, store.db.QueryRow(`SELECT created_at, expires_at, last_active_at FROM labs WHERE id=?`, tenantA).Scan(&createdAt, &expiresAt, &lastActiveAt))
+	require.Equal(t, now.UnixNano(), createdAt)
+	require.Equal(t, now.Add(30*24*time.Hour).UnixNano(), expiresAt)
+	require.Equal(t, now.UnixNano(), lastActiveAt)
 	initialB, err := b.Load(ctx)
 	require.NoError(t, err)
 	wantA := completeSnapshot(now)
@@ -189,6 +210,9 @@ func TestTenantRepository_IsolatesBootstrapCommitLoadEventsResetAndRestart(t *te
 		require.Equal(t, eventsB, gotB)
 	}
 	require.NoError(t, a.Bootstrap(ctx, now.Add(time.Hour), config.Default()))
+	var unchangedExpiry int64
+	require.NoError(t, store.db.QueryRow(`SELECT expires_at FROM labs WHERE id=?`, tenantA).Scan(&unchangedExpiry))
+	require.Equal(t, expiresAt, unchangedExpiry)
 	got, err = a.Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, wantA, got)
@@ -211,6 +235,24 @@ func TestTenantRepository_IsolatesBootstrapCommitLoadEventsResetAndRestart(t *te
 	got, err = b.Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, wantB, got)
+}
+
+func TestTenantBootstrap_FailureRollsBackMetadataAndChildren(t *testing.T) {
+	ctx := context.Background()
+	store := openMigratedStore(t)
+	repo := testLab(t, store)
+	_, err := store.db.Exec(`CREATE TRIGGER fail_bootstrap BEFORE INSERT ON app_state
+		BEGIN SELECT RAISE(ABORT, 'forced bootstrap failure'); END`)
+	require.NoError(t, err)
+	require.ErrorContains(t, repo.Bootstrap(ctx, time.Now().UTC(), config.Default()), "forced bootstrap failure")
+	for _, table := range []string{"labs", "planes", "observers", "app_state", "lab_state"} {
+		var count int
+		require.NoError(t, store.db.QueryRow(`SELECT COUNT(*) FROM `+table).Scan(&count))
+		require.Zero(t, count, table)
+	}
+	_, err = store.db.Exec(`DROP TRIGGER fail_bootstrap`)
+	require.NoError(t, err)
+	require.NoError(t, repo.Bootstrap(ctx, time.Now().UTC(), config.Default()))
 }
 
 func TestTenantSchema_RejectsCrossLabReferencesAndCascadesOnlyOneLab(t *testing.T) {

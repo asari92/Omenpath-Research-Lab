@@ -23,6 +23,9 @@ type serverConfig struct {
 	address      string
 }
 
+// Transitional composition only: DC-4 replaces this with session-resolved labs.
+const transitionalLabID persistence.LabID = "00000000000000000000000000000001"
+
 func serverConfigFromEnv(getenv func(string) string) serverConfig {
 	result := serverConfig{databasePath: "./omenpath.db", address: ":8080"}
 	if value := getenv("OMENPATH_DB_PATH"); value != "" {
@@ -57,10 +60,14 @@ func run(ctx context.Context, serverCfg serverConfig) error {
 	if err := store.Migrate(ctx); err != nil {
 		return err
 	}
-	if err := store.Bootstrap(ctx, time.Now().UTC(), cfg); err != nil {
+	repository, err := store.ForLab(transitionalLabID)
+	if err != nil {
 		return err
 	}
-	manager, err := engine.NewLabManager(ctx, cfg, clock.RealClock{}, random.NewRealRandom(), store)
+	if err := repository.Bootstrap(ctx, time.Now().UTC(), cfg); err != nil {
+		return err
+	}
+	manager, err := engine.NewLabManager(ctx, cfg, clock.RealClock{}, random.NewRealRandom(), repository)
 	if err != nil {
 		return err
 	}

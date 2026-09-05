@@ -91,8 +91,8 @@ type catalogSeed struct {
 	Planes []planeSeed `json:"planes"`
 }
 
-func (s *Store) Bootstrap(ctx context.Context, now time.Time, cfg config.Config) error {
-	if s == nil || s.db == nil || now.IsZero() || now.Location() != time.UTC {
+func (s *LabRepository) Bootstrap(ctx context.Context, now time.Time, cfg config.Config) error {
+	if !s.valid() || now.IsZero() || now.Location() != time.UTC {
 		return fmt.Errorf("bootstrap: invalid input")
 	}
 	var seed catalogSeed
@@ -103,17 +103,21 @@ func (s *Store) Bootstrap(ctx context.Context, now time.Time, cfg config.Config)
 		return fmt.Errorf("bootstrap: noncanonical configuration")
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin bootstrap: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 	var exists int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM app_state`).Scan(&exists); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM app_state WHERE lab_id = ?`, s.labID).Scan(&exists); err != nil {
 		return fmt.Errorf("inspect bootstrap state: %w", err)
 	}
 	if exists != 0 {
 		return tx.Commit()
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO labs(id, created_at, expires_at, last_active_at)
+		VALUES (?, ?, ?, ?)`, s.labID, now.UnixNano(), now.Add(30*24*time.Hour).UnixNano(), now.UnixNano()); err != nil {
+		return fmt.Errorf("insert laboratory: %w", err)
 	}
 	for _, plane := range seed.Planes {
 		aliases, err := json.Marshal(plane.Aliases)
@@ -121,31 +125,31 @@ func (s *Store) Bootstrap(ctx context.Context, now time.Time, cfg config.Config)
 			return fmt.Errorf("encode aliases for plane %d: %w", plane.ID, err)
 		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO planes
-			(id, name, aliases_json, catalog_tier, explored, explored_at)
-			VALUES (?, ?, ?, ?, 0, NULL)`,
-			plane.ID, plane.Name, string(aliases), plane.CatalogTier,
+			(lab_id, id, name, aliases_json, catalog_tier, explored, explored_at)
+			VALUES (?, ?, ?, ?, ?, 0, NULL)`,
+			s.labID, plane.ID, plane.Name, string(aliases), plane.CatalogTier,
 		); err != nil {
 			return fmt.Errorf("insert plane %d: %w", plane.ID, err)
 		}
 	}
 	for _, observer := range domain.NewObserverRoster(cfg.ObserverCount, now) {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO observers
-			(id, status, current_plane_id, active_portal_id, phase_started_at, phase_ends_at, created_at, updated_at)
-			VALUES (?, ?, NULL, NULL, NULL, NULL, ?, ?)`,
-			observer.ID, observer.Status, observer.CreatedAt.UnixNano(), observer.UpdatedAt.UnixNano(),
+			(lab_id, id, status, current_plane_id, active_portal_id, phase_started_at, phase_ends_at, created_at, updated_at)
+			VALUES (?, ?, ?, NULL, NULL, NULL, NULL, ?, ?)`,
+			s.labID, observer.ID, observer.Status, observer.CreatedAt.UnixNano(), observer.UpdatedAt.UnixNano(),
 		); err != nil {
 			return fmt.Errorf("insert observer %d: %w", observer.ID, err)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO lab_state
-		(id, energy_base, energy_base_at, override_until) VALUES (1, ?, ?, NULL)`,
-		cfg.LabEnergyMax, now.UnixNano(),
+		(lab_id, energy_base, energy_base_at, override_until) VALUES (?, ?, ?, NULL)`,
+		s.labID, cfg.LabEnergyMax, now.UnixNano(),
 	); err != nil {
 		return fmt.Errorf("insert lab state: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO app_state
-		(id, mode, tutorial_step, next_portal_id, spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at)
-		VALUES (1, ?, 0, 1, NULL, NULL, 1, NULL)`, domain.ModeTutorial,
+		(lab_id, mode, tutorial_step, next_portal_id, spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at)
+		VALUES (?, ?, 0, 1, NULL, NULL, 1, NULL)`, s.labID, domain.ModeTutorial,
 	); err != nil {
 		return fmt.Errorf("insert app state: %w", err)
 	}

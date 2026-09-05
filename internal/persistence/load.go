@@ -9,11 +9,11 @@ import (
 	"omenpath-lab/internal/domain"
 )
 
-func (s *Store) Load(ctx context.Context) (Snapshot, error) {
-	if s == nil || s.db == nil {
+func (s *LabRepository) Load(ctx context.Context) (Snapshot, error) {
+	if !s.valid() {
 		return Snapshot{}, fmt.Errorf("load: nil store")
 	}
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := s.store.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("begin snapshot load: %w", err)
 	}
@@ -23,7 +23,7 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	var energyAt int64
 	var overrideUntil sql.NullInt64
 	if err := tx.QueryRowContext(ctx, `SELECT energy_base, energy_base_at, override_until
-		FROM lab_state WHERE id = 1`).Scan(
+		FROM lab_state WHERE lab_id = ?`, s.labID).Scan(
 		&snapshot.Simulation.Lab.EnergyBase, &energyAt, &overrideUntil,
 	); err != nil {
 		return Snapshot{}, fmt.Errorf("load lab state: %w", err)
@@ -38,7 +38,7 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	if err := tx.QueryRowContext(ctx, `SELECT mode, tutorial_step, tutorial_phase,
 		tutorial_portal_id, tutorial_plane_id, tutorial_observer_id, next_portal_id,
 		spawn_scheduled_at, spawn_due_at, spawn_paused, last_tick_at
-		FROM app_state WHERE id = 1`).Scan(
+		FROM app_state WHERE lab_id = ?`, s.labID).Scan(
 		&mode, &snapshot.App.TutorialStep, &phase,
 		&tutorialPortalID, &tutorialPlaneID, &tutorialObserverID, &snapshot.Simulation.NextPortalID,
 		&scheduledAt, &dueAt, &snapshot.Simulation.NaturalSpawn.Paused, &lastTickAt,
@@ -54,15 +54,15 @@ func (s *Store) Load(ctx context.Context) (Snapshot, error) {
 	snapshot.Simulation.NaturalSpawn.DueAt = decodeOptionalTime(dueAt)
 	snapshot.Simulation.LastTickAt = decodeOptionalTime(lastTickAt)
 
-	planes, err := loadPlanes(ctx, tx)
+	planes, err := loadPlanes(ctx, tx, s.labID)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	portals, err := loadPortals(ctx, tx)
+	portals, err := loadPortals(ctx, tx, s.labID)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	observers, err := loadObservers(ctx, tx)
+	observers, err := loadObservers(ctx, tx, s.labID)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -82,9 +82,9 @@ type snapshotReader interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }
 
-func loadPlanes(ctx context.Context, reader snapshotReader) ([]domain.Plane, error) {
+func loadPlanes(ctx context.Context, reader snapshotReader, labID LabID) ([]domain.Plane, error) {
 	rows, err := reader.QueryContext(ctx, `SELECT id, name, aliases_json, catalog_tier, explored, explored_at
-		FROM planes ORDER BY id`)
+		FROM planes WHERE lab_id = ? ORDER BY id`, labID)
 	if err != nil {
 		return nil, fmt.Errorf("query planes: %w", err)
 	}
@@ -113,12 +113,12 @@ func loadPlanes(ctx context.Context, reader snapshotReader) ([]domain.Plane, err
 	return planes, nil
 }
 
-func loadPortals(ctx context.Context, reader snapshotReader) ([]domain.Portal, error) {
+func loadPortals(ctx context.Context, reader snapshotReader, labID LabID) ([]domain.Portal, error) {
 	rows, err := reader.QueryContext(ctx, `SELECT id, name, slot_index, kind, destination_plane_id,
 		energy_base, energy_base_at, energy_decay_rate, stability, opened_at,
 		scheduled_close_at, instability_collapse_at, creatures_initial, observer_flow,
 		extraction_synchronized_at, status, termination_reason, closed_at, created_at, updated_at
-		FROM portals ORDER BY id`)
+		FROM portals WHERE lab_id = ? ORDER BY id`, labID)
 	if err != nil {
 		return nil, fmt.Errorf("query portals: %w", err)
 	}
@@ -161,9 +161,9 @@ func loadPortals(ctx context.Context, reader snapshotReader) ([]domain.Portal, e
 	return portals, nil
 }
 
-func loadObservers(ctx context.Context, reader snapshotReader) ([]domain.Observer, error) {
+func loadObservers(ctx context.Context, reader snapshotReader, labID LabID) ([]domain.Observer, error) {
 	rows, err := reader.QueryContext(ctx, `SELECT id, status, current_plane_id, active_portal_id,
-		phase_started_at, phase_ends_at, created_at, updated_at FROM observers ORDER BY id`)
+		phase_started_at, phase_ends_at, created_at, updated_at FROM observers WHERE lab_id = ? ORDER BY id`, labID)
 	if err != nil {
 		return nil, fmt.Errorf("query observers: %w", err)
 	}
@@ -198,22 +198,22 @@ func loadObservers(ctx context.Context, reader snapshotReader) ([]domain.Observe
 	return observers, nil
 }
 
-func (s *Store) ListEvents(ctx context.Context, portalID *int64) ([]domain.Event, error) {
-	if s == nil || s.db == nil {
+func (s *LabRepository) ListEvents(ctx context.Context, portalID *int64) ([]domain.Event, error) {
+	if !s.valid() {
 		return nil, fmt.Errorf("list events: nil store")
 	}
 	query := `SELECT id, event_type, portal_id, observer_id, plane_id, message, payload_json, created_at
-		FROM events`
-	var args []any
+		FROM events WHERE lab_id = ?`
+	args := []any{s.labID}
 	if portalID != nil {
 		if *portalID <= 0 {
 			return nil, fmt.Errorf("list events: invalid portal ID")
 		}
-		query += ` WHERE portal_id = ?`
+		query += ` AND portal_id = ?`
 		args = append(args, *portalID)
 	}
 	query += ` ORDER BY created_at ASC, id ASC`
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.store.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query events: %w", err)
 	}
