@@ -1893,3 +1893,57 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - `go test -count=1 ./...` — PASS.
 - `UI-005` теперь GREEN; `UI-001..007` подтверждены GREEN. Stage 21 завершён;
   Block E / Stage 22 не начат.
+
+## Block D — final boundary verification (2026-09-05)
+
+### Checkpoint evidence
+
+| Stage | Checkpoints RED → GREEN |
+|---:|---|
+| 15 | `7ed451f`→`fd647f7`; `c07be33`→`e145ae2`; `c55f272`→`1daf24a`; `2950530`→`f2dfb3e` |
+| 16 | `f7ded73`→`2888deb`; `f0cf92f`→`8825d8b` |
+| 17 | `393e9c7`→`2af3dfe`; `3f09c06`→`9f75dfc` |
+| 18 | `ca3ddb6`→`3543d54`; `a27bc24`→`a2f9eb4`; `40812bf`→`3b1b72b` |
+| 19 | `78229d1`→`569e89f`; `1a57a6c`→`ea87a2c` |
+| 20 | `ff48bbd`→`a5d1493`; `81eed80`→`e0e9e9a` |
+| 21 | `8f92825`→`09ea924`; `216addb`→`997b00b`; locator corrections `a55605f`, `9f655ac` |
+
+### Tools, assets и verification
+
+- Реальные версии: Go `1.26.4`, Node `20.19.3`, npm `11.17.0`, React
+  `19.2.8`, Vite `8.2.2`, Vitest `4.1.11`, Playwright `1.58.2`.
+- Manifest содержит 85/85 уникальных local artwork paths; 21 Plane использует
+  committed generated fallback. Production Plane assets занимают 3.4 MB.
+  Runtime network к artwork hosts отсутствует; credits сохраняют source,
+  artist attribution, Wizards policy и unofficial fan-content notice.
+- `npm --prefix web run format:check`, lint, typecheck — PASS.
+- `npm --prefix web run test` — 28 files, 115 tests PASS.
+- `npm --prefix web run build` — PASS (advisory chunk-size warning записан в
+  Stage 21, не скрыт).
+- Финальный отдельный `npm --prefix web run test:e2e` — 15 PASS, 5 intentional
+  cross-project skips, 1.4 min; Tutorial 0→9→Live — 56.2 s.
+- `gofmt -l .` — пустой output; `go vet ./...`, `go build ./...`,
+  `go test -count=1 ./...` — PASS.
+- `go test -race -count=1 ./...` — PASS по всем Go packages.
+- Финальный `npm ci` намеренно не повторялся: пользователь запретил новые
+  установки и лишнюю запись на диск. Существующее project-local дерево
+  проверено `npm --prefix web ls --all` с exit 0, lockfile не менялся, build и
+  все тесты используют exact committed versions. Новые браузеры не скачивались.
+- Первый параллельный browser/race boundary run дал только Worklog render
+  timeout при CPU contention; race был GREEN. Отдельный полный browser run
+  после condition-based 15 s locator ожидания прошёл без sleep/flaky retry.
+
+### Final consistency audit
+
+- Final Spec §§5–6, 9, 13, 23–29, 35–36, 39–41 повторно сверен с frontend.
+  Dashboard не раскрывает Risk/Recommendation/History и hidden values;
+  Details/Event Log/Tutorial/actions соответствуют своим boundaries.
+- TypeScript transport fields/enums совпадают с Go `internal/transport` DTO;
+  quick-action reasons additive, Plane presence derived и не persisted.
+- `UI-001..007` и `TUTORIAL-019` GREEN с named tests/implementation. Ни один
+  ранее GREEN requirement не понижен.
+- Block D — GREEN. Block E — PLANNED; Stage 22 не начат. Работа остановлена на
+  обязательной пользовательской сверке часов.
+
+Disk report после Block D: `web/node_modules` — 241 MB;
+`/tmp/omenpath-npm-cache` — 446 MB. Ничего автоматически не удалялось.

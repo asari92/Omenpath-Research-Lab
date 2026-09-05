@@ -27,7 +27,7 @@ Block, он реализуется stage-by-stage, затем проходит �
 | A — Specification & Domain Foundation | 0–2 | GREEN | `03_STAGE_00_01_TDD_FOUNDATION.md`, `04_STAGE_02_PORTAL_CORE_TDD.md` | завершён и проверен |
 | B — Observers & Simulation | 3–8 | GREEN | `05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` … `10_STAGE_08_SIMULATION_TDD.md` | завершён и проверен |
 | C — Persistence & Transport | 9–14 | GREEN | `11_BLOCK_C_STAGE_09_14_TDD.md` | завершён; итоговый audit APPROVED |
-| D — Frontend | 15–21 | PLANNED | `12_BLOCK_D_STAGE_15_21_TDD.md`; frontend design spec | detailed plan утверждён; implementation не начат |
+| D — Frontend | 15–21 | GREEN | `12_BLOCK_D_STAGE_15_21_TDD.md`; frontend design spec | завершён и boundary-verified |
 | E — Quality & Delivery | 22–27 | PLANNED | создаётся только после сверки Block D | начинать нельзя |
 
 ### Блоковый delivery-режим после Stage 8
@@ -199,7 +199,7 @@ Rationale:
 
 ## Block D — Frontend
 
-**Status: PLANNED; detailed plan готов, implementation не начат.** Текущий
+**Status: GREEN; Stages 15–21 завершены и boundary-verified.** Execution
 execution document — [`12_BLOCK_D_STAGE_15_21_TDD.md`](12_BLOCK_D_STAGE_15_21_TDD.md),
 визуальная и interaction-модель зафиксирована в
 [`docs/superpowers/specs/2026-09-05-block-d-frontend-design.md`](docs/superpowers/specs/2026-09-05-block-d-frontend-design.md).
@@ -207,7 +207,8 @@ execution document — [`12_BLOCK_D_STAGE_15_21_TDD.md`](12_BLOCK_D_STAGE_15_21_
 contracts. Frontend потребляет существующий публичный transport contract и не
 вводит новые gameplay semantics. Если UI выявляет реальный backend defect или
 недостающую интеграционную границу, она исправляется отдельным доказанным TDD
-corrective pass без произвольного изменения завершённых Stages 0–14.
+corrective pass без произвольного изменения завершённых Stages 0–14. Block E
+остаётся следующей PLANNED planning boundary и не начат.
 
 ### Stage 15 — Frontend foundation
 React + TypeScript + Vite, router, REST client, WebSocket client, shared state, error handling.
