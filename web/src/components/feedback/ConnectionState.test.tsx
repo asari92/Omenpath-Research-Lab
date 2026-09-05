@@ -30,7 +30,10 @@ it("announces connection changes and retries without dropping the last snapshot"
     .click(screen.getByRole("button", { name: "Retry connection" }));
   expect(store.getState().snapshot).toBe(next);
   act(() => store.setConnection("reconnecting"));
-  expect(screen.getByRole("status")).toHaveTextContent(/reconnecting/i);
+  expect(screen.getByRole("status")).toHaveTextContent("Planar paths unstable");
   act(() => store.setConnection("connected"));
-  expect(screen.getByRole("status")).toHaveTextContent(/connected/i);
+  expect(screen.getByRole("status")).toHaveTextContent("Planar link stable");
+  expect(screen.queryByText(/Connection:/)).not.toBeInTheDocument();
+  act(() => store.setConnection("disconnected"));
+  expect(screen.getByRole("status")).toHaveTextContent("Disconnected from the planes");
 });

@@ -6,7 +6,7 @@ import type { OmenpathApi } from "../api/client";
 import type { SlotPortalDTO, StateSnapshot } from "../api/types";
 import { SnapshotProvider } from "../state/SnapshotProvider";
 import { createSnapshotStore } from "../state/snapshot-store";
-import { portalDetails, snapshotAt } from "../test/builders";
+import { observerTransit, portalDetails, snapshotAt } from "../test/builders";
 import { DashboardPage } from "./DashboardPage";
 
 function portal(id: number, plane: string): SlotPortalDTO {
@@ -62,6 +62,18 @@ function renderDashboard(snapshot: StateSnapshot) {
 }
 
 describe("DashboardPage", () => {
+  it("shows the scoped transit and whole-card instability while empty commands are disabled", () => {
+    const snapshot = snapshotAt();
+    snapshot.slots[0].portal = portal(1, "Alara");
+    snapshot.observer_transits = [observerTransit(1, 17, "RETURNING")];
+    renderDashboard(snapshot);
+    const slots = screen.getAllByTestId("portal-slot");
+    expect(slots[0]).toHaveAttribute("data-stability", "UNSTABLE");
+    expect(slots[0]).toHaveTextContent("Observer #17");
+    expect(slots[0]).toHaveTextContent("Returning · 00:05");
+    expect(slots[0]).toHaveTextContent("UNEXPLORED");
+    for (const button of within(slots[1]).getAllByRole("button")) expect(button).toBeDisabled();
+  });
   it("renders every summary value from one authoritative snapshot", () => {
     const snapshot = snapshotAt();
     snapshot.lab.current_energy = 73;

@@ -42,14 +42,14 @@ describe("application routes", () => {
 
     const nav = screen.getByRole("navigation", { name: "Primary navigation" });
     expect(
-      Array.from(nav.querySelectorAll("a")).map((link) => link.textContent),
-    ).toEqual(["Dashboard", "Event Log", "AI Worklog"]);
+      Array.from(nav.querySelectorAll("a, button")).map((link) => link.textContent),
+    ).toEqual(["Dashboard", "Event Log", "Help", "Open Extraction", "Artwork Credits", "AI Worklog"]);
     await user.tab();
     await user.tab();
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole("link", { name: "Event Log" })).toHaveFocus();
     await user.tab();
-    expect(screen.getByRole("link", { name: "AI Worklog" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Help" })).toHaveFocus();
   });
 });

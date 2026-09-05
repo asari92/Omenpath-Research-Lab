@@ -76,14 +76,13 @@ describe("PortalActions", () => {
     ).not.toBeDisabled();
   });
 
-  it("Empty Slot uses the same four controls with a local reason", async () => {
+  it("Empty Slot controls are native disabled and cannot be activated", async () => {
     const user = userEvent.setup();
     render(<PortalActions portalId={null} quickActions={null} />);
     expect(screen.getAllByRole("button")).toHaveLength(4);
     await user.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /no portal occupies this slot/i,
-    );
+    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("allows only the explicit tutorial critical SEND override", async () => {
