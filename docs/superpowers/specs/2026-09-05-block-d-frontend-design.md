@@ -266,6 +266,13 @@ The frontend maps known codes to English copy and has a safe generic fallback fo
 future codes. It never infers gameplay eligibility from Energy, Risk, direction,
 creatures or Observer counts.
 
+There is one Final-Spec-required Tutorial exception. When authoritative context
+contains `expected_action == ATTEMPT_CRITICAL_SEND` and the matching target Portal
+ID, the target SEND control is presented as the enabled learning action
+`TRY SEND`. It issues the real command even though ordinary SEND availability is
+false; the expected `PORTAL_CRITICAL_RISK` rejection advances Step 5 and creates
+the required `ACTION_REJECTED`. No other unavailable command is force-enabled.
+
 ### 7.3 Command lifecycle
 
 Only the selected Portal/action key is marked busy during a POST. Other commands
@@ -375,6 +382,8 @@ Required coverage includes:
 - no optimistic gameplay changes;
 - all seven Slot positions and Empty State;
 - all four command controls and unavailable-reason behavior;
+- the matching Step 5 `TRY SEND` exception and absence of that exception for any
+  other step, target or unavailable reason;
 - confirmation retry with exactly one `confirm:true` POST;
 - Details live refresh, Risk/Recommendation and shared History formatting;
 - Extraction search/filter/selection/error behavior;
