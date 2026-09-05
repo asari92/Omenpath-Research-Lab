@@ -1,7 +1,9 @@
 .shell {
+  height: 100dvh;
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
+  overflow: hidden;
 }
 
 .header {
@@ -46,17 +48,26 @@
 
 .main {
   min-width: 0;
+  min-height: 0;
   padding: clamp(1rem, 3vw, 2.5rem);
+  overflow: auto;
 }
 
 @media (max-width: 600px) {
   .header {
     align-items: flex-start;
     flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
   }
 
   .navigation {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .main {
+    padding: 0.35rem;
+    overflow: hidden;
   }
 }

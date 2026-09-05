@@ -1,0 +1,44 @@
+.wrapper {
+  width: 100%;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+.actions button {
+  min-width: 0;
+  padding: 0.28rem 0.18rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  font-size: clamp(0.55rem, 0.75vw, 0.7rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.available {
+  background: #16382f;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.unavailable {
+  background: #111823;
+  color: #68798b;
+  cursor: help;
+}
+
+.wrapper p {
+  position: fixed;
+  inset: auto 1rem 1rem;
+  z-index: 45;
+  margin: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--text);
+  text-align: center;
+}

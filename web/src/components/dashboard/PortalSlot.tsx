@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 
 import type { SlotPortalDTO } from "../../api/types";
+import { PortalActions } from "../../features/portal-actions/PortalActions";
+import { usePortalCommand } from "../../features/portal-actions/usePortalCommand";
 import { PortalEffect } from "../../portal-fx/PortalEffect";
 import { formatEnergy, formatRemaining } from "../../state/selectors";
 import styles from "./PortalSlot.module.css";
@@ -14,6 +16,7 @@ export function PortalSlot({
   portal: SlotPortalDTO;
   needsAttention: boolean;
 }) {
+  const command = usePortalCommand(portal.id);
   return (
     <article className={styles.slot} data-testid="portal-slot">
       <header>
@@ -42,6 +45,12 @@ export function PortalSlot({
           <dd>{portal.creatures_inside}</dd>
         </div>
       </dl>
+      <PortalActions
+        busyKey={command.busyKey}
+        onCommand={command.run}
+        portalId={portal.id}
+        quickActions={portal.quick_actions}
+      />
       <Link to={`/portals/${portal.id}`}>Details</Link>
     </article>
   );
