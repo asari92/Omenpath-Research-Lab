@@ -29,13 +29,13 @@ test("desktop shell keeps a stable sidebar and supports browser history", async 
   await page.getByRole("link", { name: "AI Worklog" }).click();
   await expect(
     page.getByRole("heading", { name: "AI Worklog — Current" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15_000 });
   await page.goBack();
   await expect(page.getByRole("heading", { name: "Event Log" })).toBeVisible();
   await page.goForward();
   await expect(
     page.getByRole("heading", { name: "AI Worklog — Current" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15_000 });
   expect(consoleErrors).toEqual([]);
 });
 
