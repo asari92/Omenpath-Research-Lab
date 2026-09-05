@@ -1316,3 +1316,78 @@ disconnect и неполное ожидание handlers при shutdown. Каж
 - `go test -race -count=1 ./...` — exit 0.
 
 Stage 13 завершён. Stage 14 не начат.
+
+## Stage 14 — Tutorial engine и завершение Block C via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Добавлен сохраняемый Tutorial context: step, phase, target Portal/Plane/
+  Observer IDs и вычисляемый `expected_action`. SQLite migration 002,
+  Store round-trip и restart сохраняют точный контекст без duplicate targets
+  или Events.
+- Реализована deterministic state machine Steps 0–9. Step 0 не меняется от
+  tick; explicit intro/details/event-log signals продвигают только ожидаемый
+  step и target. Natural generator полностью paused в Tutorial.
+- Prepared Portals создаются по semantic profiles: безопасный Step 1 corridor,
+  гарантированный HIGH/CRITICAL → MEDIUM/LOW Stabilize, безопасный CRITICAL
+  natural-close target и clear return Portal с достаточным horizon.
+- Step 6/7 использует обычные SEND → OUTBOUND → research → WAITING_RETURN →
+  RECALL → RETURNING transitions. LOST запускает честный replacement flow с
+  другим AVAILABLE Observer без teleport; terminal и direction-breaking
+  scenarios получают fresh target ID с обычными Events.
+- Реализованы строгие Tutorial REST endpoints, атомарный reset и gated Live
+  handoff. Reset возвращает Energy 100, AVAILABLE roster и unexplored Planes,
+  удаляя прежние Portals/Events. Live бесплатно завершает OPEN Tutorial
+  Portals, атомарно разрешает активные transits, сохраняет Energy/history/
+  exploration/Observer outcomes и запускает fresh Natural schedule с 0 OPEN.
+- REST и WebSocket возвращают один `transport.StateSnapshot` с публичным
+  Tutorial context и без hidden prepared values. Critical expected rejection
+  одной transaction сохраняет progress, `ACTION_REJECTED`, replacement target
+  и немедленный WebSocket update.
+- Composition root теперь владеет Store, Manager ticker, REST/WebSocket Router
+  и единым graceful shutdown; smoke test проходит SQLite bootstrap → REST →
+  WebSocket. Независимые и joined service failures сохраняются без маскировки
+  ожидаемым cancellation noise.
+- Frontend и Stage 15 не начинались. Player-facing Tutorial copy/rendering
+  остаётся Stage 20.
+
+### RED / GREEN evidence
+
+| Checkpoint / corrective pass | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 14A persisted context / Steps 0–5 | `5a95e37` | отсутствовали Tutorial types, migration context, prepared profiles и state-machine transitions | `3b3fc4f` |
+| 14B research / return / LOST retry | `3d54ace` | отсутствовали Step 6 phases, safe same-Plane return target и normal replacement lifecycle | `e9e9c66` |
+| 14C API / reset / Live continuity | `59325ab` | отсутствовали Tutorial endpoints, atomic reset, public context DTO и Live handoff | `54fd75a` |
+| read-only progress / direct guided actions | `62761c6` | GET catch-up продвигал Tutorial state и смешивал lifecycle resolution с explicit progression | `ff381c1` |
+| full restart journey / unified shutdown | `fbf4e69` | отсутствовали cold-start→restart→Live E2E и единое завершение HTTP/Manager/Hub/Store | `407889b` |
+| irreversible retry / atomic Live transit resolution | `3238cb4` | wrong SEND мог soft-lock RECALL_READY; replacement event терялся; Live сохранял активный transit | `f086d0d` |
+| lifecycle catch-up / independent service failures | `7901d39` | rejected lifecycle commands теряли due transitions; shutdown мог скрыть один из независимых failures | `9c5a3eb` |
+| joined service failure filtering | `2d1c703` | expected cancellation внутри joined error маскировал неожиданный вложенный failure | `bfe68b2` |
+
+Все три плановых checkpoint прошли spec review. Первое итоговое review выявило
+три Important расхождения: soft-lock после wrong SEND в `RECALL_READY`,
+отсутствующий `PORTAL_OPENED` при раннем LOST и неатомарный Live handoff с
+активным transit. Они закрыты парой `3238cb4` / `f086d0d`; повторное независимое
+spec review дало APPROVED без Critical/Important/Minor findings. Последующие
+quality passes закрепили catch-up и сохранение joined infrastructure failures;
+финальные spec/code-quality reviews одобрили Stage 14 и Block C boundary.
+
+### Requirements и verification
+
+- `TUTORIAL-001..015`, `TUTORIAL-017`, `TUTORIAL-018`, `API-009`, `API-012`,
+  `LAB-002` — GREEN.
+- `TUTORIAL-016` — PARTIAL: backend полностью задаёт context/action/system/
+  completion contract; фактические Tutorial copy и rendering остаются Stage 20.
+- `TUTORIAL-019` — PLANNED до Stage 20 UI.
+- Focused domain/persistence/engine/httpapi/realtime/transport/server suites —
+  exit 0.
+- `gofmt -l .` — пустой вывод.
+- `go vet ./...` — exit 0.
+- `go build ./...` — exit 0.
+- `go test -count=1 ./...` — exit 0.
+- `go test -race -count=1 ./...` — exit 0.
+- Автоматическая проверка test names из traceability — все перечисленные
+  символы существуют.
+
+Stage 14 и Block C завершены. Stage 15 не начат; выполнение остановлено перед
+обязательной пользовательской сверкой блоков.

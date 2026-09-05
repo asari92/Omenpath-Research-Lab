@@ -796,13 +796,13 @@ Stage 12 не реализует Tutorial commands и WebSocket.
 
 ### Checkpoint 14A — persisted context, Step 0 и prepared Steps 1–5
 
-- [ ] Расширить migration 002 колонками `tutorial_phase`,
+- [x] Расширить migration 002 колонками `tutorial_phase`,
   `tutorial_portal_id`, `tutorial_plane_id`, `tutorial_observer_id`; добавить
   round-trip и migration idempotency tests.
-- [ ] Добавить `TutorialSignal`, `TutorialPhase`, `TutorialExpectedAction`,
+- [x] Добавить `TutorialSignal`, `TutorialPhase`, `TutorialExpectedAction`,
   `ExpectedTutorialAction(app AppState)` и prepared factory helpers в
   `internal/domain/tutorial.go`.
-- [ ] Tests:
+- [x] Tests:
   `TestTutorial_TicksDoNotAdvanceStep0OrCreatePortals`,
   `TestTutorial_IntroSignalAtomicallyCreatesOneStep1TargetAndEvent`,
   `TestTutorial_IntroSignalReplayIsRejectedWithoutDuplicate`,
@@ -819,25 +819,25 @@ Stage 12 не реализует Tutorial commands и WebSocket.
   `TestTutorial_TerminalTargetRecreatesEquivalentFreshID`,
   `TestTutorial_TickNeverSpawnsNaturalPortal`,
   `TestTutorialContext_RoundTripsStepPhaseAndTargetsAcrossRestart`.
-- [ ] Запустить
+- [x] Запустить
   `go test -count=1 ./internal/domain ./internal/persistence ./internal/engine -run 'TestTutorial|TestTutorialContext'`
   и получить RED по отсутствующим types/state-machine behavior.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage14): RED tutorial context intro and prepared steps one to five`.
-- [ ] Реализовать mode-aware tick: normal lifecycle/events без вызова Natural
+- [x] Реализовать mode-aware tick: normal lifecycle/events без вызова Natural
   spawn; intro signal создаёт первый Portal, а Step 2 auto-progress выполняется
   только при creatures = 0.
-- [ ] Prepared factory принимает semantic profile, создаёт новый sequential ID
+- [x] Prepared factory принимает semantic profile, создаёт новый sequential ID
   и проверяет перечисленные свойства; production code не зависит от fixture ID.
-- [ ] Critical rejection одной transaction сохраняет catch-up,
+- [x] Critical rejection одной transaction сохраняет catch-up,
   `ACTION_REJECTED`, Step 6/phase и возвращает исходный domain error для 409.
-- [ ] Повторить focused command; expected PASS.
-- [ ] GREEN commit:
+- [x] Повторить focused command; expected PASS.
+- [x] GREEN commit:
   `feat(stage14): GREEN tutorial context intro and prepared steps one to five`.
 
 ### Checkpoint 14B — Step 6 phases, real retry и Step 8
 
-- [ ] Добавить tests:
+- [x] Добавить tests:
   `TestTutorial_EnterStep6DerivesWaitResearchPhase`,
   `TestTutorial_EnterStep6WaitingObserverCreatesSafeReturnPortal`,
   `TestTutorial_Step6ResearchCompletionCreatesFreshSamePlanePortal`,
@@ -851,9 +851,9 @@ Stage 12 не реализует Tutorial commands и WebSocket.
   `TestTutorial_EventLogGETDoesNotAdvanceStep8`,
   `TestTutorial_EventLogSignalAdvancesStep8ToStep9`,
   `TestTutorial_PhaseAndTargetRestartDoesNotDuplicatePortalOrEvents`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage14): RED tutorial research return and honest lost retry`.
-- [ ] Реализовать phase transitions:
+- [x] Реализовать phase transitions:
 
 ```text
 SEND_REPLACEMENT --successful SEND--> WAIT_RESEARCH
@@ -863,16 +863,16 @@ Step 7 --LOST--> Step 6 / SEND_REPLACEMENT
 Step 7 --AVAILABLE + EXPLORED--> Step 8 / OPEN_EVENT_LOG
 ```
 
-- [ ] Replacement выбирает AVAILABLE Observer обычным lowest-ID rule и всегда
+- [x] Replacement выбирает AVAILABLE Observer обычным lowest-ID rule и всегда
   отличается от LOST terminal Observer. Все status changes проходят через
   normal domain commands/lifecycle и создают normal Events.
-- [ ] Повторить focused engine/domain/persistence tests; expected PASS.
-- [ ] GREEN commit:
+- [x] Повторить focused engine/domain/persistence tests; expected PASS.
+- [x] GREEN commit:
   `feat(stage14): GREEN tutorial research return and honest lost retry`.
 
 ### Checkpoint 14C — Tutorial API, reset и Live continuity
 
-- [ ] Расширить repository:
+- [x] Расширить repository:
 
 ```go
 ResetTutorial(context.Context, persistence.Snapshot) error
@@ -880,7 +880,7 @@ ResetTutorial(context.Context, persistence.Snapshot) error
 
   Transaction удаляет prior Portals/Events, полностью заменяет Plane/Observer/
   Lab/App state и откатывается целиком при injected failure.
-- [ ] Добавить manager methods:
+- [x] Добавить manager methods:
 
 ```go
 func (m *LabManager) StartTutorial(context.Context) error
@@ -889,7 +889,7 @@ func (m *LabManager) TutorialSignal(context.Context, domain.TutorialSignal, *int
 func (m *LabManager) StartLive(context.Context) error
 ```
 
-- [ ] `POST /api/tutorial/signal` strict body:
+- [x] `POST /api/tutorial/signal` strict body:
 
 ```json
 {"signal":"PORTAL_DETAILS_OPENED","portal_id":42}
@@ -898,7 +898,7 @@ func (m *LabManager) StartLive(context.Context) error
   `portal_id` обязателен ровно для `PORTAL_DETAILS_OPENED`; intro/event-log
   signals запрещают это поле. Unknown enum и shape → 400 transport validation
   без Event; valid unexpected signal → 409 + `ACTION_REJECTED`.
-- [ ] Tests:
+- [x] Tests:
   `TestTutorialStart_IsIdempotent`,
   `TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory`,
   `TestTutorialReset_TransactionFailureRollsBackEverything`,
@@ -914,17 +914,17 @@ func (m *LabManager) StartLive(context.Context) error
   `TestTutorialAPI_CriticalRejectionPersistsProgressAndEvent`,
   `TestTutorialWebSocket_ReconnectShowsPersistedStepAndPhase`,
   `TestTutorial_FullColdStartRestartAndLiveJourney`.
-- [ ] RED commit:
+- [x] RED commit:
   `test(stage14): RED tutorial API reset and live continuity`.
-- [ ] Реализовать atomic reset, strict signal handler, Live free cleanup и fresh
+- [x] Реализовать atomic reset, strict signal handler, Live free cleanup и fresh
   scheduler. Старые Events удаляет только reset; start/Live сохраняют history.
-- [ ] REST и WS используют один DTO для step/phase/target/expected action.
-- [ ] Выполнить focused domain/engine/persistence/httpapi/realtime suites и
+- [x] REST и WS используют один DTO для step/phase/target/expected action.
+- [x] Выполнить focused domain/engine/persistence/httpapi/realtime suites и
   затем полный обычный suite.
-- [ ] TUTORIAL-001..015, TUTORIAL-017, TUTORIAL-018, API-009, API-012,
+- [x] TUTORIAL-001..015, TUTORIAL-017, TUTORIAL-018, API-009, API-012,
   LAB-002 → GREEN. TUTORIAL-016 → PARTIAL по backend contract;
   TUTORIAL-019 → PLANNED до Stage 20 UI copy/rendering.
-- [ ] Worklog + GREEN commit:
+- [x] Worklog + GREEN commit:
   `feat(stage14): GREEN tutorial API reset and live continuity`.
 
 Stage 14 заканчивает Block C. Не добавлять React/Vite, UI pages или Stage 15.
@@ -933,13 +933,13 @@ Stage 14 заканчивает Block C. Не добавлять React/Vite, UI 
 
 К концу Stage 14 `cmd/server/main.go` обязан:
 
-- [ ] прочитать `OMENPATH_DB_PATH` и `OMENPATH_ADDR` из env с безопасными
+- [x] прочитать `OMENPATH_DB_PATH` и `OMENPATH_ADDR` из env с безопасными
   defaults `./omenpath.db` и `:8080`;
-- [ ] открыть Store, выполнить migration/bootstrap, загрузить Manager;
-- [ ] запустить 1-second ticker через `Manager.Run`;
-- [ ] подключить REST router и WebSocket Hub;
-- [ ] корректно остановить HTTP server, Hub и DB по context/signal;
-- [ ] не содержать gameplay logic.
+- [x] открыть Store, выполнить migration/bootstrap, загрузить Manager;
+- [x] запустить 1-second ticker через `Manager.Run`;
+- [x] подключить REST router и WebSocket Hub;
+- [x] корректно остановить HTTP server, Hub и DB по context/signal;
+- [x] не содержать gameplay logic.
 
 Добавить process-level smoke test там, где он остаётся быстрым и
 детерминированным: временная SQLite DB → bootstrap → manager → `httptest.Server`
@@ -982,27 +982,27 @@ git status --short
 
 Дополнительно:
 
-- [ ] Запустить автоматическую проверку всех test names из
+- [x] Запустить автоматическую проверку всех test names из
   `docs/traceability.md` на существование.
-- [ ] Проверить cold start → Tutorial progress → process restart → Step 9 →
+- [x] Проверить cold start → Tutorial progress → process restart → Step 9 →
   Live; после Live 0 OPEN Portals и Natural generator scheduled.
-- [ ] Проверить одну SQLite transaction на action/state/events через injected
+- [x] Проверить одну SQLite transaction на action/state/events через injected
   failure.
-- [ ] Проверить concurrent tick + REST command + WS broadcast под race detector.
-- [ ] Проверить отсутствие hidden fields в REST и WS JSON.
-- [ ] Проверить global/portal event ordering и отсутствие duplicates.
-- [ ] Проверить `rg`-ом отсутствие React/Vite/frontend source и Stage 15
+- [x] Проверить concurrent tick + REST command + WS broadcast под race detector.
+- [x] Проверить отсутствие hidden fields в REST и WS JSON.
+- [x] Проверить global/portal event ordering и отсутствие duplicates.
+- [x] Проверить `rg`-ом отсутствие React/Vite/frontend source и Stage 15
   implementation в Block C diff.
-- [ ] Обновить `docs/traceability.md`: только доказанные границы GREEN;
+- [x] Обновить `docs/traceability.md`: только доказанные границы GREEN;
   Recommendation backend rows GREEN, а UI-only `RECOMMENDATION-003` остаётся
   PARTIAL до Stage 17.
-- [ ] Дополнить `01_AI_WORKLOG_CURRENT.md`: стадии, решения, ошибки,
+- [x] Дополнить `01_AI_WORKLOG_CURRENT.md`: стадии, решения, ошибки,
   verification, RED/GREEN hashes и вклад пользователя.
-- [ ] Сделать финальный docs/verification commit без изменения semantics.
+- [x] Сделать финальный docs/verification commit без изменения semantics.
 
 ## 14. Definition of Done Block C
 
-- [ ] Stage 9: полный deterministic event stream, shared history и rejection
+- [x] Stage 9: полный deterministic event stream, shared history и rejection
   drafts доказаны tests.
 - [x] Stage 10: schema, 85-plane seed, atomic persistence и restart recovery
   доказаны tests.
@@ -1012,11 +1012,11 @@ git status --short
   decision table реализованы; значение присутствует только в Portal Details.
 - [x] Stage 13: authoritative initial/tick/action snapshots, reconnect и
   backpressure доказаны tests.
-- [ ] Stage 14: весь backend Tutorial 0–9, phases, prepared system transitions,
+- [x] Stage 14: весь backend Tutorial 0–9, phases, prepared system transitions,
   retry/recreate/reset/restart/Live continuity доказаны unit/integration tests;
   contextual UI copy честно остаётся Stage 20.
-- [ ] Обязательные gofmt/vet/build/test/race проходят с exit 0.
-- [ ] Requirements, traceability и worklog соответствуют коду и tests.
-- [ ] Git history содержит различимые RED/GREEN commits Stages 9–14.
-- [ ] Worktree чист.
-- [ ] Stage 15 не начат; работа останавливается для пользовательской сверки.
+- [x] Обязательные gofmt/vet/build/test/race проходят с exit 0.
+- [x] Requirements, traceability и worklog соответствуют коду и tests.
+- [x] Git history содержит различимые RED/GREEN commits Stages 9–14.
+- [x] Worktree чист.
+- [x] Stage 15 не начат; работа останавливается для пользовательской сверки.
