@@ -35,4 +35,21 @@ describe("application routes", () => {
       screen.getByRole("dialog", { name: /plane artwork credits/i }),
     ).toBeInTheDocument();
   });
+
+  it("exposes keyboard-reachable primary routes in stable order", async () => {
+    const user = userEvent.setup();
+    render(<App initialEntries={["/"]} />);
+
+    const nav = screen.getByRole("navigation", { name: "Primary navigation" });
+    expect(
+      Array.from(nav.querySelectorAll("a")).map((link) => link.textContent),
+    ).toEqual(["Dashboard", "Event Log", "AI Worklog"]);
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Event Log" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("link", { name: "AI Worklog" })).toHaveFocus();
+  });
 });
