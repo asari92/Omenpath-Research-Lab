@@ -1,0 +1,21 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #05080ddd;
+}
+.dialog {
+  width: min(28rem, 100%);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--surface-raised);
+}
+.dialog div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}

@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../../api/client";
 import { SnapshotProvider } from "../../state/SnapshotProvider";
