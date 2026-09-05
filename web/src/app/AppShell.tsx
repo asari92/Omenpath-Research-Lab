@@ -5,6 +5,7 @@ import { ArtCreditsDialog } from "../components/art/ArtCreditsDialog";
 import { ConnectionState } from "../components/feedback/ConnectionState";
 import { FeedbackProvider } from "../components/feedback/FeedbackProvider";
 import { ExtractionDialog } from "../features/extraction/ExtractionDialog";
+import { recordNavigationIntent } from "../features/tutorial/navigation-signal";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
@@ -19,7 +20,12 @@ export function AppShell() {
           </NavLink>
           <nav aria-label="Primary navigation" className={styles.navigation}>
             <NavLink to="/">Dashboard</NavLink>
-            <NavLink to="/events">Event Log</NavLink>
+            <NavLink
+              onClick={() => recordNavigationIntent({ kind: "events" })}
+              to="/events"
+            >
+              Event Log
+            </NavLink>
             <NavLink to="/ai-worklog">AI Worklog</NavLink>
             <button
               className={styles.credits}

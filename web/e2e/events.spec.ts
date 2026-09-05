@@ -15,7 +15,9 @@ test("global Event Log renders safe shared rows and wrong-step navigation does n
   await page.getByRole("link", { name: "Event Log" }).click();
   await expect(page.getByRole("heading", { name: "Event Log" })).toBeVisible();
   await expect(page.getByTestId("event-row")).toHaveCount(1);
-  await expect(page.getByText("Action rejected")).toBeVisible();
+  await expect(
+    page.getByTestId("event-row").getByText("Action rejected", { exact: true }),
+  ).toBeVisible();
   const state = await (
     await request.get("http://127.0.0.1:18080/api/state")
   ).json();

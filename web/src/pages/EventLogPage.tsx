@@ -8,11 +8,13 @@ import {
 
 import { createLiveResource } from "../api/live-resource";
 import { EventList } from "../components/events/EventList";
+import { useFeedback } from "../components/feedback/FeedbackProvider";
 import { EventFilters } from "../features/event-log/EventFilters";
 import {
   filterEvents,
   type EventFilter,
 } from "../features/event-log/event-filter";
+import { consumeNavigationSignal } from "../features/tutorial/navigation-signal";
 import {
   useSnapshotContext,
   useSnapshotState,
@@ -27,8 +29,9 @@ const emptyFilter: EventFilter = {
 };
 
 export function EventLogPage() {
-  const { api } = useSnapshotContext();
+  const { api, store } = useSnapshotContext();
   const { snapshot } = useSnapshotState();
+  const feedback = useFeedback();
   const [filter, setFilter] = useState<EventFilter>(emptyFilter);
   const lifecycle = useRef(0);
   const resource = useMemo(
@@ -49,6 +52,20 @@ export function EventLogPage() {
         if (lifecycle.current === generation) resource.dispose();
       });
   }, [resource]);
+  useEffect(() => {
+    const request = consumeNavigationSignal(snapshot?.app ?? null, {
+      kind: "events",
+    });
+    if (!request) return;
+    void api
+      .tutorialSignal(request)
+      .then((next) => store.acceptSnapshot(next))
+      .catch((error: unknown) =>
+        feedback.notify(
+          error instanceof Error ? error.message : "Tutorial signal failed",
+        ),
+      );
+  }, [api, feedback, snapshot?.app, store]);
 
   const visible = filterEvents(state.data ?? [], filter);
   return (

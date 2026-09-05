@@ -63,6 +63,7 @@ export function EventFilters({
               update({ ...filter, [key]: positiveID(event.target.value) })
             }
             type="number"
+            value={filter[key] ?? ""}
           />
         </label>
       ))}

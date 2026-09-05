@@ -133,4 +133,34 @@ describe("EventLogPage", () => {
     expect(direct.tutorialSignal).not.toHaveBeenCalled();
     resetNavigationIntentForTests();
   });
+
+  it("keeps active filters when a realtime edge reveals new events", async () => {
+    const snapshot = snapshotAt();
+    const first = event(1, "PORTAL_OPENED");
+    const matching = { ...event(2, "OBSERVER_RETURNED"), portal_id: 1 };
+    const excluded = event(3, "PORTAL_CLOSED");
+    const eventsRequest = vi
+      .fn()
+      .mockResolvedValueOnce([first])
+      .mockResolvedValueOnce([first, matching, excluded]);
+    const store = createSnapshotStore();
+    store.acceptSnapshot(snapshot);
+    const api = {
+      state: async () => snapshot,
+      events: eventsRequest,
+    } as unknown as OmenpathApi;
+    render(
+      <MemoryRouter>
+        <SnapshotProvider api={api} store={store}>
+          <EventLogPage />
+        </SnapshotProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByText("message 1");
+    await userEvent.setup().type(screen.getByLabelText("Portal ID"), "1");
+    act(() => store.acceptSnapshot(snapshotAt("2026-09-05T10:00:01Z")));
+    expect(await screen.findByText("message 2")).toBeVisible();
+    expect(screen.queryByText("message 3")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Portal ID")).toHaveValue(1);
+  });
 });
