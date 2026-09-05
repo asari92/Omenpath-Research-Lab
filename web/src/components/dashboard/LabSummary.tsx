@@ -20,10 +20,31 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
       `Active ${snapshot.portals.active} / ${snapshot.portals.maximum}`,
     ],
     ["Portals", `Critical ${snapshot.portals.critical}`],
+    [
+      "Portals",
+      `Closed ${snapshot.portals.closed} · Collapsed ${snapshot.portals.collapsed}`,
+    ],
   ] as const;
 
   return (
     <dl aria-label="Laboratory summary" className={styles.summary}>
+      <div className={styles.roster}>
+        <dt>Observers in Lab</dt>
+        <dd>{snapshot.observers.in_lab} / 20</dd>
+        <div
+          className={styles.pips}
+          role="img"
+          aria-label={`${snapshot.observers.in_lab} of 20 Observers in Lab`}
+        >
+          {Array.from({ length: 20 }, (_, index) => (
+            <i
+              key={index}
+              data-testid="observer-pip"
+              data-available={index < snapshot.observers.in_lab}
+            />
+          ))}
+        </div>
+      </div>
       {items.map(([label, value], index) => (
         <div className={styles.item} key={`${label}-${index}`}>
           <dt>{label}</dt>

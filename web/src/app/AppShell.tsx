@@ -8,17 +8,26 @@ import { ExtractionDialog } from "../features/extraction/ExtractionDialog";
 import { recordNavigationIntent } from "../features/tutorial/navigation-signal";
 import { TutorialPanel } from "../features/tutorial/TutorialPanel";
 import styles from "./AppShell.module.css";
+import { LabSummary } from "../components/dashboard/LabSummary";
+import { useSnapshotState } from "../state/SnapshotProvider";
 
 export function AppShell() {
+  const { snapshot, connection } = useSnapshotState();
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [extractionOpen, setExtractionOpen] = useState(false);
   return (
     <FeedbackProvider>
-      <div className={styles.shell}>
+      <div
+        className={styles.shell}
+        data-testid="app-shell"
+        data-override={snapshot?.lab.leyline_override_active || undefined}
+      >
         <header className={styles.header}>
           <NavLink className={styles.brand} to="/">
             Omenpath Research Lab
           </NavLink>
+          {snapshot && <LabSummary snapshot={snapshot} />}
+          <ConnectionState />
         </header>
         <nav aria-label="Primary navigation" className={styles.navigation}>
           <NavLink to="/">Dashboard</NavLink>
@@ -28,11 +37,12 @@ export function AppShell() {
           >
             Event Log
           </NavLink>
-          <NavLink to="/ai-worklog">AI Worklog</NavLink>
+          <NavLink to="/help">Help</NavLink>
           <button
             className={styles.credits}
             onClick={() => setExtractionOpen(true)}
             type="button"
+            disabled={connection !== "connected"}
           >
             Open Extraction
           </button>
@@ -43,10 +53,12 @@ export function AppShell() {
           >
             Artwork Credits
           </button>
+          <NavLink to="/ai-worklog">AI Worklog</NavLink>
         </nav>
         <main className={styles.main}>
-          <ConnectionState />
-          <TutorialPanel />
+          <div className={styles.tutorial}>
+            <TutorialPanel />
+          </div>
           <Outlet />
         </main>
         <div aria-live="polite" data-testid="toast-host" />

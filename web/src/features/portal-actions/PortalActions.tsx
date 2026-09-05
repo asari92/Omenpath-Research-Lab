@@ -20,6 +20,8 @@ export interface PortalActionsProps {
   onCommand?(command: PortalCommand): void | Promise<void>;
   expectedCriticalSend?: boolean;
   highlightedCommand?: PortalCommand | null;
+  offline?: boolean;
+  outcome?: "success" | "error" | null;
 }
 
 export function PortalActions({
@@ -29,6 +31,8 @@ export function PortalActions({
   onCommand,
   expectedCriticalSend = false,
   highlightedCommand = null,
+  offline = false,
+  outcome = null,
 }: PortalActionsProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const emptyReason = "No Portal occupies this Slot";
@@ -63,7 +67,7 @@ export function PortalActions({
   }
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} data-outcome={outcome ?? undefined}>
       <div aria-label="Portal commands" className={styles.actions} role="group">
         {commands.map((item) => {
           const key = `${portalId ?? "empty"}:${item.command}`;
@@ -71,14 +75,21 @@ export function PortalActions({
           return (
             <button
               aria-label={item.label}
-              aria-disabled={!item.available}
+              aria-disabled={!item.available || offline}
+              aria-busy={busy}
               className={item.available ? styles.available : styles.unavailable}
               data-tutorial-command={
                 highlightedCommand === item.command || undefined
               }
-              disabled={busy}
+              disabled={busy || portalId === null}
               key={item.command}
               onClick={() => {
+                if (offline) {
+                  setNotice(
+                    "Planar paths unstable. Wait for the link to recover.",
+                  );
+                  return;
+                }
                 if (!item.available || portalId === null) {
                   setNotice(
                     item.reason === emptyReason

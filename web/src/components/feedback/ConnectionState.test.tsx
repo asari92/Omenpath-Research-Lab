@@ -34,6 +34,8 @@ it("announces connection changes and retries without dropping the last snapshot"
   act(() => store.setConnection("connected"));
   expect(screen.getByRole("status")).toHaveTextContent("Planar link stable");
   expect(screen.queryByText(/Connection:/)).not.toBeInTheDocument();
-  act(() => store.setConnection("disconnected"));
-  expect(screen.getByRole("status")).toHaveTextContent("Disconnected from the planes");
+  act(() => store.setConnection("offline"));
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Disconnected from the planes",
+  );
 });

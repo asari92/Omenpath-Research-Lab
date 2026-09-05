@@ -1,5 +1,4 @@
 import { EmptyPortalSlot } from "../components/dashboard/EmptyPortalSlot";
-import { LabSummary } from "../components/dashboard/LabSummary";
 import { NeedsAttention } from "../components/dashboard/NeedsAttention";
 import { PortalSlot } from "../components/dashboard/PortalSlot";
 import { sevenSlots } from "../state/selectors";
@@ -39,7 +38,6 @@ export function DashboardPage() {
   return (
     <section className={styles.dashboard}>
       <h1>Laboratory Overview</h1>
-      <LabSummary snapshot={snapshot} />
       {snapshot.lab.leyline_override_active && (
         <p className={styles.override} role="status">
           Leyline Override active until{" "}

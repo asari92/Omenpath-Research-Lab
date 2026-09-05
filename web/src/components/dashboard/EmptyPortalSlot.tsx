@@ -7,10 +7,21 @@ export function EmptyPortalSlot({ slotIndex }: { slotIndex: number }) {
       className={`${styles.slot} ${styles.empty}`}
       data-testid="portal-slot"
     >
-      <h2>Slot {slotIndex}</h2>
-      <div className={styles.emptyMark} aria-hidden="true" />
+      <header>
+        <span>Slot {slotIndex}</span>
+        <span>EMPTY</span>
+      </header>
+      <div className={styles.visual}>
+        <div className={styles.emptyMark} aria-hidden="true" />
+      </div>
+      <h2>Unbound Omenpath</h2>
       <p>Awaiting Portal</p>
+      <dl className={styles.metrics} aria-hidden="true">
+        <div>—</div>
+      </dl>
+      <div className={styles.transit} />
       <PortalActions portalId={null} quickActions={null} />
+      <span className={styles.detailsPlaceholder}>Details</span>
     </article>
   );
 }

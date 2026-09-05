@@ -46,6 +46,7 @@ function renderDetails(
 ) {
   const store = createSnapshotStore();
   store.acceptSnapshot(initialSnapshot);
+  store.setConnection("connected");
   return render(
     <MemoryRouter initialEntries={[path]}>
       <SnapshotProvider api={api} store={store}>

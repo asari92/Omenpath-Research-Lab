@@ -14,6 +14,15 @@ export const routes: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: "portals/:id", element: <PortalDetailsPage /> },
       { path: "events", element: <EventLogPage /> },
+      {
+        path: "help",
+        element: (
+          <section>
+            <h1>Help</h1>
+            <p>Omenpath Research Lab field guide.</p>
+          </section>
+        ),
+      },
       { path: "ai-worklog", element: <AIWorklogPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

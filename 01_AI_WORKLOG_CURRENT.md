@@ -2196,3 +2196,38 @@ Verification: `gofmt -l .` — empty; `go vet ./...`, `go build ./...`,
 `npm --prefix web run lint` и `npm --prefix web run typecheck` — PASS.
 Local test listeners/default Go cache потребовали sandbox escalation.
 DC-6 visual redesign и Stage 22 этим checkpoint не начаты.
+
+### Block D corrective — DC-6 unified shell и fixed Dashboard
+
+Общая obsidian/bronze/parchment surface и viewport ornament объединяют всю
+страницу. Слева сверху summary с 20 Observer pips, снизу навигация в точном
+порядке Dashboard → Event Log → Help → Open Extraction → Artwork Credits →
+AI Worklog. Help пока route boundary; содержимое входит в DC-7. Connection
+показывает утверждённые английские magical labels и цветной indicator.
+Tutorial host вынесен из layout flow; queue/target avoidance остаются DC-8.
+
+Dashboard использует восемь grid columns: 4 Slots сверху и centered 3 снизу;
+phone — 2/2/2/1. Occupied и empty имеют общие размеры, controls и Details
+занимают постоянные нижние rows. Transit показывает Observer ID, direction и
+server remaining через reusable ObserverTransit. UNSTABLE окрашивает whole
+card, Override меняет whole shell. Empty commands native disabled; unavailable
+occupied commands остаются focusable и объясняют причину без POST. Command hook
+блокирует offline calls, сохраняет authoritative state до response, показывает
+pending, success/error pulse и toast; toast не создаёт page overflow.
+
+RED `fbe6b44`: четыре unit failures по nav/status/transit/disabled; desktop
+geometry failure — нижний ряд смещён на 125.6px от центра. GREEN responsive
+browser tests проверяют mixed occupied/empty sizes с ≤1px variance, exact row
+counts/centering, все 28 buttons внутри viewport и отсутствие scrolling.
+Screenshots сохранены как Playwright artifacts. Финальные portal entrance/exit
+и Tutorial replacement motion остаются DC-8, terminal Details — DC-7.
+
+Self-review добавил regression для потери connection во время confirmation:
+observed RED делал второй POST после disconnect; invoke теперь повторно
+проверяет link непосредственно перед каждым request, focused GREEN подтверждён.
+
+Verification: gofmt empty; vet/build/full Go tests PASS (integration listeners
+потребовали sandbox escalation). Frontend full suite, typecheck и lint PASS;
+desktop/phone Dashboard E2E — 4 PASS, 2 project-specific skips. UI-001 GREEN;
+UI-008–012 и UI-014 честно PARTIAL до следующих corrective checkpoints.
+Новые dependencies не устанавливались. Stage 22 не начат.

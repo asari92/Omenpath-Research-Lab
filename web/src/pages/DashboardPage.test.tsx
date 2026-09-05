@@ -8,6 +8,7 @@ import { SnapshotProvider } from "../state/SnapshotProvider";
 import { createSnapshotStore } from "../state/snapshot-store";
 import { observerTransit, portalDetails, snapshotAt } from "../test/builders";
 import { DashboardPage } from "./DashboardPage";
+import { LabSummary } from "../components/dashboard/LabSummary";
 
 function portal(id: number, plane: string): SlotPortalDTO {
   return {
@@ -37,6 +38,7 @@ function portal(id: number, plane: string): SlotPortalDTO {
 function renderDashboard(snapshot: StateSnapshot) {
   const store = createSnapshotStore();
   store.acceptSnapshot(snapshot);
+  store.setConnection("connected");
   const api: OmenpathApi = {
     state: async () => snapshot,
     portal: async (id) => portalDetails(id),
@@ -54,6 +56,7 @@ function renderDashboard(snapshot: StateSnapshot) {
   const view = render(
     <MemoryRouter>
       <SnapshotProvider api={api} store={store}>
+        <LabSummary snapshot={snapshot} />
         <DashboardPage />
       </SnapshotProvider>
     </MemoryRouter>,
@@ -72,7 +75,8 @@ describe("DashboardPage", () => {
     expect(slots[0]).toHaveTextContent("Observer #17");
     expect(slots[0]).toHaveTextContent("Returning · 00:05");
     expect(slots[0]).toHaveTextContent("UNEXPLORED");
-    for (const button of within(slots[1]).getAllByRole("button")) expect(button).toBeDisabled();
+    for (const button of within(slots[1]).getAllByRole("button"))
+      expect(button).toBeDisabled();
   });
   it("renders every summary value from one authoritative snapshot", () => {
     const snapshot = snapshotAt();
@@ -87,6 +91,7 @@ describe("DashboardPage", () => {
     renderDashboard(snapshot);
 
     const summary = screen.getByLabelText("Laboratory summary");
+    expect(within(summary).getAllByTestId("observer-pip")).toHaveLength(20);
     for (const text of [
       "73 / 100",
       "11 / 85",

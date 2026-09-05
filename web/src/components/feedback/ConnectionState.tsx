@@ -11,9 +11,19 @@ export function ConnectionState() {
   const [retrying, setRetrying] = useState(false);
   const failed = bootstrap === "failed" || protocolError !== null;
   return (
-    <aside aria-label="Connection state">
+    <aside
+      aria-label="Connection state"
+      data-connection={
+        failed || connection === "offline" ? "disconnected" : connection
+      }
+    >
       <p aria-live="polite" role="status">
-        Connection: {connection}
+        <span aria-hidden="true">● </span>
+        {failed || connection === "offline"
+          ? "Disconnected from the planes"
+          : connection === "connected"
+            ? "Planar link stable"
+            : "Planar paths unstable"}
       </p>
       {failed && (
         <div role="alert">

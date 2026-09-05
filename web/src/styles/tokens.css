@@ -1,13 +1,14 @@
 :root {
   color-scheme: dark;
-  --background: #070b12;
-  --surface: #0d1420;
-  --surface-raised: #121d2c;
-  --line: #26364a;
-  --text: #dbe8f6;
-  --text-strong: #f7fbff;
-  --text-muted: #8fa4bb;
-  --accent: #63f2c2;
-  --danger: #ff6b78;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --background: #100f0e;
+  --surface: #1b1916;
+  --surface-raised: #30281f;
+  --line: #685038;
+  --text: #e2d5bb;
+  --text-strong: #fff0cc;
+  --text-muted: #b8aa92;
+  --accent: #dbc08a;
+  --danger: #ff8580;
+  --warning: #e7ba69;
+  font-family: Georgia, "Times New Roman", serif;
 }

@@ -20,15 +20,58 @@
 }
 
 .available {
-  background: #16382f;
+  background: linear-gradient(#59462d, #332b20);
   color: var(--accent);
   cursor: pointer;
 }
 
 .unavailable {
-  background: #111823;
-  color: #68798b;
+  background: #201d18;
+  color: #a59983;
   cursor: help;
+}
+
+.actions button:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: brightness(1.4);
+}
+.actions button[aria-busy="true"] {
+  border-color: var(--accent);
+  animation: pending 1s alternate infinite;
+}
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.wrapper[data-outcome="success"] {
+  animation: success 0.65s;
+}
+.wrapper[data-outcome="error"] {
+  animation: failure 0.65s;
+}
+@keyframes pending {
+  to {
+    opacity: 0.55;
+  }
+}
+@keyframes success {
+  50% {
+    box-shadow: 0 0 12px #85d4a3;
+  }
+}
+@keyframes failure {
+  50% {
+    box-shadow: 0 0 12px #ff8580;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .actions button[aria-busy],
+  .wrapper[data-outcome] {
+    animation: none;
+  }
+  .actions button:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .actions button[data-tutorial-command="true"] {

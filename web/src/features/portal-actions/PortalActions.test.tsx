@@ -81,7 +81,8 @@ describe("PortalActions", () => {
     render(<PortalActions portalId={null} quickActions={null} />);
     expect(screen.getAllByRole("button")).toHaveLength(4);
     await user.click(screen.getByRole("button", { name: "Close" }));
-    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+    for (const button of screen.getAllByRole("button"))
+      expect(button).toBeDisabled();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
