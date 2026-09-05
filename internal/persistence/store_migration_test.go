@@ -46,7 +46,7 @@ func TestStoreMigrate_CreatesRequiredTablesAndIndexes(t *testing.T) {
 	sort.Strings(tables)
 	sort.Strings(indexes)
 	require.Equal(t,
-		[]string{"app_state", "events", "lab_state", "observers", "planes", "portals", "schema_migrations"},
+		[]string{"app_state", "events", "lab_state", "labs", "observers", "planes", "portals", "schema_migrations", "sessions"},
 		tables,
 	)
 	require.Subset(t, indexes, []string{
@@ -68,7 +68,14 @@ func TestStoreMigrate_EventEntityIDsAreSoftReferences(t *testing.T) {
 	rows, err := store.db.Query(`PRAGMA foreign_key_list(events)`)
 	require.NoError(t, err)
 	defer rows.Close()
-	require.False(t, rows.Next(), "event entity IDs must not have foreign keys")
+	require.True(t, rows.Next(), "events must belong to a laboratory")
+	var id, seq int
+	var target, from, to, update, deleteRule, match string
+	require.NoError(t, rows.Scan(&id, &seq, &target, &from, &to, &update, &deleteRule, &match))
+	require.Equal(t, "labs", target)
+	require.Equal(t, "lab_id", from)
+	require.Equal(t, "CASCADE", deleteRule)
+	require.False(t, rows.Next(), "event entity IDs must remain soft references")
 	require.NoError(t, rows.Err())
 }
 
