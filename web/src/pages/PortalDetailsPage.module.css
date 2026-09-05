@@ -1,0 +1,49 @@
+.page {
+  position: relative;
+}
+.hero {
+  width: min(18rem, 70vw);
+  margin: 0 auto 1rem;
+}
+.sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.sections section {
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+.sections h2 {
+  margin-top: 0;
+}
+.sections dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+.sections dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sections dt {
+  color: var(--text-muted);
+}
+.sections dd {
+  margin: 0;
+  text-align: right;
+}
+.refreshing {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--text-muted);
+}
+@media (max-width: 720px) {
+  .sections {
+    grid-template-columns: 1fr;
+  }
+}

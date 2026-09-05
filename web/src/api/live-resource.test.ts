@@ -59,16 +59,16 @@ describe("createLiveResource", () => {
 
   it("dispose aborts the current GET and discards trailing work", async () => {
     const request = deferred<number>();
-    let capturedSignal: AbortSignal | null = null;
+    const capturedSignals: AbortSignal[] = [];
     const loader = vi.fn((signal: AbortSignal) => {
-      capturedSignal = signal;
+      capturedSignals.push(signal);
       return request.promise;
     });
     const resource = createLiveResource(loader);
     resource.refresh();
     resource.refresh();
     resource.dispose();
-    expect(capturedSignal?.aborted).toBe(true);
+    expect(capturedSignals[0].aborted).toBe(true);
     request.resolve(1);
     await flush();
     expect(loader).toHaveBeenCalledOnce();
