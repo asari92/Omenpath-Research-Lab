@@ -12,19 +12,18 @@ import (
 
 	"omenpath-lab/internal/clock"
 	"omenpath-lab/internal/config"
-	"omenpath-lab/internal/engine"
 	"omenpath-lab/internal/httpapi"
+	"omenpath-lab/internal/labruntime"
 	"omenpath-lab/internal/persistence"
-	"omenpath-lab/internal/random"
+	"omenpath-lab/internal/session"
 )
 
 type serverConfig struct {
 	databasePath string
 	address      string
+	cookieSecure bool
+	configError  error
 }
-
-// Transitional composition only: DC-4 replaces this with session-resolved labs.
-const transitionalLabID persistence.LabID = "00000000000000000000000000000001"
 
 func serverConfigFromEnv(getenv func(string) string) serverConfig {
 	result := serverConfig{databasePath: "./omenpath.db", address: ":8080"}
@@ -34,6 +33,7 @@ func serverConfigFromEnv(getenv func(string) string) serverConfig {
 	if value := getenv("OMENPATH_ADDR"); value != "" {
 		result.address = value
 	}
+	result.cookieSecure, result.configError = config.CookieSecure(getenv("OMENPATH_COOKIE_SECURE"), getenv("OMENPATH_ENV") == "production")
 	return result
 }
 
@@ -46,6 +46,9 @@ func main() {
 }
 
 func run(ctx context.Context, serverCfg serverConfig) error {
+	if serverCfg.configError != nil {
+		return serverCfg.configError
+	}
 	cfg := config.Default()
 	store, err := persistence.Open(ctx, serverCfg.databasePath)
 	if err != nil {
@@ -60,33 +63,73 @@ func run(ctx context.Context, serverCfg serverConfig) error {
 	if err := store.Migrate(ctx); err != nil {
 		return err
 	}
-	repository, err := store.ForLab(transitionalLabID)
+	registry, err := labruntime.New(store, cfg, clock.RealClock{})
 	if err != nil {
 		return err
 	}
-	if err := repository.Bootstrap(ctx, time.Now().UTC(), cfg); err != nil {
-		return err
-	}
-	manager, err := engine.NewLabManager(ctx, cfg, clock.RealClock{}, random.NewRealRandom(), repository)
+	defer registry.Close()
+	resolver, err := session.New(store, cfg, clock.RealClock{}, nil)
 	if err != nil {
 		return err
 	}
-	router, err := httpapi.NewRouter(manager, cfg)
+	router, err := httpapi.NewRouter(resolver, registry, cfg, serverCfg.cookieSecure)
 	if err != nil {
 		return err
 	}
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+	cleanupTicker := time.NewTicker(cfg.SessionCleanupInterval)
+	defer cleanupTicker.Stop()
 	server := &http.Server{Addr: serverCfg.address, Handler: router, ReadHeaderTimeout: 5 * time.Second}
 	storeOwnedByServices = true
 	return runServices(
 		ctx,
 		server,
-		func(runCtx context.Context) error { return manager.Run(runCtx, ticker.C) },
-		router.Close,
+		func(runCtx context.Context) error {
+			return runWorkers(runCtx, registry, store, ticker.C, cleanupTicker.C)
+		},
+		registry.Close,
 		store.Close,
 	)
+}
+
+type runtimeWorkers interface {
+	TickAll(context.Context) error
+	DeleteIfIdle(persistence.LabID, func() error) (bool, error)
+}
+type cleanupStore interface {
+	ExpiredLabs(context.Context, time.Time) ([]persistence.LabID, error)
+	DeleteExpiredLab(context.Context, persistence.LabID, time.Time) (bool, error)
+}
+
+func runWorkers(ctx context.Context, registry runtimeWorkers, store cleanupStore, ticks, cleanup <-chan time.Time) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case _, ok := <-ticks:
+			if !ok {
+				return nil
+			}
+			if err := registry.TickAll(ctx); err != nil {
+				return err
+			}
+		case now, ok := <-cleanup:
+			if !ok {
+				return nil
+			}
+			ids, err := store.ExpiredLabs(ctx, now)
+			if err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if _, err := registry.DeleteIfIdle(id, func() error { _, err := store.DeleteExpiredLab(ctx, id, now); return err }); err != nil {
+					return err
+				}
+			}
+		}
+	}
 }
 
 type servingServer interface {
@@ -95,9 +138,8 @@ type servingServer interface {
 	Close() error
 }
 
-// runServices gives every exit path the same ownership protocol: cancel the
-// manager, stop and await HTTP, await the manager, close realtime resources,
-// then close persistence.
+// runServices drains HTTP, stops and awaits workers, closes runtime hubs, then
+// closes persistence. Hijacked WebSockets are drained by the hub closure.
 func runServices(
 	parent context.Context,
 	server servingServer,
@@ -105,7 +147,7 @@ func runServices(
 	closeRouter func(),
 	closeStore func() error,
 ) error {
-	ctx, cancel := context.WithCancel(parent)
+	ctx, cancel := context.WithCancel(context.WithoutCancel(parent))
 	defer cancel()
 	serverDone := make(chan error, 1)
 	managerDone := make(chan error, 1)
@@ -126,7 +168,6 @@ func runServices(
 		managerErr = err
 	}
 
-	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	shutdownErr := server.Shutdown(shutdownCtx)
 	shutdownCancel()
@@ -136,6 +177,7 @@ func runServices(
 	if !serverFinished {
 		serverErr = <-serverDone
 	}
+	cancel()
 	if !managerFinished {
 		managerErr = <-managerDone
 	}

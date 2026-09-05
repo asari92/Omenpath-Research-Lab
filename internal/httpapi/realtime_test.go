@@ -123,7 +123,7 @@ func receiveRouterSnapshot(t *testing.T, conn *websocket.Conn) transport.StateSn
 
 func TestWebSocket_SuccessfulActionBroadcastsImmediately(t *testing.T) {
 	manager := newRealtimeManager()
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	t.Cleanup(router.Close)
 	server := httptest.NewServer(router)
@@ -146,7 +146,7 @@ func TestWebSocket_SuccessfulActionBroadcastsImmediately(t *testing.T) {
 func TestWebSocket_RejectedDomainActionBroadcastsPersistedEvent(t *testing.T) {
 	manager := newRealtimeManager()
 	manager.reject = domain.ErrPortalCriticalRisk
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	t.Cleanup(router.Close)
 	server := httptest.NewServer(router)
@@ -171,7 +171,7 @@ func TestWebSocket_RejectedDomainActionBroadcastsPersistedEvent(t *testing.T) {
 
 func TestRouterClose_OwnsWebSocketLifecycle(t *testing.T) {
 	manager := newRealtimeManager()
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)

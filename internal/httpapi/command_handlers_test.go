@@ -56,7 +56,7 @@ func TestPortalCommandResponse_DerivesDTOAtResolvedSnapshotTimestamp(t *testing.
 	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
 	manager := &fakeManager{snapshot: snapshot}
 	rr := httptest.NewRecorder()
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	router.ServeHTTP(rr, httptest.NewRequest(http.MethodPost, "/api/portals/1/close", strings.NewReader(`{}`)))
 	require.Equal(t, http.StatusOK, rr.Code)

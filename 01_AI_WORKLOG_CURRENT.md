@@ -2126,3 +2126,45 @@ Verification: focused session/persistence/config suite и полный
 `GOCACHE=/tmp/omenpath-dc3-go-cache.MOmtZ8` после read-only default cache.
 SESSION-006 — GREEN; SESSION-001..005 и PERSIST-006 — PARTIAL до HTTP/WS,
 cookie emission и runtime cleanup integration в DC-4. Race — на block boundary.
+
+### Block D corrective — DC-4 runtime, REST и WebSocket isolation
+
+Добавлен `internal/labruntime.Registry`: single-flight creation отдельного
+LabManager, checkpointable RNG/update channel и Hub для каждого `lab_id`.
+Короткий registry mutex защищает admission; database load/delete и hub closure
+проходят вне global lock. REST держит lease на весь response, WebSocket — до
+disconnect. DeleteIfIdle сериализован с Acquire, пропускает live leases и
+in-flight creation/ticks; callback повторно проверяет SQL expiry. Ошибка удаления
+сохраняет runtime; успешный no-delete после renewal безопасно evicts idle cache,
+а следующий Acquire заново читает сохранённую lab.
+
+Production Router больше не хранит общий manager/Hub. Session middleware только
+для `/api/*` и `/ws/lab` разрешает cookie, получает runtime и typed request scope.
+Все commands/reads/events/tutorial используют request manager. Новая cookie и
+bounded refresh получают Path=/, HttpOnly, SameSite=Lax, MaxAge=2592000 и Expires;
+Secure связан с `OMENPATH_COOKIE_SECURE`, а `OMENPATH_ENV=production` требует true.
+Internal failures возвращают общий 500 без token/SQL details. Static/non-API
+routes не создают sessions. Существующие transport fake tests сохранены через
+test-only context injection; production singleton compatibility API отсутствует.
+
+Startup удаляет transitional fixed LabID и владеет Store + SessionService +
+Registry. Workers выполняют TickAll раз в секунду и cleanup каждый час.
+Shutdown: HTTP drain → cancel/await workers → close hubs → database close;
+проверен порядок и idempotent registry/lease closure.
+
+Functional RED `960d6ca`: первые REST и direct WS requests возвращали 0 cookies
+вместо 1. GREEN проверяет matching Portal IDs (A CLOSED, B OPEN), A-only ID как
+404 у B, раздельные event streams, отсутствие A broadcast у B и собственные
+ticks B, cookie reuse/12h refresh/expiry/replacement, active WS cleanup guard,
+single-flight concurrent Acquire и serialization удаления с загрузкой.
+Initial isolation test ожидал empty Slot после close, но existing Tutorial
+немедленно пересоздаёт target: assertion исправлен на новый ID 2 у A, исходный
+ID 1 у B и terminal Details ID 1 только у A. Gameplay не менялся.
+
+Verification: focused Go tests и focused race для labruntime/httpapi/realtime/
+cmd/server — PASS; `go test -count=1 ./...`, `go vet ./...`, `go build ./...` —
+PASS; `gofmt -l .` — empty. Использован `/tmp/omenpath-dc4-gocache`; network test
+listeners разрешены отдельно после sandbox denial. API-013, WS-004,
+SESSION-001..005 и PERSIST-006 — GREEN на backend integration boundary;
+browser journeys/DTO/frontend продолжаются в следующих corrective checkpoints.
+DC-5 и Stage 22 этим checkpoint не начаты.

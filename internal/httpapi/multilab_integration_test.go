@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"omenpath-lab/internal/clock"
 	"omenpath-lab/internal/config"
-	"omenpath-lab/internal/engine"
+	"omenpath-lab/internal/labruntime"
 	"omenpath-lab/internal/persistence"
-	"omenpath-lab/internal/random"
+	"omenpath-lab/internal/session"
 	"omenpath-lab/internal/transport"
 )
 
@@ -29,14 +29,13 @@ func sessionTestRouter(t *testing.T) *Router {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, store.Close()) })
 	require.NoError(t, store.Migrate(ctx))
-	repo, err := store.ForLab("00000000000000000000000000000001")
+	registry, err := labruntime.New(store, cfg, clock.RealClock{})
 	require.NoError(t, err)
-	require.NoError(t, repo.Bootstrap(ctx, time.Now().UTC(), cfg))
-	manager, err := engine.NewLabManager(ctx, cfg, clock.RealClock{}, random.NewRealRandom(), repo)
+	t.Cleanup(registry.Close)
+	resolver, err := session.New(store, cfg, clock.RealClock{}, nil)
 	require.NoError(t, err)
-	router, err := NewRouter(manager, cfg)
+	router, err := NewRouter(resolver, registry, cfg, false)
 	require.NoError(t, err)
-	t.Cleanup(router.Close)
 	return router
 }
 
@@ -75,8 +74,15 @@ func TestSessions_RESTCookieAndMatchingEntityIsolation(t *testing.T) {
 	var sa, sb transport.StateSnapshot
 	require.NoError(t, json.Unmarshal(sessionRequest(t, router, "GET", "/api/state", "", ca).Body.Bytes(), &sa))
 	require.NoError(t, json.Unmarshal(sessionRequest(t, router, "GET", "/api/state", "", cb).Body.Bytes(), &sb))
-	require.Nil(t, sa.Slots[0].Portal)
+	// Tutorial may immediately replace its terminal target; the old instance
+	// remains closed only in A, while B still owns its original matching ID 1.
+	require.NotNil(t, sa.Slots[0].Portal)
+	require.EqualValues(t, 2, sa.Slots[0].Portal.ID)
 	require.NotNil(t, sb.Slots[0].Portal)
+	require.EqualValues(t, 1, sb.Slots[0].Portal.ID)
+	require.Contains(t, sessionRequest(t, router, "GET", "/api/portals/1", "", ca).Body.String(), `"status":"CLOSED"`)
+	require.Contains(t, sessionRequest(t, router, "GET", "/api/portals/1", "", cb).Body.String(), `"status":"OPEN"`)
+	require.Equal(t, 404, sessionRequest(t, router, "GET", "/api/portals/2", "", cb).Code)
 	ea := sessionRequest(t, router, "GET", "/api/events", "", ca)
 	eb := sessionRequest(t, router, "GET", "/api/events", "", cb)
 	require.Contains(t, ea.Body.String(), "PORTAL_CLOSED")

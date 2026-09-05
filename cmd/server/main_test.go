@@ -17,10 +17,10 @@ import (
 	"omenpath-lab/internal/clock"
 	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
-	"omenpath-lab/internal/engine"
 	"omenpath-lab/internal/httpapi"
+	"omenpath-lab/internal/labruntime"
 	"omenpath-lab/internal/persistence"
-	"omenpath-lab/internal/random"
+	"omenpath-lab/internal/session"
 	"omenpath-lab/internal/transport"
 )
 
@@ -61,14 +61,13 @@ func TestCompositionSmoke_SQLiteRESTAndWebSocketInitialSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, store.Close()) })
 	require.NoError(t, store.Migrate(ctx))
-	repository, err := store.ForLab(transitionalLabID)
+	registry, err := labruntime.New(store, cfg, clock.RealClock{})
 	require.NoError(t, err)
-	require.NoError(t, repository.Bootstrap(ctx, time.Now().UTC(), cfg))
-	manager, err := engine.NewLabManager(ctx, cfg, clock.RealClock{}, random.NewRealRandom(), repository)
+	t.Cleanup(registry.Close)
+	resolver, err := session.New(store, cfg, clock.RealClock{}, nil)
 	require.NoError(t, err)
-	router, err := httpapi.NewRouter(manager, cfg)
+	router, err := httpapi.NewRouter(resolver, registry, cfg, false)
 	require.NoError(t, err)
-	t.Cleanup(router.Close)
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
 

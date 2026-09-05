@@ -120,7 +120,7 @@ func httpSnapshot(now time.Time) persistence.Snapshot {
 }
 
 func newReadRouter(manager *fakeManager, _ time.Time) http.Handler {
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	if err != nil {
 		panic(err)
 	}
@@ -146,7 +146,7 @@ func TestNewRouter_RejectsNilManagerAndInvalidConfigAtConstruction(t *testing.T)
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			require.NotPanics(t, func() {
-				router, err := NewRouter(tc.manager, tc.cfg)
+				router, err := newManagerRouter(tc.manager, tc.cfg)
 				require.Error(t, err)
 				require.Nil(t, router)
 			})
@@ -170,7 +170,7 @@ func TestGetState_DerivesDTOAtSnapshotCatchUpTimestamp(t *testing.T) {
 	snapshot.Simulation.Portals[0].ScheduledCloseAt = now.Add(time.Second)
 	manager := &fakeManager{snapshot: snapshot}
 	rr := httptest.NewRecorder()
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/state", nil))
 	require.Equal(t, http.StatusOK, rr.Code)
@@ -241,7 +241,7 @@ func TestGetPortal_UsesOneResolvedSnapshotHistoryBoundary(t *testing.T) {
 		staleSnapshot:  closed,
 	}
 	rr := httptest.NewRecorder()
-	router, err := NewRouter(manager, config.Default())
+	router, err := newManagerRouter(manager, config.Default())
 	require.NoError(t, err)
 	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/portals/1", nil))
 	require.Equal(t, http.StatusOK, rr.Code)

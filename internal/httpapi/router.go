@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,8 +16,8 @@ import (
 	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 	"omenpath-lab/internal/engine"
+	"omenpath-lab/internal/labruntime"
 	"omenpath-lab/internal/persistence"
-	"omenpath-lab/internal/realtime"
 	"omenpath-lab/internal/transport"
 )
 
@@ -38,38 +39,39 @@ type Manager interface {
 }
 
 type API struct {
-	manager Manager
-	cfg     config.Config
+	cfg config.Config
 }
 
-// Router owns both HTTP routing and the realtime resources created alongside
-// it. Close must be called by the composition root during graceful shutdown.
+// Router resolves a session-bound runtime for API and WebSocket requests.
+// Runtime and hub shutdown belong to the composition root's registry.
 type Router struct {
 	handler http.Handler
-	hub     *realtime.Hub
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 	r.handler.ServeHTTP(w, request)
 }
 
-// Close is idempotent and disconnects active WebSocket clients while stopping
-// the manager update bridge.
-func (r *Router) Close() {
-	if r == nil || r.hub == nil {
-		return
-	}
-	r.hub.Close()
-}
-
-func NewRouter(manager Manager, cfg config.Config) (*Router, error) {
-	if managerIsNil(manager) {
-		return nil, fmt.Errorf("new router: nil manager")
+func NewRouter(resolver SessionResolver, registry *labruntime.Registry, cfg config.Config, secure bool) (*Router, error) {
+	if dependencyIsNil(resolver) || registry == nil {
+		return nil, fmt.Errorf("new router: nil session dependency")
 	}
 	if err := validateRouterConfig(cfg); err != nil {
 		return nil, err
 	}
-	api := &API{manager: manager, cfg: cfg}
+	routes := newRoutes(cfg)
+	scoped := sessionMiddleware(resolver, registry, cfg, secure)(routes)
+	return &Router{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/ws/lab" {
+			scoped.ServeHTTP(w, r)
+			return
+		}
+		routes.ServeHTTP(w, r)
+	})}, nil
+}
+
+func newRoutes(cfg config.Config) http.Handler {
+	api := &API{cfg: cfg}
 	router := chi.NewRouter()
 	router.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", false)
@@ -89,19 +91,17 @@ func NewRouter(manager Manager, cfg config.Config) (*Router, error) {
 	router.Post("/api/tutorial/reset", api.resetTutorial)
 	router.Post("/api/tutorial/signal", api.tutorialSignal)
 	router.Post("/api/live/start", api.startLive)
-	hub, err := realtime.NewHub(manager, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("new router: realtime: %w", err)
-	}
-	router.Handle("/ws/lab", hub)
-	return &Router{handler: router, hub: hub}, nil
+	router.HandleFunc("/ws/lab", func(w http.ResponseWriter, r *http.Request) {
+		r.Context().Value(scopeKey{}).(*requestScope).hub.ServeHTTP(w, r)
+	})
+	return router
 }
 
-func managerIsNil(manager Manager) bool {
-	if manager == nil {
+func dependencyIsNil(dependency any) bool {
+	if dependency == nil {
 		return true
 	}
-	value := reflect.ValueOf(manager)
+	value := reflect.ValueOf(dependency)
 	switch value.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
 		return value.IsNil()
@@ -121,7 +121,7 @@ func validateRouterConfig(cfg config.Config) error {
 }
 
 func (api *API) getState(w http.ResponseWriter, r *http.Request) {
-	snapshot, err := api.manager.State(r.Context())
+	snapshot, err := requestManager(r).State(r.Context())
 	if err != nil {
 		writeInternal(w)
 		return
@@ -145,7 +145,7 @@ func (api *API) getPortal(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "INVALID_PATH", "invalid portal id", false)
 		return
 	}
-	snapshot, history, err := api.manager.PortalState(r.Context(), id)
+	snapshot, history, err := requestManager(r).PortalState(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, engine.ErrPortalNotFound) {
 			writeError(w, 404, "PORTAL_NOT_FOUND", "portal not found", false)
@@ -175,7 +175,7 @@ func snapshotResolvedAt(snapshot persistence.Snapshot) (time.Time, error) {
 }
 
 func (api *API) getEvents(w http.ResponseWriter, r *http.Request) {
-	events, err := api.manager.Events(r.Context())
+	events, err := requestManager(r).Events(r.Context())
 	if err != nil {
 		writeInternal(w)
 		return

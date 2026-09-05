@@ -28,19 +28,19 @@ type tutorialSignalBody struct {
 }
 
 func (api *API) stabilize(w http.ResponseWriter, r *http.Request) {
-	api.portalCommand(w, r, func(id int64, _ bool) error { return api.manager.Stabilize(r.Context(), id) })
+	api.portalCommand(w, r, func(id int64, _ bool) error { return requestManager(r).Stabilize(r.Context(), id) })
 }
 
 func (api *API) closePortal(w http.ResponseWriter, r *http.Request) {
-	api.portalCommand(w, r, func(id int64, confirm bool) error { return api.manager.ClosePortal(r.Context(), id, confirm) })
+	api.portalCommand(w, r, func(id int64, confirm bool) error { return requestManager(r).ClosePortal(r.Context(), id, confirm) })
 }
 
 func (api *API) sendObserver(w http.ResponseWriter, r *http.Request) {
-	api.portalCommand(w, r, func(id int64, confirm bool) error { return api.manager.SendObserver(r.Context(), id, confirm) })
+	api.portalCommand(w, r, func(id int64, confirm bool) error { return requestManager(r).SendObserver(r.Context(), id, confirm) })
 }
 
 func (api *API) recallObserver(w http.ResponseWriter, r *http.Request) {
-	api.portalCommand(w, r, func(id int64, confirm bool) error { return api.manager.RecallObserver(r.Context(), id, confirm) })
+	api.portalCommand(w, r, func(id int64, confirm bool) error { return requestManager(r).RecallObserver(r.Context(), id, confirm) })
 }
 
 func (api *API) portalCommand(w http.ResponseWriter, r *http.Request, command func(int64, bool) error) {
@@ -67,7 +67,7 @@ func (api *API) openExtraction(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
-	if err := api.manager.OpenExtraction(r.Context(), body.PlaneID); err != nil {
+	if err := requestManager(r).OpenExtraction(r.Context(), body.PlaneID); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -79,7 +79,7 @@ func (api *API) startTutorial(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
-	if err := api.manager.StartTutorial(r.Context()); err != nil {
+	if err := requestManager(r).StartTutorial(r.Context()); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -91,7 +91,7 @@ func (api *API) resetTutorial(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
-	if err := api.manager.ResetTutorial(r.Context()); err != nil {
+	if err := requestManager(r).ResetTutorial(r.Context()); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -103,7 +103,7 @@ func (api *API) startLive(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
-	if err := api.manager.StartLive(r.Context()); err != nil {
+	if err := requestManager(r).StartLive(r.Context()); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -116,7 +116,7 @@ func (api *API) tutorialSignal(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request body", false)
 		return
 	}
-	if err := api.manager.TutorialSignal(r.Context(), body.Signal, body.PortalID); err != nil {
+	if err := requestManager(r).TutorialSignal(r.Context(), body.Signal, body.PortalID); err != nil {
 		writeDomainError(w, err)
 		return
 	}
@@ -124,7 +124,7 @@ func (api *API) tutorialSignal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) writeFreshState(w http.ResponseWriter, r *http.Request) {
-	snapshot, err := api.manager.State(r.Context())
+	snapshot, err := requestManager(r).State(r.Context())
 	if err != nil {
 		writeInternal(w)
 		return
