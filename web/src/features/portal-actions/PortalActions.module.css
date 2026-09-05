@@ -48,3 +48,15 @@
   color: var(--text);
   text-align: center;
 }
+
+@media (max-width: 600px) {
+  .actions {
+    gap: 0.1rem;
+  }
+
+  .actions button {
+    padding: 0.12rem 0.08rem;
+    font-size: 0.5rem;
+    line-height: 1;
+  }
+}

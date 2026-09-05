@@ -39,7 +39,29 @@
     font-size: 0.76rem;
   }
   .panel details {
-    max-height: 4rem;
-    overflow: auto;
+    display: none;
+  }
+  .panel > p:not(.instruction) {
+    display: none;
+  }
+  .panel header {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .panel header strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .actions {
+    position: absolute;
+    right: 0.6rem;
+    margin-top: -1.8rem;
+  }
+  .actions button {
+    padding: 0.18rem 0.35rem;
+  }
+  .actions button:last-child:not(:first-child) {
+    display: none;
   }
 }

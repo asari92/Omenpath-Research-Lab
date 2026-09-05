@@ -42,3 +42,9 @@
     box-shadow: 0 0 18px hsl(var(--portal-hue) 100% 60% / 0.65);
   }
 }
+
+@media (max-width: 600px) {
+  .portal {
+    width: min(42%, 3.8rem);
+  }
+}

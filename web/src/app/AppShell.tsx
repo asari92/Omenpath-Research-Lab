@@ -19,31 +19,31 @@ export function AppShell() {
           <NavLink className={styles.brand} to="/">
             Omenpath Research Lab
           </NavLink>
-          <nav aria-label="Primary navigation" className={styles.navigation}>
-            <NavLink to="/">Dashboard</NavLink>
-            <NavLink
-              onClick={() => recordNavigationIntent({ kind: "events" })}
-              to="/events"
-            >
-              Event Log
-            </NavLink>
-            <NavLink to="/ai-worklog">AI Worklog</NavLink>
-            <button
-              className={styles.credits}
-              onClick={() => setExtractionOpen(true)}
-              type="button"
-            >
-              Open Extraction
-            </button>
-            <button
-              className={styles.credits}
-              onClick={() => setCreditsOpen(true)}
-              type="button"
-            >
-              Artwork Credits
-            </button>
-          </nav>
         </header>
+        <nav aria-label="Primary navigation" className={styles.navigation}>
+          <NavLink to="/">Dashboard</NavLink>
+          <NavLink
+            onClick={() => recordNavigationIntent({ kind: "events" })}
+            to="/events"
+          >
+            Event Log
+          </NavLink>
+          <NavLink to="/ai-worklog">AI Worklog</NavLink>
+          <button
+            className={styles.credits}
+            onClick={() => setExtractionOpen(true)}
+            type="button"
+          >
+            Open Extraction
+          </button>
+          <button
+            className={styles.credits}
+            onClick={() => setCreditsOpen(true)}
+            type="button"
+          >
+            Artwork Credits
+          </button>
+        </nav>
         <main className={styles.main}>
           <ConnectionState />
           <TutorialPanel />

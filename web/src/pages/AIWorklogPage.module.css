@@ -3,6 +3,8 @@
   grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
   gap: 1rem;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .toc {

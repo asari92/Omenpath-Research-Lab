@@ -76,3 +76,36 @@
   border: 1px dashed var(--line);
   border-radius: 50%;
 }
+
+@media (max-width: 600px) {
+  .slot {
+    padding: 0.18rem;
+    border-radius: 0.4rem;
+  }
+
+  .slot > header {
+    font-size: 0.55rem;
+    line-height: 1;
+  }
+
+  .slot h2 {
+    font-size: 0.62rem;
+    line-height: 1;
+  }
+
+  .slot p,
+  .slot > a {
+    font-size: 0.56rem;
+    line-height: 1;
+  }
+
+  .metrics {
+    margin: 0;
+    font-size: 0.52rem;
+    line-height: 1;
+  }
+
+  .emptyMark {
+    width: 1.6rem;
+  }
+}
