@@ -1487,3 +1487,21 @@ detailed plan Stages 15–21 после пользовательской про�
 - Stage 15 implementation не начат. Block E / Stage 22 не начаты и остаются
   запрещены до полного Block D boundary verification и пользовательской
   сверки часов.
+
+### Disk-conscious frontend tooling correction (2026-09-05)
+
+- Пользователь запретил глобальные установки и попросил не расходовать без
+  необходимости ограниченное место Windows-диска. Проверка окружения показала:
+  Node `20.19.3`, npm `11.17.0`, Go `1.26.4`, Docker/Compose уже доступны;
+  frontend `web/` и project-local npm dependencies ещё отсутствуют.
+- В существующем Playwright cache уже находятся Chromium и headless shell
+  revision `1208` плюс FFmpeg `1011`; они принадлежат установленному локально
+  Playwright `1.58.2`. Поэтому Block D plan закрепляет `@playwright/test@1.58.2`
+  вместо `1.63.0` и запрещает `playwright install`.
+- npm install/ci выполняются только project-local, с временным cache в
+  `/tmp/omenpath-npm-cache` и `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`. Docker не
+  используется по умолчанию: перенос тех же dependencies в image/volume не
+  уменьшает disk usage.
+- После Block D нужно показать фактический размер `web/node_modules` и
+  временного cache и предложить пользователю их удалить. Автоматическая
+  очистка без подтверждения запрещена.

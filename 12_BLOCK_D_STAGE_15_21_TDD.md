@@ -17,7 +17,7 @@ Portal animation изолирована в Canvas 2D subsystem с общим sch
 
 **Tech Stack:** Go 1.26, Node 20.19+, npm, React 19, TypeScript 6, Vite 8,
 React Router 7, CSS Modules, Canvas 2D, Vitest 4, React Testing Library, MSW 2,
-Playwright 1.63, ESLint 10, Prettier 3.
+Playwright 1.58.2, ESLint 10, Prettier 3.
 
 ---
 
@@ -353,19 +353,24 @@ responsibility. Нельзя создавать второй server-state store,
 
 ## 5. Dependency baseline
 
-Stage 15 создаёт lockfile следующими явными install commands:
+Stage 15 создаёт lockfile следующими явными project-local install commands.
+Ничего не устанавливается глобально. npm cache направляется в `/tmp`, а
+`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` запрещает повторную загрузку уже имеющегося
+browser bundle:
 
 ```bash
-npm --prefix web install --save-exact \
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm_config_cache=/tmp/omenpath-npm-cache \
+  npm --prefix web install --save-exact \
   react@19.2.8 react-dom@19.2.8 react-router-dom@7.18.3 \
   react-markdown@10.1.0 remark-gfm@4.0.1
 
-npm --prefix web install --save-dev --save-exact \
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm_config_cache=/tmp/omenpath-npm-cache \
+  npm --prefix web install --save-dev --save-exact \
   typescript@6.0.3 vite@8.2.2 @vitejs/plugin-react@6.1.1 \
   vitest@4.1.11 jsdom@29.1.1 \
   @testing-library/react@16.3.3 @testing-library/user-event@14.6.7 \
   @testing-library/jest-dom@6.10.0 \
-  msw@2.15.0 @playwright/test@1.63.0 sharp@0.35.4 \
+  msw@2.15.0 @playwright/test@1.58.2 sharp@0.35.4 \
   eslint@10.10.0 typescript-eslint@8.69.0 \
   eslint-plugin-react-hooks@7.1.1 eslint-plugin-react-refresh@0.5.6 \
   prettier@3.9.6 globals@17.12.0 \
@@ -376,7 +381,11 @@ npm --prefix web install --save-dev --save-exact \
 Этот baseline проверен для repository Node `v20.19.3`: Vite 8 требует минимум
 20.19, Vitest 4 поддерживает Node 20, jsdom 29 поддерживает 20.19, а
 typescript-eslint 8 принимает TypeScript `<6.1`, поэтому TypeScript 7 намеренно
-не используется.
+не используется. Playwright `1.58.2` намеренно совпадает с уже установленными
+в `/home/asari/.cache/ms-playwright` Chromium/headless-shell revision `1208` и
+FFmpeg revision `1011`; `playwright install` в Block D запускать нельзя. Если
+этот cache перестанет быть доступен, выполнение останавливается для решения с
+пользователем, а не начинает новый download автоматически.
 
 ## 6. Stage 15 — Frontend foundation
 
@@ -1116,7 +1125,9 @@ and cleans only that exact temporary directory on exit. `playwright.config.ts`
 starts it plus Vite on `127.0.0.1:4173`.
 
 ```bash
-npm --prefix web exec -- playwright install chromium
+test -x /home/asari/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome
+test -x /home/asari/.cache/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell
+npm --prefix web exec -- playwright --version
 npm --prefix web run test:e2e -- dashboard.spec.ts
 ```
 
@@ -1965,7 +1976,8 @@ completed-state заранее.
 После Stage 21 выполнить из repository root на чистом dependency install:
 
 ```bash
-npm --prefix web ci
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm_config_cache=/tmp/omenpath-npm-cache \
+  npm --prefix web ci
 npm --prefix web run format:check
 npm --prefix web run lint
 npm --prefix web run typecheck
@@ -1984,6 +1996,7 @@ git status --short
 Expected:
 
 - `npm ci` uses committed lockfile without modifying it;
+- no global package or new Playwright browser is installed;
 - frontend unit/integration and all Playwright flows PASS;
 - `web/dist` builds without remote-art/runtime-fetch assumptions;
 - `gofmt -l .` is empty;
@@ -2048,6 +2061,10 @@ git commit -m "docs(block-d): reconcile frontend verification and traceability"
 
 After this commit: STOP and request the required user checkpoint. Do not draft or
 implement Block E / Stage 22 in the same execution.
+
+At the same checkpoint report the measured size of `web/node_modules` and
+`/tmp/omenpath-npm-cache`, then offer their explicit cleanup. Do not delete
+either path without the user's confirmation.
 
 ## 15. Definition of Done — Block D
 
