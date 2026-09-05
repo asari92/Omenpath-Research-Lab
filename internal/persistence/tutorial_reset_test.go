@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"omenpath-lab/internal/config"
 	"omenpath-lab/internal/domain"
 )
 
@@ -21,7 +22,7 @@ func resetSnapshot(now time.Time) Snapshot {
 		snapshot.Simulation.Planes[i].Explored = false
 		snapshot.Simulation.Planes[i].ExploredAt = nil
 	}
-	snapshot.Simulation.Observers = domain.NewObserverRoster(10, now)
+	snapshot.Simulation.Observers = domain.NewObserverRoster(config.Default().ObserverCount, now)
 	snapshot.App = domain.AppState{Mode: domain.ModeTutorial}
 	return snapshot
 }
@@ -40,6 +41,11 @@ func TestTutorialReset_RestoresEnergyObserversPlanesAndClearsHistory(t *testing.
 	got, err := store.Load(ctx)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
+	require.Len(t, got.Simulation.Observers, 20)
+	for expectedID, observer := range got.Simulation.Observers {
+		require.Equal(t, int64(expectedID+1), observer.ID)
+		require.Equal(t, domain.ObserverAvailable, observer.Status)
+	}
 	events, err := store.ListEvents(ctx, nil)
 	require.NoError(t, err)
 	require.Empty(t, events)

@@ -30,7 +30,7 @@ func dtoSnapshot(now time.Time) persistence.Snapshot {
 			Lab:          domain.LabState{EnergyBase: 50, EnergyBaseAt: now.Add(-5 * time.Second)},
 			Portals:      []domain.Portal{portal},
 			Planes:       planes,
-			Observers:    domain.NewObserverRoster(10, now.Add(-time.Hour)),
+			Observers:    domain.NewObserverRoster(config.Default().ObserverCount, now.Add(-time.Hour)),
 			NextPortalID: 2,
 			NaturalSpawn: domain.NaturalSpawnState{Paused: true},
 		},
@@ -58,6 +58,11 @@ func TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt(t *testing.T) {
 	require.Equal(t, 95.0, got.Slots[0].Portal.Energy)
 	require.Equal(t, int64(50), got.Slots[0].Portal.TimeRemainingSeconds)
 	require.Equal(t, 0, got.Slots[0].Portal.CreaturesInside)
+	require.Equal(t, 20, observerStatusTotal(got.Observers))
+}
+
+func observerStatusTotal(counts ObserverCountsDTO) int {
+	return counts.Available + counts.Outbound + counts.Exploring + counts.WaitingReturn + counts.Returning + counts.Lost
 }
 
 func TestBuildStateSnapshot_PlaneObserverPresence(t *testing.T) {

@@ -34,7 +34,7 @@ func TestDefault_MatchesFinalSpecBalance(t *testing.T) {
 	require.Equal(t, 2*time.Second, cfg.CreatureTransit)
 	require.Equal(t, 2*time.Second, cfg.CreatureClearanceMargin)
 
-	require.Equal(t, 10, cfg.ObserverCount)
+	require.Equal(t, 20, cfg.ObserverCount)
 	require.Equal(t, 5*time.Second, cfg.ObserverTransitMin)
 	require.Equal(t, 15*time.Second, cfg.ObserverTransitMax)
 	require.Equal(t, 20*time.Second, cfg.ResearchDuration)

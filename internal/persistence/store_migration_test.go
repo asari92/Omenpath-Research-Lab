@@ -83,7 +83,7 @@ func TestStoreMigrate_IsIdempotent(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
-func TestStoreBootstrap_SeedsExactly85PlanesAnd10Observers(t *testing.T) {
+func TestStoreBootstrap_SeedsExactly85PlanesAnd20Observers(t *testing.T) {
 	ctx := context.Background()
 	store := openMigratedStore(t)
 	now := time.Date(2026, 9, 4, 10, 11, 12, 13, time.UTC)
@@ -98,8 +98,21 @@ func TestStoreBootstrap_SeedsExactly85PlanesAnd10Observers(t *testing.T) {
 	require.NoError(t, store.db.QueryRow(`SELECT COUNT(*) FROM portals`).Scan(&portals))
 	require.NoError(t, store.db.QueryRow(`SELECT COUNT(*) FROM events`).Scan(&events))
 	require.Equal(t, 85, planes)
-	require.Equal(t, 10, observers)
-	require.Equal(t, 10, available)
+	require.Equal(t, 20, observers)
+	require.Equal(t, 20, available)
+	rows, err := store.db.Query(`SELECT id, status FROM observers ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+	for expectedID := int64(1); expectedID <= 20; expectedID++ {
+		require.True(t, rows.Next())
+		var id int64
+		var status string
+		require.NoError(t, rows.Scan(&id, &status))
+		require.Equal(t, expectedID, id)
+		require.Equal(t, "AVAILABLE", status)
+	}
+	require.False(t, rows.Next())
+	require.NoError(t, rows.Err())
 	require.Zero(t, explored)
 	require.Zero(t, portals)
 	require.Zero(t, events)

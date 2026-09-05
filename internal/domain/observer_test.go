@@ -33,10 +33,10 @@ func TestNewObserverRoster_CreatesConfiguredCount(t *testing.T) {
 	}
 }
 
-func TestNewObserverRoster_DefaultConfigCreatesTen(t *testing.T) {
+func TestNewObserverRoster_DefaultConfigCreatesTwenty(t *testing.T) {
 	roster := domain.NewObserverRoster(config.Default().ObserverCount, testutil.BaseTime)
 
-	require.Len(t, roster, 10)
+	require.Len(t, roster, 20)
 }
 
 func TestObserver_AvailableCanonicalFields(t *testing.T) {
