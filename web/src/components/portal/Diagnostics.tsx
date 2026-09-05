@@ -1,4 +1,5 @@
 import type { Recommendation, RiskLevel } from "../../api/types";
+import styles from "./Diagnostics.module.css";
 
 export function Diagnostics({
   risk,
@@ -8,16 +9,32 @@ export function Diagnostics({
   recommendation: Recommendation | null;
 }) {
   return (
-    <section>
+    <section className={styles.diagnostics}>
       <h2>Diagnostics</h2>
       <dl>
         <div>
           <dt>Risk</dt>
-          <dd>{risk ?? "Not applicable"}</dd>
+          <dd data-risk={risk}>
+            <span aria-hidden="true">
+              {risk
+                ? { LOW: "●", MEDIUM: "◐", HIGH: "▲", CRITICAL: "⚠" }[risk]
+                : "—"}{" "}
+            </span>
+            {risk ?? "Not applicable"}
+          </dd>
         </div>
         <div>
           <dt>Recommendation</dt>
-          <dd>{recommendation ?? "Not applicable"}</dd>
+          <dd data-recommendation={recommendation}>
+            <span aria-hidden="true">
+              {recommendation === "CLOSE"
+                ? "⊗"
+                : recommendation === "STABILIZE"
+                  ? "✦"
+                  : "→"}{" "}
+            </span>
+            {recommendation ?? "Not applicable"}
+          </dd>
         </div>
       </dl>
       <details>

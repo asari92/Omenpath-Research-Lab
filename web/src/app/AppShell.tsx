@@ -14,7 +14,7 @@ import { commandsEnabled } from "../state/command-health";
 
 export function AppShell() {
   const { pathname } = useLocation();
-  const longForm = /^\/(ai-worklog|help|events)\/?$/.test(pathname);
+  const longForm = /^\/(ai-worklog|help)\/?$/.test(pathname);
   const state = useSnapshotState();
   const { snapshot } = state;
   const [creditsOpen, setCreditsOpen] = useState(false);

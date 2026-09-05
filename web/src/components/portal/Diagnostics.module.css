@@ -1,0 +1,39 @@
+.diagnostics [data-risk="LOW"] {
+  color: #80d698;
+}
+.diagnostics [data-risk="MEDIUM"] {
+  color: #e9d568;
+}
+.diagnostics [data-risk="HIGH"] {
+  color: #f5aa62;
+}
+.diagnostics [data-risk="CRITICAL"] {
+  color: #ff7b7b;
+}
+.diagnostics [data-recommendation] {
+  color: #a7d4de;
+}
+.diagnostics [data-recommendation="CLOSE"] {
+  color: #ffaaa0;
+}
+.diagnostics [data-recommendation="STABILIZE"] {
+  color: #d6b0ff;
+}
+.diagnostics details {
+  margin-top: 0.5rem;
+}
+.diagnostics summary {
+  cursor: pointer;
+}
+.diagnostics details[open] p {
+  position: absolute;
+  z-index: 30;
+  left: 3%;
+  right: 3%;
+  bottom: 2rem;
+  padding: 1rem;
+  background: #211e19;
+  border: 1px solid var(--line);
+  box-shadow: 0 5px 20px #000;
+  font-size: 0.8rem;
+}

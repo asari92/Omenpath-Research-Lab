@@ -10,9 +10,19 @@ export function PortalFacts({ portal }: { portal: PortalViewDTO }) {
           <dt>Name</dt>
           <dd>{portal.name}</dd>
         </div>
+        {portal.termination_reason && (
+          <div>
+            <dt>Termination</dt>
+            <dd>{portal.termination_reason.replaceAll("_", " ")}</dd>
+          </div>
+        )}
         <div>
           <dt>Status</dt>
-          <dd>{portal.status}</dd>
+          <dd
+            style={portal.status !== "OPEN" ? { color: "#b7b7b7" } : undefined}
+          >
+            {portal.status}
+          </dd>
         </div>
         <div>
           <dt>Energy</dt>

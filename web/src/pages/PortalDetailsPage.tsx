@@ -12,6 +12,7 @@ import { createLiveResource } from "../api/live-resource";
 import { EventList } from "../components/events/EventList";
 import { DestinationFacts } from "../components/portal/DestinationFacts";
 import { Diagnostics } from "../components/portal/Diagnostics";
+import { ObserverTransit } from "../components/portal/ObserverTransit";
 import { PortalFacts } from "../components/portal/PortalFacts";
 import { PortalActions } from "../features/portal-actions/PortalActions";
 import { usePortalCommand } from "../features/portal-actions/usePortalCommand";
@@ -99,45 +100,65 @@ function PortalDetailsResource({ id }: { id: number }) {
   const tutorialTarget = snapshot ? tutorialCommandTarget(snapshot.app) : null;
   return (
     <>
-      {details.loading && <p className={styles.refreshing}>Refreshing…</p>}
+      {details.error && (
+        <p role="status">
+          Updates unavailable.{" "}
+          <button type="button" onClick={() => resource.refresh()}>
+            Retry
+          </button>
+        </p>
+      )}
       {signalError && <p role="status">{signalError}</p>}
-      <div className={styles.hero}>
-        <PortalEffect
-          density="high"
-          planeId={value.destination.plane_id}
-          planeName={value.destination.name}
-          portalId={value.portal.id}
-        />
-      </div>
-      <div className={styles.sections}>
-        <PortalFacts portal={value.portal} />
-        <DestinationFacts destination={value.destination} />
-        <Diagnostics
-          risk={value.risk_level}
-          recommendation={value.recommendation}
-        />
-        <section>
-          <h2>History</h2>
-          <EventList events={value.history} />
-        </section>
-        <section>
-          <h2>Actions</h2>
-          <PortalActions
-            offline={!enabled}
-            outcome={command.outcome}
-            busyKey={command.busyKey}
-            expectedCriticalSend={
-              snapshot ? isExpectedCriticalSend(snapshot.app, id) : false
-            }
-            highlightedCommand={
-              tutorialTarget?.portalId === id ? tutorialTarget.command : null
-            }
-            onCommand={command.run}
-            portalId={id}
-            quickActions={value.portal.quick_actions}
+      <div className={styles.body}>
+        <div className={styles.facts}>
+          <PortalFacts portal={value.portal} />
+          <ObserverTransit transit={value.observer_transit} />
+        </div>
+        <div className={styles.hero}>
+          <PortalEffect
+            density="high"
+            planeId={value.destination.plane_id}
+            planeName={value.destination.name}
+            portalId={value.portal.id}
+            status={value.portal.status}
           />
-        </section>
+          <section className={styles.actions} aria-label="Portal actions">
+            <h2>Actions</h2>
+            <PortalActions
+              offline={!enabled}
+              outcome={command.outcome}
+              busyKey={command.busyKey}
+              expectedCriticalSend={
+                snapshot ? isExpectedCriticalSend(snapshot.app, id) : false
+              }
+              highlightedCommand={
+                tutorialTarget?.portalId === id ? tutorialTarget.command : null
+              }
+              onCommand={command.run}
+              portalId={id}
+              quickActions={value.portal.quick_actions}
+            />
+          </section>
+        </div>
+        <div className={styles.facts}>
+          <DestinationFacts destination={value.destination} />
+          <Diagnostics
+            risk={value.risk_level}
+            recommendation={value.recommendation}
+          />
+        </div>
       </div>
+      <details className={styles.history}>
+        <summary>History ({value.history.length})</summary>
+        <div
+          className={styles.historyList}
+          role="region"
+          aria-label="Portal history"
+          tabIndex={0}
+        >
+          <EventList events={value.history} />
+        </div>
+      </details>
     </>
   );
 }

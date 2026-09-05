@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { planeArt } from "../assets/plane-art";
+import type { PortalStatus } from "../api/types";
 import styles from "./PortalEffect.module.css";
 import {
   densityProfile,
@@ -16,6 +17,7 @@ export interface PortalEffectProps {
   planeId: number;
   planeName: string;
   density: PortalEffectDensity;
+  status?: PortalStatus;
 }
 
 export function PortalEffect({
@@ -23,6 +25,7 @@ export function PortalEffect({
   planeId,
   planeName,
   density,
+  status = "OPEN",
 }: PortalEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const art = planeArt(planeId);
@@ -106,6 +109,7 @@ export function PortalEffect({
   return (
     <div
       className={styles.portal}
+      data-status={status}
       style={{ "--portal-hue": hue } as React.CSSProperties}
     >
       <img alt={planeName} className={styles.art} src={art.local_path} />

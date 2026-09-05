@@ -76,23 +76,30 @@ export function EventLogPage() {
     <section className={styles.page}>
       <h1>Event Log</h1>
       <EventFilters onChange={setFilter} />
-      {state.error && !state.data ? (
-        <div role="alert">
-          <p>Unable to load Event Log.</p>
-          <button onClick={() => resource.refresh()} type="button">
-            Retry
-          </button>
-        </div>
-      ) : (
-        <EventList
-          emptyMessage={
-            state.data?.length === 0
-              ? "No events recorded yet."
-              : "No events match the active filters."
-          }
-          events={visible}
-        />
-      )}
+      <div
+        className={styles.results}
+        role="region"
+        aria-label="Event results"
+        tabIndex={0}
+      >
+        {state.error && !state.data ? (
+          <div role="alert">
+            <p>Unable to load Event Log.</p>
+            <button onClick={() => resource.refresh()} type="button">
+              Retry
+            </button>
+          </div>
+        ) : (
+          <EventList
+            emptyMessage={
+              state.data?.length === 0
+                ? "No events recorded yet."
+                : "No events match the active filters."
+            }
+            events={visible}
+          />
+        )}
+      </div>
     </section>
   );
 }

@@ -1,0 +1,38 @@
+.event {
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.event header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.event time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.event strong {
+  color: #b6d4c1;
+}
+.event strong::before {
+  content: "◇ ";
+}
+.event[data-event-type="PORTAL_COLLAPSED"] strong,
+.event[data-event-type="OBSERVER_LOST"] strong,
+.event[data-event-type="ACTION_REJECTED"] strong {
+  color: #f7a48b;
+}
+.event[data-event-type="PORTAL_COLLAPSED"] strong::before,
+.event[data-event-type="OBSERVER_LOST"] strong::before,
+.event[data-event-type="ACTION_REJECTED"] strong::before {
+  content: "⚠ ";
+}
+.event p {
+  margin: 0.4rem 0;
+}
+.event pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

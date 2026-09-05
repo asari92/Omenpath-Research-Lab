@@ -2271,3 +2271,30 @@ burst из30 сообщений, доступность последнего, bo
 
 Verification: 32 frontend files / 140 tests PASS; typecheck/lint/build PASS;
 responsive Dashboard + Worklog scroll E2E — 6 PASS, 2 project-specific skips.
+
+#### DC-7 — compact Details, Event Log and complete Help
+
+RED `4f2450b`: six observed behavioral failures covered missing transit,
+terminal visual status, collapsed History/count, Help chapters and exact UTC
+timestamp. Details now places the Portal centrally with unframed Actions below,
+side facts/diagnostics and authoritative Observer transit. History remains
+available through a collapsed count summary; only its expanded list scrolls.
+Terminal art/ring/sparks are grayscale and terminal status is neutral gray.
+Risk and Recommendations use text, symbols and semantic colors. Background
+refresh has no persistent label; failed updates retain a compact Retry.
+
+Events now show UTC `15:04:05-06-09-2026` for the fixed fixture, with original
+ISO `dateTime`, followed by event title and details. Only the results list
+scrolls; filtering and complete chronological reads remain unchanged. Existing
+browser scenarios now use `page.request` to share the browser laboratory cookie.
+Help replaces the placeholder with all thirteen field-guide chapters, including
+energy distinctions, travel/loss, commands, Extraction fallback, Override,
+recommendation limitations, Tutorial and glossary. No gameplay changes.
+
+Verification: full frontend 34 files / 145 tests PASS; typecheck/lint/build PASS.
+Details + Events desktop/phone browser suite: 10 PASS. Assertions cover no
+document/main scrolling, all facts/actions in viewport, inner History overflow
+and timestamp visual order. gofmt empty; Go vet/build PASS; full Go tests PASS
+after granting localhost listener access to integration tests. Vite retains its
+existing large-bundle advisory. DC-8 motion and DC-9 artwork remain pending;
+UI-012 remains PARTIAL for motion. No dependencies installed; Stage 22 not begun.

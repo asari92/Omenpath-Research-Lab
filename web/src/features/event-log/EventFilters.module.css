@@ -11,6 +11,21 @@
   display: grid;
   gap: 0.2rem;
 }
+.filters input[type="number"] {
+  width: 6rem;
+  max-width: 100%;
+}
+.filters details {
+  position: relative;
+}
+.filters details[open] .types {
+  position: absolute;
+  z-index: 35;
+  width: min(28rem, 75vw);
+  background: #211e19;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+}
 .types {
   display: grid;
   max-height: 15rem;

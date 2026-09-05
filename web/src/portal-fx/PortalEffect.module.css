@@ -5,6 +5,10 @@
   aspect-ratio: 1;
   isolation: isolate;
 }
+.portal[data-status="CLOSED"],
+.portal[data-status="COLLAPSED"] {
+  filter: grayscale(1);
+}
 
 .portal::before {
   position: absolute;

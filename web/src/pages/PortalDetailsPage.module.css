@@ -1,49 +1,126 @@
 .page {
   position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
-.hero {
-  width: min(18rem, 70vw);
-  margin: 0 auto 1rem;
+.page h1 {
+  margin: 0;
 }
-.sections {
+.body {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: center;
   gap: 0.8rem;
 }
-.sections section {
-  padding: 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  background: var(--surface);
+.hero {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
 }
-.sections h2 {
-  margin-top: 0;
+.hero > div {
+  width: min(100%, 32vh, 22rem);
 }
-.sections dl {
+.actions {
+  width: 100%;
+  text-align: center;
+}
+.actions h2 {
+  font-size: 0.85rem;
+  margin: 0 0 0.4rem;
+}
+.facts {
+  min-width: 0;
+  font-size: clamp(0.7rem, 1.05vw, 0.95rem);
+}
+.facts section + section {
+  margin-top: 1rem;
+}
+.facts h2 {
+  font-size: 1.05em;
+  color: var(--text-strong);
+  margin: 0 0 0.5rem;
+}
+.facts dl {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin: 0;
 }
-.sections dl div {
+.facts dl div {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem;
 }
-.sections dt {
+.facts dt {
   color: var(--text-muted);
 }
-.sections dd {
+.facts dd {
   margin: 0;
   text-align: right;
+  overflow-wrap: anywhere;
 }
-.refreshing {
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--text-muted);
+.facts [aria-label="Observer transit"] {
+  color: var(--text-strong);
+}
+.history {
+  border-top: 1px solid var(--line);
+  padding-top: 0.4rem;
+  flex-shrink: 0;
+}
+.history summary {
+  cursor: pointer;
+}
+.historyList {
+  max-height: 20dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.4rem;
 }
 @media (max-width: 720px) {
-  .sections {
-    grid-template-columns: 1fr;
+  .page {
+    gap: 0.3rem;
+  }
+  .page h1 {
+    font-size: 1.1rem;
+  }
+  .body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr;
+    gap: 0.3rem 0.65rem;
+    align-items: start;
+  }
+  .hero {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+  .hero > div {
+    width: min(25dvh, 9rem);
+  }
+  .actions h2 {
+    display: none;
+  }
+  .facts {
+    font-size: 0.65rem;
+  }
+  .facts h2 {
+    margin-bottom: 0.25rem;
+  }
+  .facts dl {
+    gap: 0.2rem;
+  }
+  .facts section + section {
+    margin-top: 0.5rem;
+  }
+  .history {
+    font-size: 0.75rem;
+  }
+  .historyList {
+    max-height: 13dvh;
   }
 }
