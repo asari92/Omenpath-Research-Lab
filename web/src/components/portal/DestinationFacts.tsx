@@ -2,13 +2,19 @@ import type { DestinationDTO } from "../../api/types";
 
 export function DestinationFacts({
   destination,
+  creatures,
 }: {
   destination: DestinationDTO;
+  creatures: number;
 }) {
   return (
     <section>
       <h2>Destination</h2>
       <dl>
+        <div>
+          <dt>Creatures</dt>
+          <dd>{creatures}</dd>
+        </div>
         <div>
           <dt>Plane</dt>
           <dd>{destination.name}</dd>

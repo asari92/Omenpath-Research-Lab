@@ -22,6 +22,22 @@
 .diagnostics details {
   margin-top: 0.5rem;
 }
+.advice {
+  margin: 0.4rem 0;
+  font-size: 0.9em;
+}
+.advice[data-advice-state="safe"] {
+  color: #80d698;
+}
+.advice[data-advice-state="suggested"] {
+  color: #a7d4de;
+}
+.advice[data-advice-state="urgent"] {
+  color: #f5aa62;
+}
+.advice[data-advice-state="unavailable"] {
+  color: #b7b7b7;
+}
 .diagnostics summary {
   cursor: pointer;
 }

@@ -141,7 +141,10 @@ function PortalDetailsResource({ id }: { id: number }) {
           </section>
         </div>
         <div className={styles.facts}>
-          <DestinationFacts destination={value.destination} />
+          <DestinationFacts
+            destination={value.destination}
+            creatures={value.portal.creatures_inside}
+          />
           <Diagnostics
             risk={value.risk_level}
             recommendation={value.recommendation}

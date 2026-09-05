@@ -37,10 +37,6 @@ export function PortalFacts({ portal }: { portal: PortalViewDTO }) {
           <dd>{formatRemaining(portal.time_remaining_seconds)}</dd>
         </div>
         <div>
-          <dt>Creatures</dt>
-          <dd>{portal.creatures_inside}</dd>
-        </div>
-        <div>
           <dt>Observer Flow</dt>
           <dd>{portal.observer_flow}</dd>
         </div>

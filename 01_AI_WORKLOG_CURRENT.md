@@ -2298,3 +2298,19 @@ and timestamp visual order. gofmt empty; Go vet/build PASS; full Go tests PASS
 after granting localhost listener access to integration tests. Vite retains its
 existing large-bundle advisory. DC-8 motion and DC-9 artwork remain pending;
 UI-012 remains PARTIAL for motion. No dependencies installed; Stage 22 not begun.
+
+#### DC-7 spec-review corrective — complete recommendation presentation
+
+Review found three omissions. Observed RED: seven Recommendation cases lacked
+explicit guidance states/explanations; Creatures remained in the left Portal
+facts; Help described Tutorial commands in the wrong order (nine failures).
+GREEN adds complete authoritative-variant presentation with safe/suggested/
+urgent/unavailable states, distinct icon/color/text and short explanations.
+LEAVE OPEN explicitly does not guarantee safety; terminal null is unavailable.
+Creatures now belongs to Destination on the right. Tutorial recap follows
+Step 3 SEND → Step 4 STABILIZE → Step 5 CRITICAL rejection, then research/return,
+Event Log and Live. No command or recommendation-engine semantics changed.
+
+Verification: focused 21 tests, full frontend 35 files / 152 tests,
+typecheck/lint/build PASS; responsive Details browser tests 6/6 PASS, including
+all facts/actions inside viewport and expanded History-only scrolling.

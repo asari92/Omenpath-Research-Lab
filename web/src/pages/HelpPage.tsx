@@ -47,7 +47,7 @@ const chapters = [
   ],
   [
     "Tutorial recap",
-    "Begin with the laboratory introduction, inspect the training Portal’s Details, wait for the corridor, stabilize when directed, and learn why a CRITICAL Portal rejects travel. Follow the current objective to send an Observer, wait for research, recall and verify a successful return. Inspect the Event Log, then start Live exploration. Training advances when its expected action or event occurs. Tutorial reset starts the training laboratory over; it is not a way to preserve Live progress.",
+    "Step 0 introduces the laboratory. Step 1 opens the training Portal’s Details; Step 2 waits for creatures to clear the corridor. Step 3 teaches SEND OBSERVER. Step 4 teaches STABILIZE. Step 5 demonstrates why a CRITICAL Portal rejects SEND. Step 6 guides research, RECALL and successful return. Step 7 opens the Event Log; Step 8 starts Live exploration. Training advances when its expected action or event occurs. Tutorial reset starts the training laboratory over; it is not a way to preserve Live progress.",
   ],
   [
     "Glossary",

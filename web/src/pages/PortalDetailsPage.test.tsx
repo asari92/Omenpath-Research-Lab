@@ -143,6 +143,10 @@ describe("PortalDetailsPage", () => {
       "data-recommendation",
       "STABILIZE",
     );
+    const creatures = screen.getByText("Creatures");
+    expect(creatures.closest("section")).toContainElement(
+      screen.getByRole("heading", { name: "Destination" }),
+    );
   });
 
   it("renders terminal diagnostics as Not applicable", async () => {

@@ -40,4 +40,10 @@ it("provides every field-guide chapter and concrete mechanics", () => {
   ]) {
     expect(document.body).toHaveTextContent(copy);
   }
+  const recap = screen.getByRole("heading", {
+    name: "Tutorial recap",
+  }).parentElement;
+  expect(recap).toHaveTextContent(
+    /Step 3.*SEND.*Step 4.*STABILIZE.*Step 5.*CRITICAL/,
+  );
 });
