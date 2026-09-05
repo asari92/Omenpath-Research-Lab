@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -50,7 +50,7 @@ describe("EventLogPage", () => {
       expect.stringContaining("message 1"),
     ]);
     await userEvent.setup().click(screen.getAllByText("Payload")[0]);
-    expect(screen.getByText(/<img onerror=alert/)).toBeVisible();
+    expect(within(rows[0]).getByText(/<img onerror=alert/)).toBeVisible();
     expect(document.querySelector("img[onerror]")).toBeNull();
   });
 

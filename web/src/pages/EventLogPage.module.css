@@ -1,0 +1,24 @@
+.page {
+  display: grid;
+  gap: 0.75rem;
+}
+.page h1 {
+  margin: 0;
+}
+.page article {
+  margin-bottom: 0.5rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+.page article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.page pre {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+}

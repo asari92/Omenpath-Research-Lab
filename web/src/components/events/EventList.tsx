@@ -1,8 +1,14 @@
 import type { EventDTO } from "../../api/types";
 import { EventRow } from "./EventRow";
 
-export function EventList({ events }: { events: readonly EventDTO[] }) {
-  if (events.length === 0) return <p>No events recorded.</p>;
+export function EventList({
+  events,
+  emptyMessage = "No events recorded.",
+}: {
+  events: readonly EventDTO[];
+  emptyMessage?: string;
+}) {
+  if (events.length === 0) return <p>{emptyMessage}</p>;
   return (
     <div>
       {events.map((event) => (

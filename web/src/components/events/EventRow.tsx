@@ -1,4 +1,5 @@
 import type { EventDTO } from "../../api/types";
+import { eventTypeLabel } from "../../features/event-log/event-filter";
 
 export function EventRow({ event }: { event: EventDTO }) {
   const payload =
@@ -9,7 +10,7 @@ export function EventRow({ event }: { event: EventDTO }) {
     <article data-testid="event-row">
       <header>
         <time dateTime={event.created_at}>{event.created_at}</time>
-        <strong>{event.event_type}</strong>
+        <strong>{eventTypeLabel(event.event_type)}</strong>
       </header>
       <p>{event.message}</p>
       {payload && (
