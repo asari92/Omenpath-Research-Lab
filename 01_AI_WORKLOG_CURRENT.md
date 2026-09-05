@@ -1505,3 +1505,8 @@ detailed plan Stages 15–21 после пользовательской про�
 - После Block D нужно показать фактический размер `web/node_modules` и
   временного cache и предложить пользователю их удалить. Автоматическая
   очистка без подтверждения запрещена.
+- При первом Stage 15 install npm доказал, что ошибочно выбранный в плане
+  `@testing-library/jest-dom@6.10.0` требует Node 22 и сам помечен deprecated.
+  До production implementation baseline исправлен на совместимый
+  `@testing-library/jest-dom@6.9.1`; глобальные пакеты и browser cache не
+  изменялись.

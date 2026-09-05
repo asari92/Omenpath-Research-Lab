@@ -369,7 +369,7 @@ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm_config_cache=/tmp/omenpath-npm-cache \
   typescript@6.0.3 vite@8.2.2 @vitejs/plugin-react@6.1.1 \
   vitest@4.1.11 jsdom@29.1.1 \
   @testing-library/react@16.3.3 @testing-library/user-event@14.6.7 \
-  @testing-library/jest-dom@6.10.0 \
+  @testing-library/jest-dom@6.9.1 \
   msw@2.15.0 @playwright/test@1.58.2 sharp@0.35.4 \
   eslint@10.10.0 typescript-eslint@8.69.0 \
   eslint-plugin-react-hooks@7.1.1 eslint-plugin-react-refresh@0.5.6 \
@@ -379,7 +379,8 @@ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm_config_cache=/tmp/omenpath-npm-cache \
 ```
 
 Этот baseline проверен для repository Node `v20.19.3`: Vite 8 требует минимум
-20.19, Vitest 4 поддерживает Node 20, jsdom 29 поддерживает 20.19, а
+20.19, Vitest 4 поддерживает Node 20, jsdom 29 поддерживает 20.19,
+jest-dom 6.9.1 сохраняет Node 20 compatibility, а
 typescript-eslint 8 принимает TypeScript `<6.1`, поэтому TypeScript 7 намеренно
 не используется. Playwright `1.58.2` намеренно совпадает с уже установленными
 в `/home/asari/.cache/ms-playwright` Chromium/headless-shell revision `1208` и
