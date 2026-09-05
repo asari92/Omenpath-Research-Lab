@@ -10,7 +10,25 @@ Backend/domain разрабатывается через TDD:
 Requirement → Test → RED → Minimal Implementation → GREEN → Refactor
 ```
 
-Полностью расписывать все будущие этапы до последней функции заранее не требуется. Используем rolling-wave planning: подробный план ближайших 1–2 этапов, реализация, сверка, затем детализация следующих.
+Полностью расписывать все будущие этапы до последней функции заранее не
+требуется. Stages 0–8 выполнялись по отдельным detailed plans; после Stage 8
+rolling-wave planning работает блоками: подробно планируется только ближайший
+Block, он реализуется stage-by-stage, затем проходит обязательную пользовательскую
+сверку перед планированием следующего Block.
+
+## Текущее состояние delivery
+
+Статус отражает фактически доказанную границу блока; отдельные оставшиеся
+`PARTIAL`/`PLANNED` requirements всегда перечислены точнее в
+[`docs/traceability.md`](docs/traceability.md).
+
+| Block | Stages | Status | Execution documents | Boundary |
+|---|---:|---|---|---|
+| A — Specification & Domain Foundation | 0–2 | GREEN | `03_STAGE_00_01_TDD_FOUNDATION.md`, `04_STAGE_02_PORTAL_CORE_TDD.md` | завершён и проверен |
+| B — Observers & Simulation | 3–8 | GREEN | `05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` … `10_STAGE_08_SIMULATION_TDD.md` | завершён и проверен |
+| C — Persistence & Transport | 9–14 | GREEN | `11_BLOCK_C_STAGE_09_14_TDD.md` | завершён; итоговый audit APPROVED |
+| D — Frontend | 15–21 | PLANNED | следующий detailed block plan ещё не создан | текущая planning boundary; implementation не начат |
+| E — Quality & Delivery | 22–27 | PLANNED | создаётся только после сверки Block D | начинать нельзя |
 
 ### Блоковый delivery-режим после Stage 8
 
@@ -23,16 +41,21 @@ Block E = Stages 22–27
 ```
 
 На каждый блок создаётся один detailed plan с отдельными scope/DoD и
-RED/GREEN evidence для входящих стадий. Дополнительное подтверждение между
-стадиями одного утверждённого блока не требуется. После каждого блока
-обязательны полный verification suite, traceability/worklog update, сверка с
-Final Spec и остановка для пользовательской «сверки часов». Следующий блок до
-этой сверки не начинается.
+stage-level RED/GREEN evidence. Дополнительное подтверждение между стадиями
+одного утверждённого блока не требуется. Каждая стадия заканчивается полным
+ordinary suite и обновлением traceability/worklog. На границе блока повторяется
+полный quality suite с race detector, выполняется сверка с Final Spec и работа
+останавливается для пользовательской «сверки часов». Следующий блок до этой
+сверки не начинается.
 
 Полное описание режима:
 [`docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md`](docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md).
 
 ## Block A — Specification & Domain Foundation
+
+**Status: GREEN.** Stages 0–2 завершены; подробные границы и evidence находятся
+в `03_STAGE_00_01_TDD_FOUNDATION.md`, `04_STAGE_02_PORTAL_CORE_TDD.md`, worklog
+и traceability.
 
 ### Stage 0 — Executable specification
 - Final Spec фиксируется как source of truth.
@@ -61,6 +84,10 @@ Final Spec и остановка для пользовательской «св�
 10. Portal Slots.
 
 ## Block B — Observers & Simulation
+
+**Status: GREEN.** Stages 3–8 завершены по планам
+`05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` … `10_STAGE_08_SIMULATION_TDD.md` и
+прошли итоговую корректирующую сверку.
 
 ### Stage 3 — Observer lifecycle
 - AVAILABLE → OUTBOUND → EXPLORING → WAITING_RETURN → RETURNING → AVAILABLE.
@@ -101,9 +128,10 @@ Final Spec и остановка для пользовательской «св�
 
 ## Block C — Persistence & Transport
 
-Detailed execution-plan: `11_BLOCK_C_STAGE_09_14_TDD.md`. После его
-утверждения Stages 9–14 выполняются последовательно без промежуточного
-пользовательского подтверждения; после Stage 14 обязательна блоковая сверка.
+**Status: GREEN.** Detailed execution-plan:
+`11_BLOCK_C_STAGE_09_14_TDD.md`. Stages 9–14 выполнены последовательно,
+traceability/worklog обновлены, полный ordinary/race suite и независимый
+итоговый audit прошли. Stage 15 в этом блоке не начинался.
 
 ### Stage 9 — Event system
 - Domain events.
@@ -120,7 +148,7 @@ Detailed execution-plan: `11_BLOCK_C_STAGE_09_14_TDD.md`. После его
 
 ### Stage 11 — LabManager / concurrency
 - In-memory active state.
-- `sync.RWMutex`.
+- Context-cancellable exclusive ownership lock.
 - Atomic transitions.
 - No duplicate events.
 - Race detector.
@@ -171,6 +199,14 @@ Rationale:
 
 ## Block D — Frontend
 
+**Status: PLANNED; следующая planning boundary.** До реализации требуется один
+detailed plan для Stages 15–21, проверенный против Final Spec и текущих
+REST/WebSocket/Tutorial contracts. Frontend потребляет существующий публичный
+transport contract и не вводит новые gameplay semantics. Если UI выявляет
+реальный backend defect или недостающую интеграционную границу, она исправляется
+отдельным доказанным TDD corrective pass без произвольного изменения завершённых
+Stages 0–14.
+
 ### Stage 15 — Frontend foundation
 React + TypeScript + Vite, router, REST client, WebSocket client, shared state, error handling.
 
@@ -193,6 +229,9 @@ Instructions, current step, retry behaviour, completion.
 Analysis/architecture, backend, frontend, testing, debugging, deployment, final QA.
 
 ## Block E — Quality & Delivery
+
+**Status: PLANNED.** Block E нельзя начинать до завершения Block D, его полного
+boundary verification и пользовательской сверки.
 
 ### Stage 22 — Full automated test pass
 Domain, integration, persistence, REST, WS, Tutorial, concurrency, race detector.
@@ -228,15 +267,26 @@ Cross-check:
 
 Look for stale constants, enum mismatches, outdated restrictions, UI actions without backend rules, tests for old mechanics and docs describing old architecture.
 
-## Detailed-planning rule
+## Detailed-planning and verification rule
 
-Before implementing a stage:
-1. its required domain contracts must already be fixed;
-2. the stage plan must be checked against Final Spec;
-3. its DoD must be explicit.
+Before implementing an approved stage or block:
+1. required product/domain contracts must already be fixed in Final Spec;
+2. the current detailed plan must be checked against Final Spec;
+3. scope, checkpoints, RED/GREEN evidence and per-stage DoD must be explicit;
+4. implementation of the following block must remain out of scope.
 
-After implementing a stage:
-1. tests and race detector pass;
-2. traceability is updated;
-3. actual AI usage/errors are appended to Worklog;
-4. future plans are reviewed for consequences.
+Inside an approved block, stages proceed sequentially without additional user
+approval. After every stage:
+1. `gofmt -l .`, `go vet ./...`, `go build ./...` and
+   `go test -count=1 ./...` pass;
+2. traceability is updated to the actually proven boundary;
+3. actual decisions, errors and RED/GREEN hashes are appended to Worklog;
+4. later stages in the current block are reviewed for consequences.
+
+At every block boundary:
+1. the complete ordinary suite is repeated;
+2. `go test -race -count=1 ./...` passes;
+3. Final Spec, roadmap, requirements, traceability, worklog, plans and actual
+   implementation are reconciled;
+4. the worktree is clean and the next block has not started;
+5. work stops for the required user checkpoint.

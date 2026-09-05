@@ -1398,3 +1398,33 @@ restart evidence и normal Events. Повторное итоговое code-qual
 
 Stage 14 и Block C завершены. Stage 15 не начат; выполнение остановлено перед
 обязательной пользовательской сверкой блоков.
+
+## Roadmap reconciliation после Block C (2026-09-05)
+
+- Пользователь выбрал точечное обновление roadmap вместо минимальной правки или
+  полного переписывания: сохранить документ кратким, но показать фактические
+  статусы блоков, текущую planning boundary и актуальный block-delivery protocol.
+- `02_IMPLEMENTATION_ROADMAP_TDD.md` теперь отмечает Blocks A, B и C как GREEN,
+  Block D как следующий PLANNED scope, а Block E — как запрещённый до завершения
+  и пользовательской сверки Block D.
+- Устаревшее rolling-wave правило про ближайшие 1–2 стадии заменено на один
+  detailed plan для ближайшего блока. Per-stage verification использует
+  gofmt/vet/build/full ordinary tests; race detector обязателен на block boundary
+  согласно текущему `AGENTS.md`.
+- Дополнительно проверено ранее обсуждавшееся значение Natural spawn delay.
+  Canonical Final Spec §7/§37, `docs/requirements.md`, Stage 8 plan, config и
+  tests согласованно фиксируют inclusive `0..20 sec`. Поэтому roadmap уже был
+  корректен в этой строке; прежнее предположение AI о необходимости заменить
+  её на `1..20` было ошибочным и не применялось к документам или коду.
+- Архитектурная граница Block D уточнена: frontend потребляет существующие
+  публичные REST/WebSocket/Tutorial contracts и не изобретает gameplay
+  semantics. Реальный обнаруженный backend defect допускает только отдельный
+  доказанный corrective TDD pass.
+- Устаревший roadmap-пункт `sync.RWMutex` для Stage 11 заменён фактической
+  context-cancellable exclusive ownership boundary (`contextMutex`): manager
+  сериализует resolve, random transaction, persistence и publication, а
+  ожидающий caller может завершиться по своему context.
+
+Roadmap-аудит не меняет product semantics, requirement statuses или код.
+Block D implementation и Stage 15 всё ещё не начаты; следующий шаг — отдельный
+detailed plan Stages 15–21 после пользовательской проверки roadmap.
