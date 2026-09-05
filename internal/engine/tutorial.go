@@ -220,15 +220,6 @@ func (m *LabManager) advanceTutorialAfterCommand(snapshot, before *persistence.S
 			snapshot.App.TutorialObserverID = int64Pointer(observer.ID)
 			snapshot.App.TutorialPhase = domain.TutorialPhaseWaitResearch
 		}
-		if commandErr == nil && command.action == "SEND" && matched && snapshot.App.TutorialPhase == domain.TutorialPhaseRecallReady {
-			portal, ok := tutorialTarget(snapshot)
-			if !ok {
-				return domain.ErrSimulationInvariant
-			}
-			if err := createTutorialTarget(snapshot, domain.TutorialPortalStep6Return, portal.DestinationPlaneID, now, m.cfg); err != nil {
-				return err
-			}
-		}
 		if commandErr == nil && command.action == "RECALL" && matched && snapshot.App.TutorialPhase == domain.TutorialPhaseRecallReady {
 			observer := returningThrough(snapshot.Simulation.Observers, *command.portalID)
 			if observer == nil {
@@ -238,8 +229,31 @@ func (m *LabManager) advanceTutorialAfterCommand(snapshot, before *persistence.S
 			snapshot.App.TutorialStep = 7
 			snapshot.App.TutorialPhase = domain.TutorialPhaseNone
 		}
+		if err := recreateDirectionBrokenTutorialTarget(snapshot, command, commandErr, matched, now, m.cfg); err != nil {
+			return err
+		}
 	}
 	return recreateTerminalTutorialTarget(snapshot, now, m.cfg)
+}
+
+func recreateDirectionBrokenTutorialTarget(snapshot *persistence.Snapshot, command managerCommand, commandErr error, matched bool, now time.Time, cfg config.Config) error {
+	if commandErr != nil || !matched || snapshot.App.TutorialStep != 6 {
+		return nil
+	}
+	var profile domain.TutorialPortalProfile
+	switch {
+	case snapshot.App.TutorialPhase == domain.TutorialPhaseRecallReady && command.action == "SEND":
+		profile = domain.TutorialPortalStep6Return
+	case snapshot.App.TutorialPhase == domain.TutorialPhaseSendReplacement && command.action == "RECALL":
+		profile = domain.TutorialPortalStep6Outbound
+	default:
+		return nil
+	}
+	portal, ok := tutorialTarget(snapshot)
+	if !ok {
+		return domain.ErrSimulationInvariant
+	}
+	return createTutorialTarget(snapshot, profile, portal.DestinationPlaneID, now, cfg)
 }
 
 func containsRisk(value domain.RiskLevel, allowed ...domain.RiskLevel) bool {
