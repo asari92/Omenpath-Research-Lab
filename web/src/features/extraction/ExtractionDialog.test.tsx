@@ -49,7 +49,7 @@ describe("ExtractionDialog", () => {
     const cards = screen.getAllByTestId("plane-card");
     expect(cards).toHaveLength(85);
     for (const image of screen.getAllByRole("img")) {
-      expect(image.getAttribute("src")).toMatch(/^\/assets\/planes\//);
+      expect(image.getAttribute("src")).toMatch(/^\/planes\//);
     }
     expect(cards[0]).toHaveTextContent(/UNEXPLORED.*In Plane 0.*Waiting 0/i);
   });
@@ -102,10 +102,10 @@ describe("ExtractionDialog", () => {
     const user = userEvent.setup();
     const dialog = screen.getByRole("dialog");
     const buttons = within(dialog).getAllByRole("button");
-    expect(dialog).toContainElement(document.activeElement);
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     buttons.at(-1)?.focus();
     await user.keyboard("{Tab}");
-    expect(dialog).toContainElement(document.activeElement);
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledOnce();
     expect(openExtraction).not.toHaveBeenCalled();

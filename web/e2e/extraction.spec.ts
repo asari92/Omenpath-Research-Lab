@@ -13,11 +13,9 @@ test("Extraction chooser exposes all local Plane choices and preserves rejected 
     page.getByRole("dialog", { name: "Open Extraction Portal" }),
   ).toBeVisible();
   await expect(page.getByTestId("plane-card")).toHaveCount(85);
-  await page.getByRole("button", { name: "Agyrem" }).click();
+  const selected = page.getByTestId("plane-card").first();
+  await selected.click();
   await page.getByRole("button", { name: "Open Extraction" }).last().click();
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Agyrem" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
 });

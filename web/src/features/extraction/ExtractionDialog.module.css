@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #05080dcc;
+}
+.dialog {
+  display: grid;
+  width: min(64rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface-raised);
+}
+.dialog header,
+.dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.dialog h2,
+.dialog p {
+  margin: 0;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.planes {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.5rem;
+  overflow: auto;
+}
+.card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+.card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.25rem;
+  object-fit: cover;
+}
+.card span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+@media (max-width: 600px) {
+  .backdrop {
+    padding: 0.25rem;
+  }
+  .dialog {
+    max-height: calc(100dvh - 0.5rem);
+    padding: 0.55rem;
+  }
+  .planes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

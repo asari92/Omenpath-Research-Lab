@@ -2,10 +2,12 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { ArtCreditsDialog } from "../components/art/ArtCreditsDialog";
+import { ExtractionDialog } from "../features/extraction/ExtractionDialog";
 import styles from "./AppShell.module.css";
 
 export function AppShell() {
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [extractionOpen, setExtractionOpen] = useState(false);
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -16,6 +18,13 @@ export function AppShell() {
           <NavLink to="/">Dashboard</NavLink>
           <NavLink to="/events">Event Log</NavLink>
           <NavLink to="/ai-worklog">AI Worklog</NavLink>
+          <button
+            className={styles.credits}
+            onClick={() => setExtractionOpen(true)}
+            type="button"
+          >
+            Open Extraction
+          </button>
           <button
             className={styles.credits}
             onClick={() => setCreditsOpen(true)}
@@ -33,6 +42,10 @@ export function AppShell() {
       <ArtCreditsDialog
         open={creditsOpen}
         onClose={() => setCreditsOpen(false)}
+      />
+      <ExtractionDialog
+        open={extractionOpen}
+        onClose={() => setExtractionOpen(false)}
       />
     </div>
   );
