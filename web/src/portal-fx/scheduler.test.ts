@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 
-import { createPortalScheduler } from './scheduler';
+import { createPortalScheduler } from "./scheduler";
 
-describe('shared portal scheduler', () => {
-  it('uses one RAF for every registered portal and stops after unregistration', () => {
+describe("shared portal scheduler", () => {
+  it("uses one RAF for every registered portal and stops after unregistration", () => {
     const frames: FrameRequestCallback[] = [];
     const raf = vi.fn((callback: FrameRequestCallback) => {
       frames.push(callback);

@@ -1,0 +1,44 @@
+.portal {
+  --portal-hue: 150;
+  position: relative;
+  width: min(100%, 19rem);
+  aspect-ratio: 1;
+  isolation: isolate;
+}
+
+.portal::before {
+  position: absolute;
+  inset: 9%;
+  z-index: 2;
+  border: clamp(3px, 1vw, 8px) solid hsl(var(--portal-hue) 90% 60% / 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px hsl(var(--portal-hue) 100% 65% / 0.85),
+    0 0 32px hsl(var(--portal-hue) 100% 55% / 0.55);
+  content: "";
+  pointer-events: none;
+}
+
+.art {
+  position: absolute;
+  inset: 12%;
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal::before {
+    box-shadow: 0 0 18px hsl(var(--portal-hue) 100% 60% / 0.65);
+  }
+}

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { App } from "./App";
@@ -22,6 +23,16 @@ describe("application routes", () => {
 
     expect(
       await screen.findByRole("heading", { name: heading }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens artwork credits from the shared shell", async () => {
+    const user = userEvent.setup();
+    render(<App initialEntries={["/"]} />);
+
+    await user.click(screen.getByRole("button", { name: /artwork credits/i }));
+    expect(
+      screen.getByRole("dialog", { name: /plane artwork credits/i }),
     ).toBeInTheDocument();
   });
 });

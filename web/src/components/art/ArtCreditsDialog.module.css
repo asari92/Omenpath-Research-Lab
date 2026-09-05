@@ -1,0 +1,18 @@
+.dialog {
+  position: fixed;
+  inset: 8vh max(1rem, 8vw);
+  z-index: 50;
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.75rem;
+  background: var(--surface-raised);
+  box-shadow: 0 1rem 4rem #000b;
+}
+
+.dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
