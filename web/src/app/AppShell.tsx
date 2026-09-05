@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { ArtCreditsDialog } from "../components/art/ArtCreditsDialog";
 import { ConnectionState } from "../components/feedback/ConnectionState";
@@ -13,6 +13,8 @@ import { useSnapshotState } from "../state/SnapshotProvider";
 import { commandsEnabled } from "../state/command-health";
 
 export function AppShell() {
+  const { pathname } = useLocation();
+  const longForm = /^\/(ai-worklog|help|events)\/?$/.test(pathname);
   const state = useSnapshotState();
   const { snapshot } = state;
   const [creditsOpen, setCreditsOpen] = useState(false);
@@ -57,7 +59,7 @@ export function AppShell() {
           </button>
           <NavLink to="/ai-worklog">AI Worklog</NavLink>
         </nav>
-        <main className={styles.main}>
+        <main className={`${styles.main} ${longForm ? styles.longForm : ""}`}>
           <div className={styles.tutorial}>
             <TutorialPanel />
           </div>

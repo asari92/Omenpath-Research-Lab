@@ -54,14 +54,23 @@ h1 {
   bottom: 3rem;
   right: 1rem;
   width: min(24rem, calc(100vw - 2rem));
-  max-height: 25dvh;
-  overflow: auto;
   pointer-events: none;
 }
 [aria-label="Notifications"] p {
   border: 1px solid var(--line);
   background: var(--surface-raised);
-  padding: 0.7rem;
+  padding: 0.7rem 2rem 0.7rem 0.7rem;
   margin: 0.3rem 0;
   box-shadow: 0 3px 15px #0008;
+  overflow-wrap: anywhere;
+}
+[aria-label="Notifications"] button {
+  position: absolute;
+  right: 0.35rem;
+  top: 0.55rem;
+  pointer-events: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
 }

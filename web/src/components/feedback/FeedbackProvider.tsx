@@ -2,6 +2,7 @@ import {
   createContext,
   type ReactNode,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -38,6 +39,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   );
   const [messages, setMessages] = useState<readonly ToastMessage[]>([]);
   const nextToastID = useRef(1);
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const timer = window.setTimeout(() => setMessages([]), 8000);
+    return () => window.clearTimeout(timer);
+  }, [messages]);
 
   const finish = (answer: boolean) => {
     if (!confirmation) return;
@@ -66,17 +72,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       });
     },
     notify(message) {
-      setMessages((current) => [
-        ...current,
-        { id: nextToastID.current++, message },
-      ]);
+      setMessages([{ id: nextToastID.current++, message }]);
     },
   };
 
   return (
     <FeedbackContext.Provider value={value}>
       {children}
-      <ToastRegion messages={messages} />
+      <ToastRegion messages={messages} onDismiss={() => setMessages([])} />
       {confirmation && (
         <ConfirmDialog
           action={confirmation.action}

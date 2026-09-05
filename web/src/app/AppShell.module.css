@@ -102,6 +102,12 @@
   width: min(37rem, 95%);
   pointer-events: none;
 }
+
+.longForm {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--line) transparent;
+}
 .tutorial > * {
   pointer-events: auto;
 }

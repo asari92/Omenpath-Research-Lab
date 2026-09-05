@@ -2253,3 +2253,21 @@ WebSocket отключён только в этих component fixtures. Hook д�
 Verification corrective: 31 frontend files / 138 tests PASS, typecheck/lint/
 production build PASS. Responsive Dashboard + Extraction — 6 PASS; исправленный
 desktop Tutorial journey — PASS (50.4s), включая переход в LIVE.
+
+#### DC-6 quality corrective — long-form scroll и bounded feedback
+
+Quality review выявил clipping длинного AI Worklog внутри fixed main и
+неограниченную очередь toasts, скрывавшую последний результат. Browser RED:
+mouse wheel оставлял Worklog main.scrollTop=0; unit RED: 30 notifications
+оставляли 30 status nodes и не исчезали. Long-form routes AI Worklog/Help/Events
+теперь имеют bounded inner main scroll; Dashboard/Details сохраняют fixed
+viewport. Browser regression проверяет wheel, доступность последнего элемента
+Worklog, отсутствие document scroll и возврат на непрокручиваемый Dashboard.
+
+Feedback хранит только последнее сообщение, показывает dismiss control и
+удаляет notification через 8 sec. Polite atomic live region сохраняется;
+неактивная прокручиваемая очередь больше не существует. Regression проверяет
+burst из30 сообщений, доступность последнего, bounded DOM, dismiss и exact expiry.
+
+Verification: 32 frontend files / 140 tests PASS; typecheck/lint/build PASS;
+responsive Dashboard + Worklog scroll E2E — 6 PASS, 2 project-specific skips.
