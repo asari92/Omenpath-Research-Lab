@@ -1510,3 +1510,63 @@ detailed plan Stages 15–21 после пользовательской про�
   До production implementation baseline исправлен на совместимый
   `@testing-library/jest-dom@6.9.1`; глобальные пакеты и browser cache не
   изменялись.
+
+## Stage 15 — Frontend foundation via TDD (2026-09-05)
+
+### Реализованный scope
+
+- Создан воспроизводимый React 19 / TypeScript 6 / Vite 8 workspace с router,
+  shared semantic shell, Vitest/RTL, ESLint/Prettier и production build.
+- Реализованы typed REST client для всех MVP endpoints, bounded WebSocket
+  reconnect `1/2/5/10 sec`, единый external snapshot store и React Provider.
+  REST/WS используют один `acceptSnapshot`; старый или invalid `generated_at`
+  не перезаписывает authoritative state. Command in-flight хранится по
+  `portalID/action` key, без optimistic domain mutation.
+- Backend quick actions расширены nullable unavailable reason fields. Pure
+  `PortalActionAvailability` запускает ordinary confirmed command preflight на
+  изолированной копии aggregate и локальном deterministic Random, поэтому не
+  меняет state и не потребляет manager Random. HTTP conflicts и DTO reasons
+  используют единый `transport.DescribeDomainError`.
+- One-time Scryfall discovery создал 85 локальных уникальных WebP плюс generic
+  fallback. 64 Plane получили matching art, 21 — deterministic generated
+  fallback; весь runtime asset set занимает 3.4 MiB, крупнейший файл около
+  92 KiB при лимите 180 KiB. Manifest содержит source/credit/policy/hash.
+- Реализован Canvas 2D Portal effect: изображение остаётся чистым внутри,
+  particles рождаются на окружности и движутся наружу по касательной; high/low
+  caps `170/42`, один shared RAF scheduler, IntersectionObserver/document pause
+  и reduced-motion static behavior. Добавлен Art Credits dialog.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 15A workspace/routes | `7ed451f` | Vitest не мог разрешить отсутствующий `App`/router/pages | `fd647f7` |
+| 15B REST/WS/store | `c07be33` | отсутствовали client, snapshot store и realtime modules | `e145ae2` |
+| 15C action reasons | `c55f272` | отсутствовали availability API, DTO reason fields, shared descriptor и frontend copy | `1daf24a` |
+| 15D local art/Canvas | `2950530` | отсутствовали manifest, resolver, particle/scheduler/Canvas и credits modules | `f2dfb3e` |
+
+### Corrections и verification
+
+- Baseline Go test сначала использовал пустой `/tmp` GOMODCACHE и закономерно
+  упёрся в запрещённый network download; повтор с существующим module cache
+  подтвердил code baseline. Local `httptest` ports требуют sandbox escalation.
+- Typecheck Stage 15A доказал, что Vitest `test` config должен использовать
+  `vitest/config`, а не plain `vite` type; исправлено одной import boundary.
+- Два первых client GREEN failures оказались test-fixture defect: один
+  `Response` нельзя читать несколько раз. Fixture стал возвращать новый
+  Response на каждый запрос; production client не менялся.
+- Availability preflight выявил два structurally invalid старых/new fixtures
+  (OUTBOUND Observer при flow NONE и collapse позже close); исправлены только
+  fixtures, не semantics.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run test` — 10 files, 36 tests PASS.
+- `npm --prefix web run build` — PASS.
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- UI-001..006 остаются aggregate PARTIAL: foundation доказан, но player-facing
+  screens реализуются только Stages 16–21. Stage 16 ещё не начат; Block E не
+  начат.
