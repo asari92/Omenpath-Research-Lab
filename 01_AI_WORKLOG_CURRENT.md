@@ -2026,3 +2026,14 @@ source-of-truth hierarchy. Final Spec, requirements, roadmap, traceability и
 этот Worklog актуализируются отдельным documentation commit. Production code и
 Block E на этом шаге не начинаются. Изменённые requirements честно получают
 PARTIAL/PLANNED до нового RED/GREEN evidence.
+
+### Clean-start database correction
+
+После подготовки первого corrective execution-plan пользователь снял требование
+сохранять текущий singleton database state. Новая multi-lab реализация начинает
+с пустой SQLite database и сразу создаёт tenant-aware schema; `legacy-v1`, import
+старых rows и first-session claim удалены из scope. Anonymous session persistence
+на 30 days, restart recovery новых laboratories, tenant isolation и race-safe
+cleanup остаются обязательными. Существующий untracked `omenpath.db` агент не
+удаляет и не изменяет автоматически: operator перед новым запуском явно удаляет
+или переименовывает его.

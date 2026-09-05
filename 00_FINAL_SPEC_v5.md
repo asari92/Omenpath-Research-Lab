@@ -2,9 +2,9 @@
 
 > **Canonical source of truth.** Все stage plans, тесты и реализация должны соответствовать этому документу. Core-rule нельзя менять молча: изменение сначала фиксируется здесь, затем отражается в тестах/планах/Worklog.
 >
-> Revision 2026-09-06: утверждены 20 Observers, anonymous multi-lab sessions и
-> Block D UI/UX corrective contract. Filename сохраняется для стабильности
-> существующих ссылок.
+> Revision 2026-09-06: утверждены 20 Observers, anonymous multi-lab sessions,
+> clean-start SQLite schema и Block D UI/UX corrective contract. Filename
+> сохраняется для стабильности существующих ссылок.
 
 ## 1. Product goal
 
@@ -1275,10 +1275,11 @@ Session rows хранят только hash opaque token, `lab_id`, expiry и la
 Raw session token не сохраняется. Expired laboratory удаляется каскадно после
 проверки, что session не была продлена конкурентным request.
 
-Migration переносит существующий singleton state в специальную legacy
-laboratory. Первый request без cookie атомарно присоединяет новую session к
-ещё не занятой legacy laboratory; только последующие посетители получают новый
-canonical bootstrap. Так upgrade не делает существующий progress недоступным.
+Multi-lab persistence начинает работу с новой пустой database и сразу создаёт
+tenant-aware schema. Перенос существующего singleton state, legacy laboratory и
+claim старой игры не требуются. Pre-corrective database несовместима: operator
+должен явно удалить либо переименовать старый database file перед запуском;
+application не удаляет и не перезаписывает его автоматически.
 
 Do not update derived realtime fields each second.
 

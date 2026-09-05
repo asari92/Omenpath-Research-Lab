@@ -184,7 +184,16 @@ Engine/manager registry keyed by `lab_id` обеспечивает отдель�
 
 Фоновая cleanup job удаляет expired sessions и labs каскадно. Живое WebSocket connection защищает laboratory от cleanup; REST/WS-handshake renewal выполняется не чаще одного раза в 12 hours, а не на каждый tick. Cleanup запускается раз в 1 hour. Cleanup, session refresh и gameplay mutations должны иметь определённый transaction/locking order, чтобы избежать удаления активной лаборатории.
 
-Migration присваивает существующим singleton данным специальный legacy `lab_id`; первая anonymous session без cookie атомарно claim эту laboratory. Новые чистые базы сразу создаются в multi-lab schema.
+Multi-lab implementation использует новую пустую SQLite database и создаёт
+tenant-aware schema с первого migration. Существующий singleton progress не
+переносится: legacy laboratory и claim-механика отсутствуют. Старый database
+file application автоматически не удаляет и не перезаписывает; перед запуском
+operator явно удаляет или переименовывает его.
+
+Для минимального implementation path `001_initial.sql` переписывается сразу под
+`labs`, `sessions` и tenant-owned tables с `lab_id`; существующий
+`002_tutorial_context.sql` остаётся additive migration для tutorial columns уже
+tenant-aware `app_state`. Migration 003 не создаётся.
 
 ## 12. Data contracts
 
@@ -202,7 +211,7 @@ Remaining time вычисляется из authoritative timestamps и snapshot 
 
 Работа выполняется checkpoint-by-checkpoint: tests → RED → minimal implementation → GREEN. Проверки охватывают:
 
-- migration и tenant scoping каждого repository operation;
+- fresh multi-lab schema и tenant scoping каждого repository operation;
 - cookie creation, renewal, expiry и hashing;
 - isolation REST actions, Events и WebSocket broadcasts между двумя labs;
 - cleanup race с активной session;

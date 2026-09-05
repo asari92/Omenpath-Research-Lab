@@ -344,7 +344,7 @@ Risk определён только для OPEN Portals; для CLOSED/COLLAPSE
 | PERSIST-003 | BEH | Persist meaningful transitions and baselines | §34 |
 | PERSIST-004 | BEH | Restart recovery из persisted state | Roadmap Stage 10 |
 | PERSIST-005 | INV | Каждый tenant-owned read/write scoped по `lab_id`; keys/FKs не допускают cross-lab references | §34, §39 |
-| PERSIST-006 | BEH | Existing singleton state мигрирует в claimable legacy lab для первой anonymous session; expired lab удаляется каскадно без race с renewal/action | §34, §35.1 |
+| PERSIST-006 | BEH | Multi-lab schema создаётся только в новой пустой DB без legacy import; expired lab удаляется каскадно без race с renewal/action | §34, §35.1 |
 
 ### SESSION
 
