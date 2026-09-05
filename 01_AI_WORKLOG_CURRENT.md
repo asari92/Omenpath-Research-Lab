@@ -1823,3 +1823,73 @@ rejection, snapshot-driven availability/attention update, occupied-to-empty
 - `go test -count=1 ./...` — PASS.
 - `TUTORIAL-016` и `TUTORIAL-019` теперь GREEN; frontend evidence добавлен к
   lifecycle/signal/reset/live rows. Stage 21 ещё не начат; Block E не начат.
+
+## Stage 21 — AI Worklog UI и frontend integration via TDD (2026-09-05)
+
+### Реализованный scope
+
+- `/ai-worklog` импортирует корневой `01_AI_WORKLOG_CURRENT.md?raw` как
+  единственный источник, рендерит Markdown/GFM через ReactMarkdown без
+  `rehype-raw` и строит table of contents из исходных headings. Таблицы имеют
+  локальный horizontal scroll; code blocks и длинный документ не ломают page.
+- Vite plugin разрешает только этот точный root Worklog import и читает его во
+  время build/dev transform; произвольный доступ frontend к filesystem не
+  открыт. Уже закреплённые project-local `react-markdown` и `remark-gfm`
+  использованы без новых установок.
+- Shared shell приведён к согласованному Mission Control layout: стабильный
+  desktop sidebar и phone bottom navigation. Browser back/forward сохраняет
+  корректный route, а ConnectionState не меняет ширину content column.
+- Мобильные Slot contents уплотнены без скрытия порталов или команд. Новый
+  geometry test доказал, что последняя команда Slot 7 находится выше bottom
+  navigation, а не просто скрыта `overflow`.
+- Browser integration подтверждает локальные изображения и наличие artist,
+  Source, Policy и fan-content notice. Runtime remote image requests нет.
+
+### Участие разработчика и AI
+
+- Разработчик выбрал English UI, Mission Control направление, семь видимых
+  Slots на любом экране, локальный Plane artwork, Canvas sparks и обязательные
+  объяснения причин недоступных backend-команд.
+- AI формализовал frontend boundaries, подготовил TDD checkpoints, реализовал
+  typed client/store/components и исправлял только доказанные тестами layout и
+  orchestration defects. Gameplay semantics оставались backend-owned.
+- Ключевые prompts/уточнения разработчика: отказаться от прокрутки семи
+  порталов, сохранить четыре gameplay actions, показывать Plane image внутри
+  портала, приблизить внешний вид к искрящемуся круглому portal reference и
+  давать Tutorial информацию порционно.
+- Общее число токенов и точное суммарное время разработки интерфейсом не
+  предоставлены, поэтому числа не выдумывались. Измеряемые длительности
+  отдельных verification runs зафиксированы рядом с соответствующими stages.
+
+### RED / GREEN evidence
+
+| Checkpoint | RED | Наблюдаемый RED | GREEN |
+|---|---|---|---|
+| 21A Worklog source/render | `8f92825` | route оставался placeholder без root Markdown, semantic GFM, TOC и HTML safety | `09ea924` |
+| 21B shell/integration | `216addb` | navigation была top row: не desktop sidebar и перекрывала phone Slot 7 controls | `997b00b` |
+
+### Corrections и verification
+
+- Первое точечное `server.fs.allow` не разрешило raw root import в Vitest и
+  одновременно было менее узким контрактом. Его заменил exact-source Vite
+  plugin; focused test и production build прошли.
+- Старый phone smoke-test проверял отсутствие scroll, но `overflow:hidden`
+  маскировал команды ниже viewport. Новый coordinate assertion выявил реальный
+  дефект примерно в 75 px; compact mobile Portal/Empty Slot content исправил
+  видимость без удаления controls.
+- Production build проходит; Vite сообщает advisory warning о единственном
+  652 kB JS chunk. Это не ошибка Stage 21 contract и не исправлялось
+  несогласованным Stage 22 performance scope.
+- `npm --prefix web run format:check` — PASS.
+- `npm --prefix web run lint` — PASS.
+- `npm --prefix web run typecheck` — PASS.
+- `npm --prefix web run test` — 28 files, 115 tests PASS.
+- `npm --prefix web run build` — PASS.
+- `npm --prefix web run test:e2e` — 15 PASS, 5 intentional desktop/phone
+  project skips; full journey занимал около 1 minute, весь suite — 1.4 min.
+- `gofmt -l .` — пустой output.
+- `go vet ./...` — PASS.
+- `go build ./...` — PASS.
+- `go test -count=1 ./...` — PASS.
+- `UI-005` теперь GREEN; `UI-001..007` подтверждены GREEN. Stage 21 завершён;
+  Block E / Stage 22 не начат.
