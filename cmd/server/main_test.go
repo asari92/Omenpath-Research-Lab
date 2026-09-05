@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -136,6 +137,52 @@ func TestRunServices_JoinsIndependentManagerAndServerFailures(t *testing.T) {
 	}, func() {}, func() error { return nil })
 	require.ErrorIs(t, err, serverErr)
 	require.ErrorIs(t, err, managerErr)
+}
+
+func TestUnexpectedServiceError_FiltersPureExpectedTermination(t *testing.T) {
+	for _, err := range []error{context.Canceled, context.DeadlineExceeded, http.ErrServerClosed} {
+		require.NoError(t, unexpectedServiceError(err))
+	}
+}
+
+func TestUnexpectedServiceError_PreservesUnexpectedLeafBesideExpectedTermination(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected error
+	}{
+		{name: "context canceled", expected: context.Canceled},
+		{name: "server closed", expected: http.ErrServerClosed},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sentinel := errors.New("random checkpoint restore failed")
+			restoreErr := fmt.Errorf("restore random state: %w", sentinel)
+			got := unexpectedServiceError(errors.Join(tc.expected, restoreErr))
+			require.ErrorIs(t, got, sentinel)
+			require.NotErrorIs(t, got, tc.expected)
+			require.Equal(t, 1, strings.Count(got.Error(), sentinel.Error()))
+		})
+	}
+}
+
+func TestUnexpectedServiceError_NestedJoinsKeepEveryUnexpectedLeafWithoutNoise(t *testing.T) {
+	first := errors.New("first independent failure")
+	second := errors.New("second independent failure")
+	got := unexpectedServiceError(errors.Join(
+		context.Canceled,
+		errors.Join(http.ErrServerClosed, first),
+		errors.Join(context.DeadlineExceeded, second),
+	))
+	require.ErrorIs(t, got, first)
+	require.ErrorIs(t, got, second)
+	require.NotErrorIs(t, got, context.Canceled)
+	require.NotErrorIs(t, got, context.DeadlineExceeded)
+	require.NotErrorIs(t, got, http.ErrServerClosed)
+	require.Equal(t, 1, strings.Count(got.Error(), first.Error()))
+	require.Equal(t, 1, strings.Count(got.Error(), second.Error()))
+	require.NotContains(t, got.Error(), context.Canceled.Error())
+	require.NotContains(t, got.Error(), context.DeadlineExceeded.Error())
+	require.NotContains(t, got.Error(), http.ErrServerClosed.Error())
 }
 
 func TestRunServices_ContextCancellationStopsBoth(t *testing.T) {
