@@ -2319,3 +2319,12 @@ DC-7 follow-up: expanded Help regression covers all ten numbered Tutorial steps
 in canonical order. Observed RED caught the compressed/misnumbered recap tail;
 GREEN separates Step 6 RECALL/RETURNING, Step 7 wait/AVAILABLE+EXPLORED,
 Step 8 Event Log and Step 9 Live. Focused Help regression PASS.
+
+DC-7 compact viewport corrective: 360×640 browser RED reproduced the expanded
+History overlapping Diagnostics (guidance bottom 513.8px vs footer top 480.6px).
+Mobile layout now reserves intrinsic facts height and sizes the Portal visual
+from remaining space, with a smaller bounded History list on short screens.
+Regression verifies guidance and How Risk Works end before the History footer,
+actually clicks the disclosure, checks all facts/actions in viewport and keeps
+main/document non-scrolling. Desktop, 390×760 and 360×640 browser cases: 8 PASS;
+focused unit 20 PASS; typecheck/lint PASS.

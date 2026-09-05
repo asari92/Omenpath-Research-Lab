@@ -55,58 +55,69 @@ test("direct Details load performs GET without advancing Tutorial", async ({
   expect(state.app.expected_action).toBe("OPEN_PORTAL_DETAILS");
 });
 
-test("Details fits the viewport and only expanded History scrolls", async ({
-  page,
-}) => {
-  const snapshot = snapshotAt();
-  snapshot.app.mode = "LIVE";
-  const details = portalDetails();
-  details.history = Array.from({ length: 40 }, (_, id) => ({
-    id,
-    event_type: "PORTAL_OPENED" as const,
-    portal_id: 42,
-    observer_id: null,
-    plane_id: 1,
-    message: `Connection record ${id}`,
-    created_at: "2026-09-06T15:04:05Z",
-    payload_json: null,
-  }));
-  await page.route("**/api/state", (route) =>
-    route.fulfill({ json: snapshot }),
-  );
-  await page.route("**/api/portals/42", (route) =>
-    route.fulfill({ json: details }),
-  );
-  await page.routeWebSocket("**/ws/lab", () => {});
-  await page.goto("/portals/42");
-  await page.getByText("History (40)").click();
-  const history = page.getByRole("region", { name: "Portal history" });
-  expect(await history.evaluate((n) => n.scrollHeight > n.clientHeight)).toBe(
-    true,
-  );
-  for (const region of [page.locator("html"), page.getByRole("main")]) {
-    expect(
-      await region.evaluate(
-        (n) =>
-          n.scrollHeight <= n.clientHeight && n.scrollWidth <= n.clientWidth,
-      ),
-    ).toBe(true);
-  }
-  for (const action of await page
-    .getByRole("button", {
-      name: /stabilize|close|send observer|recall observer/i,
-    })
-    .all())
-    await expect(action).toBeInViewport({ ratio: 1 });
-  for (const fact of await page.locator("main dt, main dd").all())
-    await expect(fact).toBeInViewport({ ratio: 1 });
-  const portal = await page.getByRole("img", { name: "Agyrem" }).boundingBox();
-  const actions = await page
-    .getByRole("region", { name: "Portal actions" })
-    .boundingBox();
-  expect(actions!.y).toBeGreaterThan(portal!.y + portal!.height);
-  await page.getByText("How Risk Works").click();
-  await expect(page.getByTestId("risk-explanation")).toBeInViewport({
-    ratio: 1,
+for (const compact of [false, true])
+  test(`Details fits ${compact ? "360x640" : "the viewport"} and only expanded History scrolls`, async ({
+    page,
+  }) => {
+    if (compact) await page.setViewportSize({ width: 360, height: 640 });
+    const snapshot = snapshotAt();
+    snapshot.app.mode = "LIVE";
+    const details = portalDetails();
+    details.history = Array.from({ length: 40 }, (_, id) => ({
+      id,
+      event_type: "PORTAL_OPENED" as const,
+      portal_id: 42,
+      observer_id: null,
+      plane_id: 1,
+      message: `Connection record ${id}`,
+      created_at: "2026-09-06T15:04:05Z",
+      payload_json: null,
+    }));
+    await page.route("**/api/state", (route) =>
+      route.fulfill({ json: snapshot }),
+    );
+    await page.route("**/api/portals/42", (route) =>
+      route.fulfill({ json: details }),
+    );
+    await page.routeWebSocket("**/ws/lab", () => {});
+    await page.goto("/portals/42");
+    await page.getByText("History (40)").click();
+    const history = page.getByRole("region", { name: "Portal history" });
+    expect(await history.evaluate((n) => n.scrollHeight > n.clientHeight)).toBe(
+      true,
+    );
+    for (const region of [page.locator("html"), page.getByRole("main")]) {
+      expect(
+        await region.evaluate(
+          (n) =>
+            n.scrollHeight <= n.clientHeight && n.scrollWidth <= n.clientWidth,
+        ),
+      ).toBe(true);
+    }
+    for (const action of await page
+      .getByRole("button", {
+        name: /stabilize|close|send observer|recall observer/i,
+      })
+      .all())
+      await expect(action).toBeInViewport({ ratio: 1 });
+    for (const fact of await page.locator("main dt, main dd").all())
+      await expect(fact).toBeInViewport({ ratio: 1 });
+    const portal = await page
+      .getByRole("img", { name: "Agyrem" })
+      .boundingBox();
+    const actions = await page
+      .getByRole("region", { name: "Portal actions" })
+      .boundingBox();
+    expect(actions!.y).toBeGreaterThan(portal!.y + portal!.height);
+    const guidance = await page
+      .getByLabel("Recommendation guidance")
+      .boundingBox();
+    const footer = await page.getByText("History (40)").boundingBox();
+    const riskControl = await page.getByText("How Risk Works").boundingBox();
+    expect(guidance!.y + guidance!.height).toBeLessThanOrEqual(footer!.y);
+    expect(riskControl!.y + riskControl!.height).toBeLessThanOrEqual(footer!.y);
+    await page.getByText("How Risk Works").click();
+    await expect(page.getByTestId("risk-explanation")).toBeInViewport({
+      ratio: 1,
+    });
   });
-});
