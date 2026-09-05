@@ -1,4 +1,15 @@
-import type { SlotDTO, StateSnapshot } from "../api/types";
+import type { ObserverTransitDTO, SlotDTO, StateSnapshot } from "../api/types";
+
+export function observerTransitForPortal(
+  snapshot: StateSnapshot,
+  portalID: number,
+): ObserverTransitDTO | null {
+  return (
+    snapshot.observer_transits.find(
+      (transit) => transit.portal_id === portalID,
+    ) ?? null
+  );
+}
 
 export function requireSnapshot(snapshot: StateSnapshot | null): StateSnapshot {
   if (!snapshot) throw new Error("State snapshot is not ready");

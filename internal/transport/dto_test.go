@@ -68,7 +68,9 @@ func observerStatusTotal(counts ObserverCountsDTO) int {
 func TestBuildStateSnapshot_PlaneObserverPresence(t *testing.T) {
 	now := testutil.BaseTime
 	state := dtoSnapshot(now)
-	state.Simulation.Portals = nil
+	transitState := transitSnapshot()
+	state.Simulation.Portals = transitState.Simulation.Portals
+	state.Simulation.NextPortalID = 3
 	planeID, otherPlaneID := int64(1), int64(2)
 	state.Simulation.Observers = []domain.Observer{
 		{ID: 1, Status: domain.ObserverExploring, CurrentPlaneID: &planeID},
@@ -78,6 +80,24 @@ func TestBuildStateSnapshot_PlaneObserverPresence(t *testing.T) {
 		{ID: 5, Status: domain.ObserverAvailable},
 		{ID: 6, Status: domain.ObserverLost},
 		{ID: 7, Status: domain.ObserverExploring, CurrentPlaneID: &otherPlaneID},
+	}
+	start, end := now.Add(-time.Second), now.Add(time.Second)
+	for i := range state.Simulation.Observers {
+		o := &state.Simulation.Observers[i]
+		switch o.Status {
+		case domain.ObserverExploring:
+			o.PhaseStartedAt, o.PhaseEndsAt = &start, &end
+		case domain.ObserverWaitingReturn:
+			o.PhaseStartedAt = &start
+		case domain.ObserverReturning:
+			id := o.ID
+			*o = transitState.Simulation.Observers[1]
+			o.ID = id
+		case domain.ObserverOutbound:
+			id := o.ID
+			*o = transitState.Simulation.Observers[0]
+			o.ID = id
+		}
 	}
 
 	view, err := BuildStateSnapshot(state, now, config.Default())

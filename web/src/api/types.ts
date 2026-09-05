@@ -83,6 +83,15 @@ export interface ObserverCountsDTO {
   in_transit: number;
 }
 
+export interface ObserverTransitDTO {
+  observer_id: number;
+  portal_id: number;
+  direction: "OUTBOUND" | "RETURNING";
+  started_at: string;
+  completes_at: string;
+  remaining_seconds: number;
+}
+
 export interface PortalCountsDTO {
   active: number;
   maximum: number;
@@ -138,6 +147,7 @@ export interface StateSnapshot {
   lab: LabDTO;
   exploration: ExplorationDTO;
   observers: ObserverCountsDTO;
+  observer_transits: ObserverTransitDTO[];
   portals: PortalCountsDTO;
   needs_attention_portal_id: number | null;
   slots: SlotDTO[];
@@ -179,6 +189,7 @@ export interface EventDTO {
 }
 
 export interface PortalDetails {
+  observer_transit: ObserverTransitDTO | null;
   generated_at: string;
   portal: PortalViewDTO;
   destination: DestinationDTO;

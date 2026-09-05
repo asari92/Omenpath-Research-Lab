@@ -72,6 +72,17 @@ func TestObserverTransitProjection_NoneAfterResolvedDeadline(t *testing.T) {
 	require.JSONEq(t, `null`, string(jsonFields(t, detail)["observer_transit"]))
 }
 
+func TestObserverTransitProjection_DeadlineClampsAndPreservesTimestamps(t *testing.T) {
+	s := transitSnapshot()
+	for _, now := range []time.Time{testutil.BaseTime.Add(8 * time.Second), testutil.BaseTime.Add(9 * time.Second)} {
+		transits, err := BuildObserverTransits(s.Simulation, now)
+		require.NoError(t, err)
+		require.Len(t, transits, 2)
+		require.Zero(t, transits[0].RemainingSeconds)
+		require.Equal(t, testutil.BaseTime.Add(8*time.Second), transits[0].CompletesAt)
+	}
+}
+
 func TestObserverTransitProjection_RejectsMalformed(t *testing.T) {
 	cases := map[string]func(*persistence.Snapshot){
 		"missing portal": func(s *persistence.Snapshot) { s.Simulation.Observers[0].ActivePortalID = nil },

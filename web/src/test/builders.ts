@@ -1,4 +1,24 @@
-import type { PlaneDTO, PortalDetails, StateSnapshot } from "../api/types";
+import type {
+  ObserverTransitDTO,
+  PlaneDTO,
+  PortalDetails,
+  StateSnapshot,
+} from "../api/types";
+
+export function observerTransit(
+  portalID = 42,
+  observerID = 1,
+  direction: ObserverTransitDTO["direction"] = "OUTBOUND",
+): ObserverTransitDTO {
+  return {
+    observer_id: observerID,
+    portal_id: portalID,
+    direction,
+    started_at: "2026-09-05T09:59:55Z",
+    completes_at: "2026-09-05T10:00:05Z",
+    remaining_seconds: 5,
+  };
+}
 
 export function planeDTO(id: number, name = `Plane ${id}`): PlaneDTO {
   return {
@@ -19,6 +39,7 @@ export function snapshotAt(
 ): StateSnapshot {
   return {
     generated_at: generatedAt,
+    observer_transits: [],
     app: {
       mode: "TUTORIAL",
       tutorial_step: 0,
@@ -59,6 +80,7 @@ export function snapshotAt(
 export function portalDetails(id = 42): PortalDetails {
   return {
     generated_at: "2026-09-05T10:00:00Z",
+    observer_transit: null,
     portal: {
       id,
       name: `Portal ${id}`,

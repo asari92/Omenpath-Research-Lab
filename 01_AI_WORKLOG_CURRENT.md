@@ -2168,3 +2168,31 @@ listeners разрешены отдельно после sandbox denial. API-013
 SESSION-001..005 и PERSIST-006 — GREEN на backend integration boundary;
 browser journeys/DTO/frontend продолжаются в следующих corrective checkpoints.
 DC-5 и Stage 22 этим checkpoint не начаты.
+
+### Block D corrective — DC-5 authoritative transit и REST-first bootstrap
+
+`BuildObserverTransits` формирует единую strict projection для state/Details и
+WebSocket: Observer/Portal IDs, OUTBOUND/RETURNING, исходные phase timestamps и
+remaining seconds от resolved server time. Result sorted по Observer ID; empty
+state содержит `[]`, idle Details — `null`. Проверяются ссылки, flow/location,
+phase presence/order, duplicate IDs и единственный transit на Portal; malformed
+state возвращает `ErrSimulationInvariant`. Countdown clamp проверен на exact
+deadline и после него; builder не выполняет gameplay transitions.
+
+TypeScript содержит точный DTO, builder и selector по Portal ID. SnapshotProvider
+сначала принимает успешный REST bootstrap и только затем создаёт WebSocket —
+cookie уже установлена браузером. Failure/rejected snapshot/abort не запускают
+socket; поздний response после unmount игнорируется. StrictMode отменяет obsolete
+bootstrap и создаёт ровно один актуальный socket. Reconnect сохраняет snapshot.
+
+Functional RED `decf710`: state/Details/WS не содержали transit fields; пять
+frontend tests обнаружили premature socket, accepted late response и StrictMode
+duplicate connections. GREEN сохраняет canonical count/presence assertions:
+старая synthetic fixture с активными Observer без phase fields заменена корректной.
+UI-014 теперь PARTIAL (DTO/selector готовы, отображение остаётся DC-6/DC-7).
+
+Verification: `gofmt -l .` — empty; `go vet ./...`, `go build ./...`,
+`go test -count=1 ./...` — PASS. Frontend: 30 files / 121 tests PASS;
+`npm --prefix web run lint` и `npm --prefix web run typecheck` — PASS.
+Local test listeners/default Go cache потребовали sandbox escalation.
+DC-6 visual redesign и Stage 22 этим checkpoint не начаты.

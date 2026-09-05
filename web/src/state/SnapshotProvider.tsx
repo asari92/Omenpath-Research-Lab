@@ -43,10 +43,21 @@ export function SnapshotProvider({
 
   useEffect(() => {
     const controller = new AbortController();
+    let realtime: ReturnType<typeof createRealtimeClient> | null = null;
     value.store.setBootstrap("loading");
     void value.api
       .state(controller.signal)
-      .then((snapshot) => value.store.acceptSnapshot(snapshot))
+      .then((snapshot) => {
+        if (controller.signal.aborted) return;
+        if (!value.store.acceptSnapshot(snapshot)) {
+          value.store.setBootstrap("failed");
+          return;
+        }
+        if (typeof WebSocket !== "undefined") {
+          realtime = createRealtimeClient(value.store);
+          realtime.start();
+        }
+      })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           value.store.setBootstrap("failed");
@@ -55,11 +66,6 @@ export function SnapshotProvider({
           );
         }
       });
-    const realtime =
-      typeof WebSocket === "undefined"
-        ? null
-        : createRealtimeClient(value.store);
-    realtime?.start();
     return () => {
       controller.abort();
       realtime?.stop();

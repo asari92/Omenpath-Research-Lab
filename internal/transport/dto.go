@@ -48,6 +48,15 @@ type ObserverCountsDTO struct {
 	InTransit     int `json:"in_transit"`
 }
 
+type ObserverTransitDTO struct {
+	ObserverID       int64                 `json:"observer_id"`
+	PortalID         int64                 `json:"portal_id"`
+	Direction        domain.ObserverStatus `json:"direction"`
+	StartedAt        time.Time             `json:"started_at"`
+	CompletesAt      time.Time             `json:"completes_at"`
+	RemainingSeconds int64                 `json:"remaining_seconds"`
+}
+
 type PortalCountsDTO struct {
 	Active    int `json:"active"`
 	Maximum   int `json:"maximum"`
@@ -98,15 +107,16 @@ type SlotDTO struct {
 }
 
 type StateSnapshot struct {
-	GeneratedAt            time.Time         `json:"generated_at"`
-	App                    AppDTO            `json:"app"`
-	Lab                    LabDTO            `json:"lab"`
-	Exploration            ExplorationDTO    `json:"exploration"`
-	Observers              ObserverCountsDTO `json:"observers"`
-	Portals                PortalCountsDTO   `json:"portals"`
-	NeedsAttentionPortalID *int64            `json:"needs_attention_portal_id"`
-	Slots                  []SlotDTO         `json:"slots"`
-	Planes                 []PlaneDTO        `json:"planes"`
+	GeneratedAt            time.Time            `json:"generated_at"`
+	App                    AppDTO               `json:"app"`
+	Lab                    LabDTO               `json:"lab"`
+	Exploration            ExplorationDTO       `json:"exploration"`
+	Observers              ObserverCountsDTO    `json:"observers"`
+	ObserverTransits       []ObserverTransitDTO `json:"observer_transits"`
+	Portals                PortalCountsDTO      `json:"portals"`
+	NeedsAttentionPortalID *int64               `json:"needs_attention_portal_id"`
+	Slots                  []SlotDTO            `json:"slots"`
+	Planes                 []PlaneDTO           `json:"planes"`
 }
 
 type PortalViewDTO struct {
@@ -149,20 +159,26 @@ type EventDTO struct {
 }
 
 type PortalDetails struct {
-	GeneratedAt    time.Time              `json:"generated_at"`
-	Portal         PortalViewDTO          `json:"portal"`
-	Destination    DestinationDTO         `json:"destination"`
-	RiskLevel      *domain.RiskLevel      `json:"risk_level"`
-	Recommendation *domain.Recommendation `json:"recommendation"`
-	History        []EventDTO             `json:"history"`
+	ObserverTransit *ObserverTransitDTO    `json:"observer_transit"`
+	GeneratedAt     time.Time              `json:"generated_at"`
+	Portal          PortalViewDTO          `json:"portal"`
+	Destination     DestinationDTO         `json:"destination"`
+	RiskLevel       *domain.RiskLevel      `json:"risk_level"`
+	Recommendation  *domain.Recommendation `json:"recommendation"`
+	History         []EventDTO             `json:"history"`
 }
 
 func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config.Config) (StateSnapshot, error) {
 	now = now.UTC()
+	transits, err := BuildObserverTransits(snapshot.Simulation, now)
+	if err != nil {
+		return StateSnapshot{}, err
+	}
 	planes := make(map[int64]domain.Plane, len(snapshot.Simulation.Planes))
 	planeIndexes := make(map[int64]int, len(snapshot.Simulation.Planes))
 	result := StateSnapshot{
-		GeneratedAt: now,
+		GeneratedAt:      now,
+		ObserverTransits: transits,
 		App: AppDTO{
 			Mode: snapshot.App.Mode, TutorialStep: snapshot.App.TutorialStep,
 			TutorialPhase: snapshot.App.TutorialPhase, TutorialPortalID: cloneInt64(snapshot.App.TutorialPortalID),
@@ -256,6 +272,10 @@ func BuildStateSnapshot(snapshot persistence.Snapshot, now time.Time, cfg config
 
 func BuildPortalDetails(snapshot persistence.Snapshot, portalID int64, history []domain.Event, now time.Time, cfg config.Config) (PortalDetails, error) {
 	now = now.UTC()
+	transits, err := BuildObserverTransits(snapshot.Simulation, now)
+	if err != nil {
+		return PortalDetails{}, err
+	}
 	var portal *domain.Portal
 	for i := range snapshot.Simulation.Portals {
 		if snapshot.Simulation.Portals[i].ID == portalID {
@@ -319,12 +339,62 @@ func BuildPortalDetails(snapshot persistence.Snapshot, portalID int64, history [
 	if risk, ok := portal.RiskLevel(now, cfg); ok {
 		details.RiskLevel = &risk
 	}
+	for _, transit := range transits {
+		if transit.PortalID == portalID {
+			details.ObserverTransit = &transit
+			break
+		}
+	}
 	if recommendation, ok, err := domain.RecommendationForPortal(snapshot.Simulation, portal.ID, now, cfg); err != nil {
 		return PortalDetails{}, err
 	} else if ok {
 		details.Recommendation = &recommendation
 	}
 	return details, nil
+}
+
+// BuildObserverTransits projects authoritative phase timestamps without drawing
+// random durations or advancing gameplay. Resolved snapshots normally contain
+// only ongoing phases; the countdown itself clamps at the exact deadline.
+func BuildObserverTransits(state domain.SimulationState, now time.Time) ([]ObserverTransitDTO, error) {
+	portals := make(map[int64]domain.Portal, len(state.Portals))
+	for _, portal := range state.Portals {
+		if _, exists := portals[portal.ID]; exists || portal.ID <= 0 {
+			return nil, domain.ErrSimulationInvariant
+		}
+		portals[portal.ID] = portal
+	}
+	seenObservers, busy := make(map[int64]bool), make(map[int64]bool)
+	result := make([]ObserverTransitDTO, 0)
+	for _, observer := range state.Observers {
+		if observer.ID <= 0 || seenObservers[observer.ID] {
+			return nil, domain.ErrSimulationInvariant
+		}
+		seenObservers[observer.ID] = true
+		if observer.Status != domain.ObserverOutbound && observer.Status != domain.ObserverReturning {
+			continue
+		}
+		if observer.ActivePortalID == nil || observer.PhaseStartedAt == nil || observer.PhaseEndsAt == nil ||
+			!observer.PhaseStartedAt.Before(*observer.PhaseEndsAt) || observer.PhaseStartedAt.After(now) {
+			return nil, domain.ErrSimulationInvariant
+		}
+		portal, exists := portals[*observer.ActivePortalID]
+		if !exists || portal.Status != domain.PortalStatusOpen || busy[portal.ID] {
+			return nil, domain.ErrSimulationInvariant
+		}
+		if observer.Status == domain.ObserverOutbound {
+			if observer.CurrentPlaneID != nil || portal.ObserverFlow != domain.PortalFlowOutbound {
+				return nil, domain.ErrSimulationInvariant
+			}
+		} else if observer.CurrentPlaneID == nil || *observer.CurrentPlaneID != portal.DestinationPlaneID || portal.ObserverFlow != domain.PortalFlowInbound {
+			return nil, domain.ErrSimulationInvariant
+		}
+		busy[portal.ID] = true
+		result = append(result, ObserverTransitDTO{ObserverID: observer.ID, PortalID: portal.ID, Direction: observer.Status,
+			StartedAt: observer.PhaseStartedAt.UTC(), CompletesAt: observer.PhaseEndsAt.UTC(), RemainingSeconds: seconds(observer.PhaseEndsAt.Sub(now))})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ObserverID < result[j].ObserverID })
+	return result, nil
 }
 
 func BuildEvents(events []domain.Event) []EventDTO {
