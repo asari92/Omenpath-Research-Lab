@@ -1363,14 +1363,21 @@ Stage 13 завершён. Stage 14 не начат.
 | irreversible retry / atomic Live transit resolution | `3238cb4` | wrong SEND мог soft-lock RECALL_READY; replacement event терялся; Live сохранял активный transit | `f086d0d` |
 | lifecycle catch-up / independent service failures | `7901d39` | rejected lifecycle commands теряли due transitions; shutdown мог скрыть один из независимых failures | `9c5a3eb` |
 | joined service failure filtering | `2d1c703` | expected cancellation внутри joined error маскировал неожиданный вложенный failure | `bfe68b2` |
+| symmetric direction-breaking retry | `026769c` | успешный wrong RECALL во время `SEND_REPLACEMENT` фиксировал Portal как INBOUND и оставлял Tutorial без пригодного SEND target | `a569eb6` |
 
 Все три плановых checkpoint прошли spec review. Первое итоговое review выявило
 три Important расхождения: soft-lock после wrong SEND в `RECALL_READY`,
 отсутствующий `PORTAL_OPENED` при раннем LOST и неатомарный Live handoff с
-активным transit. Они закрыты парой `3238cb4` / `f086d0d`; повторное независимое
-spec review дало APPROVED без Critical/Important/Minor findings. Последующие
-quality passes закрепили catch-up и сохранение joined infrastructure failures;
-финальные spec/code-quality reviews одобрили Stage 14 и Block C boundary.
+активным transit. Они закрыты парой `3238cb4` / `f086d0d`; следующее независимое
+spec review одобрило именно этот corrective boundary. Последующие quality passes
+закрепили lifecycle catch-up и сохранение joined infrastructure failures.
+Финальный whole-Block-C review затем выявил ещё одно Important симметричное
+расхождение: wrong RECALL в фазе `SEND_REPLACEMENT` мог навсегда зафиксировать
+текущий target как INBOUND и оставить ожидаемый SEND без пригодного Portal.
+Пара `026769c` / `a569eb6` добавила общий symmetric retry helper, fresh target,
+restart evidence и normal Events. Повторное итоговое code-quality review после
+этой пары дало APPROVED без оставшихся Critical/Important findings для Stage 14
+и Block C boundary.
 
 ### Requirements и verification
 

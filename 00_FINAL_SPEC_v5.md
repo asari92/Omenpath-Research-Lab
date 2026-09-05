@@ -507,6 +507,9 @@ If Portal becomes CLOSED or COLLAPSED before transit ends:
 Observer → LOST
 ```
 
+If Portal becomes terminal exactly at the transit deadline, transit succeeds:
+only a strictly earlier Portal close causes LOST.
+
 This applies to OUTBOUND and RETURNING.
 
 After successful OUTBOUND:
@@ -736,8 +739,11 @@ random. Recommendation не меняет доступность commands.
 используется известный `observer.phase_ends_at`; для будущего возврата
 EXPLORING Observer — `research_remaining + ObserverTransitMax`.
 
-Сравнение строгое: при точном совпадении deadline Portal lifecycle разрешается
-раньше Observer lifecycle, поэтому Observer был бы LOST.
+Сравнение строгое: точное совпадение deadline имеет нулевой запас безопасности
+и поэтому намеренно считается unsafe только для Recommendation. Это
+консервативное правило подсказки: по §16 сам lifecycle при равенстве завершает
+transit успешно, потому что LOST возникает лишь при более раннем закрытии
+Portal.
 
 Stabilize считается подходящим только когда command допустим с текущей
 Laboratory Energy (или бесплатен при Leyline Override), а состояние Portal

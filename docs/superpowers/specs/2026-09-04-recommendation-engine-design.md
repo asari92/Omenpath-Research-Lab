@@ -68,10 +68,12 @@ EXPLORING → return       research_remaining + ObserverTransitMax
 ```
 
 Текущий путь безопасен, когда Portal STABLE, не CRITICAL и его
-`effective_lifetime` строго больше требуемого horizon. При равенстве Portal
-lifecycle разрешается раньше Observer lifecycle и Observer станет LOST. Для
-active transit используется его уже известный deadline; новый random transit
-draw не выполняется.
+`effective_lifetime` строго больше требуемого horizon. Равенство даёт нулевой
+запас безопасности и поэтому намеренно считается unsafe для консервативной
+Recommendation. Это не меняет lifecycle semantics: при точном совпадении
+deadline transit завершается успешно, потому что Observer становится LOST
+только при более раннем закрытии Portal. Для active transit используется его
+уже известный deadline; новый random transit draw не выполняется.
 
 Для WAIT используется существующая derived-механика creatures. Если после
 очистки на максимальный transit времени не останется, `WAIT FOR CORRIDOR` не
@@ -209,7 +211,8 @@ visibility boundary: поле принадлежит только Details view m
 - outbound path не сохраняется ради recall;
 - unexplored empty Plane → safe SEND;
 - explored Plane/другой outbound или Observer в Plane → SEND не предлагается;
-- exact Portal/Observer deadline tie считается unsafe;
+- exact Portal/Observer deadline tie считается unsafe для Recommendation из-за
+  нулевого запаса, хотя lifecycle при равенстве завершает transit успешно;
 - HIGH/CRITICAL fallback → CLOSE, insufficient Lab Energy → LEAVE OPEN;
 - hypothetical Stabilize не мутирует aggregate и не расходует random;
 - hidden instability timestamp не влияет на result;

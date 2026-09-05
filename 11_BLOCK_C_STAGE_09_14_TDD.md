@@ -366,9 +366,10 @@ func RecommendationForPortal(
 random, не мутирует aggregate, не читает `InstabilityCollapseAt` и не влияет на
 command eligibility.
 
-Safety horizon сравнивается строго (`effective_lifetime > required`), потому
-что при exact deadline tie Portal lifecycle выполняется раньше Observer
-lifecycle. Required horizon:
+Safety horizon сравнивается строго (`effective_lifetime > required`): exact
+deadline tie имеет нулевой запас и консервативно считается unsafe для
+Recommendation. Lifecycle semantics при этом не меняются — по Final Spec §16
+равенство завершает transit успешно. Required horizon:
 
 ```text
 SEND/RECALL now       ObserverTransitMax
@@ -521,27 +522,27 @@ schedule. После перехода OPEN Portals = 0.
 
 ### Checkpoint 9A — model, validation и shared history
 
-- [ ] Добавить `EventDraft`, enum validation, persisted validation и
+- [x] Добавить `EventDraft`, enum validation, persisted validation и
   `PortalHistory` в `internal/domain/event.go`.
-- [ ] Создать `internal/domain/event_test.go` с тестами:
+- [x] Создать `internal/domain/event_test.go` с тестами:
   `TestEventDraftValidate_AcceptsCanonicalEvent`,
   `TestEventDraftValidate_RejectsUnknownType`,
   `TestEventDraftValidate_RequiresJSONObjectPayload`,
   `TestEventValidatePersisted_RequiresPositiveID`,
   `TestPortalHistory_FiltersAndKeepsChronology`.
-- [ ] Запустить `go test -count=1 ./internal/domain -run 'Test(Event|PortalHistory)'`
+- [x] Запустить `go test -count=1 ./internal/domain -run 'Test(Event|PortalHistory)'`
   и зафиксировать ожидаемый RED.
-- [ ] Commit RED:
+- [x] Commit RED:
   `test(stage9): RED event validation and shared portal history`.
-- [ ] Реализовать минимум до focused GREEN.
-- [ ] Commit GREEN:
+- [x] Реализовать минимум до focused GREEN.
+- [x] Commit GREEN:
   `feat(stage9): GREEN event validation and shared portal history`.
 
 ### Checkpoint 9B — deterministic transition stream
 
-- [ ] Создать `event_transition.go`, `event_transition_test.go` и
+- [x] Создать `event_transition.go`, `event_transition_test.go` и
   `simulation_event_test.go`.
-- [ ] Покрыть:
+- [x] Покрыть:
   `TestEventsForTransition_NaturalOpenAndDedicatedExtractionOpen`,
   `TestEventsForTransition_CloseAndCollapse`,
   `TestEventsForTransition_OverrideRestartAndEndExactlyOnce`,
@@ -555,19 +556,20 @@ schedule. После перехода OPEN Portals = 0.
   `TestSimulationTick_ReplayHasNoEvents`,
   `TestSimulationTick_EventOrderUsesSemanticTime`,
   `TestNewActionRejectedEvent_EncodesDomainCause`.
-- [ ] Заменить прежний Stage 8 guard об отсутствии Events на доказательство,
+- [x] Заменить прежний Stage 8 guard об отсутствии Events на доказательство,
   что tick возвращает drafts, но ничего не persist.
-- [ ] Запустить focused suite и зафиксировать RED.
-- [ ] Commit RED:
+- [x] Запустить focused suite и зафиксировать RED.
+- [x] Commit RED:
   `test(stage9): RED deterministic simulation event stream`.
-- [ ] Реализовать event diff/reconstruction и заполнение
+- [x] Реализовать event diff/reconstruction и заполнение
   `SimulationTickResult.Events` без SQLite.
-- [ ] Выполнить `gofmt`, `go test -count=1 ./internal/domain`, затем
+- [x] Выполнить `gofmt`, `go test -count=1 ./internal/domain`, затем
   `go test -count=1 ./...`.
-- [ ] Обновить EVENT rows: `EVENT-002`, `004..009`, `011` → GREEN;
-  `EVENT-001`, `003`, `010` → PARTIAL до command orchestration Stage 11.
-- [ ] Дополнить worklog фактическими RED/GREEN hashes.
-- [ ] Commit GREEN:
+- [x] Обновить EVENT rows: `EVENT-002`, `004..009`, `011` → GREEN;
+  `EVENT-001`, `003`, `010` → PARTIAL на границе Stage 9 и затем GREEN после
+  command orchestration Stage 11.
+- [x] Дополнить worklog фактическими RED/GREEN hashes.
+- [x] Commit GREEN:
   `feat(stage9): GREEN deterministic domain event stream`.
 
 Stage 9 не импортирует `database/sql`, chi, websocket или engine.
@@ -612,7 +614,8 @@ Stage 9 не импортирует `database/sql`, chi, websocket или engine
   busy timeout и один writer connection.
 - [x] Выполнить focused persistence suite и полный обычный suite.
 - [x] `PERSIST-001`, `PERSIST-002` → GREEN; `PERSIST-003`, `PERSIST-004` →
-  PARTIAL до manager startup/meaningful-write proof.
+  PARTIAL на границе Stage 10 и затем GREEN после Stage 11
+  manager startup/meaningful-write proof.
 - [x] Worklog + GREEN commit:
   `feat(stage10): GREEN atomic sqlite persistence and recovery`.
 
@@ -662,8 +665,8 @@ Stage 10 не запускает ticker, HTTP server или WebSocket.
   `go test -race -count=1 ./internal/engine`,
   `go test -count=1 ./...`.
 - [x] `EVENT-001`, `EVENT-003`, `EVENT-010`, `PERSIST-003`, `PERSIST-004`,
-  `SIMULATION-001`, `PORTAL-001`, `PORTAL-002`, `WS-002` backend boundary
-  обновить до фактически доказанного GREEN/PARTIAL.
+  `SIMULATION-001`, `PORTAL-001`, `PORTAL-002` → GREEN; `WS-002` → PARTIAL на
+  Stage 11 backend boundary и затем GREEN после Stage 13 Hub integration.
 - [x] Worklog + GREEN commit:
   `feat(stage11): GREEN serialized lab manager and simulation loop`.
 
@@ -679,8 +682,9 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
   `TestBuildStateSnapshot_AlwaysReturnsSevenFixedSlots`,
   `TestBuildStateSnapshot_DerivesCurrentValuesAtGeneratedAt`,
   `TestBuildStateSnapshot_DoesNotExposeHiddenFields`,
-  `TestBuildPortalDetails_OpenIncludesRiskRecommendationAndHistory`,
-  `TestBuildPortalDetails_TerminalHasNullRiskAndRecommendation`,
+  `TestBuildPortalDetails_OpenIncludesRiskAndHistory`,
+  `TestBuildPortalDetails_OpenIncludesRecommendation`,
+  `TestBuildPortalDetails_TerminalHasNullRisk`,
   `TestBuildStateSnapshot_SlotsNeverContainRecommendation`,
   `TestGetState_ReturnsAuthoritativeSnapshot`,
   `TestGetPortal_ReturnsDetailsOr404`,
@@ -750,8 +754,8 @@ Stage 11 не содержит HTTP status codes или JSON DTO.
 - [x] Реализовать handlers/error mapper без дублирования domain rules.
 - [x] Проверить `go test -count=1 ./internal/transport ./internal/httpapi`
   и весь suite.
-- [x] API-001..008, API-010, API-011 → GREEN; API-009/API-012 остаются PLANNED
-  до Stage 14. RECOMMENDATION-001,002,004..012 → GREEN;
+- [x] API-001..008, API-010, API-011 → GREEN; API-009/API-012 → PLANNED на
+  границе Stage 12 и затем GREEN после Stage 14. RECOMMENDATION-001,002,004..012 → GREEN;
   RECOMMENDATION-003 остаётся PARTIAL до фактического rendering в Stage 17.
 - [x] Worklog + GREEN commit:
   `feat(stage12): GREEN REST reads commands and error mapping`.
@@ -842,6 +846,8 @@ Stage 12 не реализует Tutorial commands и WebSocket.
   `TestTutorial_EnterStep6WaitingObserverCreatesSafeReturnPortal`,
   `TestTutorial_Step6ResearchCompletionCreatesFreshSamePlanePortal`,
   `TestTutorial_Step6RecallUsesLongestWaitingAndAdvancesStep7`,
+  `TestTutorial_Step6WrongSuccessfulSendRecreatesRecallTargetAndSurvivesRestart`,
+  `TestTutorial_Step6WrongSuccessfulRecallRecreatesSendTargetAndSurvivesRestart`,
   `TestTutorial_ReturnExploresPlaneOnlyAfterObserverReturned`,
   `TestTutorial_LostReturnUsesDifferentAvailableObserver`,
   `TestTutorial_LostRetryRequiresNormalSendResearchRecall`,
