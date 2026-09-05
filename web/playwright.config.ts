@@ -1,18 +1,21 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: false,
   workers: 1,
   use: {
-    baseURL: 'http://127.0.0.1:4173',
-    trace: 'retain-on-failure',
+    baseURL: "http://127.0.0.1:4173",
+    trace: "retain-on-failure",
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     {
-      name: 'phone',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 760 } },
+      name: "phone",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 390, height: 760 },
+      },
     },
   ],
 });

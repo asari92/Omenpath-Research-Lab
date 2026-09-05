@@ -1,0 +1,13 @@
+:root {
+  color-scheme: dark;
+  --background: #070b12;
+  --surface: #0d1420;
+  --surface-raised: #121d2c;
+  --line: #26364a;
+  --text: #dbe8f6;
+  --text-strong: #f7fbff;
+  --text-muted: #8fa4bb;
+  --accent: #63f2c2;
+  --danger: #ff6b78;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
