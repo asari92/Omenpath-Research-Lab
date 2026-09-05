@@ -332,6 +332,54 @@ func TestTutorial_Step6WrongSuccessfulSendRecreatesRecallTargetAndSurvivesRestar
 	require.Len(t, repo.events, eventsBefore+2)
 }
 
+func TestTutorial_Step6WrongSuccessfulRecallRecreatesSendTargetAndSurvivesRestart(t *testing.T) {
+	manager, repo := tutorialLostReturnManager(t)
+	planeID := int64(1)
+	second := &manager.snapshot.Simulation.Observers[1]
+	second.Status = domain.ObserverWaitingReturn
+	second.CurrentPlaneID = &planeID
+	second.PhaseStartedAt = &testutil.BaseTime
+	second.UpdatedAt = testutil.BaseTime
+	repo.snapshot = cloneTestSnapshot(manager.snapshot)
+
+	require.NoError(t, manager.Tick(context.Background()))
+	require.Equal(t, 6, manager.snapshot.App.TutorialStep)
+	require.Equal(t, domain.TutorialPhaseSendReplacement, manager.snapshot.App.TutorialPhase)
+	require.Equal(t, int64(1), *manager.snapshot.App.TutorialObserverID)
+	require.Equal(t, domain.ObserverLost, manager.snapshot.Simulation.Observers[0].Status)
+	oldTargetID := *manager.snapshot.App.TutorialPortalID
+	eventsBefore := len(repo.events)
+
+	require.NoError(t, manager.RecallObserver(context.Background(), oldTargetID, true))
+	require.Equal(t, domain.ObserverReturning, manager.snapshot.Simulation.Observers[1].Status)
+	require.Equal(t, oldTargetID, *manager.snapshot.Simulation.Observers[1].ActivePortalID)
+	require.Equal(t, domain.PortalFlowInbound, manager.snapshot.Simulation.Portals[1].ObserverFlow)
+	require.Equal(t, 6, manager.snapshot.App.TutorialStep)
+	require.Equal(t, domain.TutorialPhaseSendReplacement, manager.snapshot.App.TutorialPhase)
+	require.Equal(t, int64(1), *manager.snapshot.App.TutorialObserverID)
+	require.NotEqual(t, oldTargetID, *manager.snapshot.App.TutorialPortalID)
+	fresh, ok := tutorialTarget(&manager.snapshot)
+	require.True(t, ok)
+	require.Equal(t, planeID, fresh.DestinationPlaneID)
+	require.Equal(t, domain.PortalFlowNone, fresh.ObserverFlow)
+	require.Greater(t, fresh.EffectiveLifetime(manager.clock.Now()), manager.cfg.ObserverTransitMax)
+	require.Equal(t, []domain.EventType{domain.EventObserverReturnStarted, domain.EventPortalOpened}, eventTypes(repo.events[eventsBefore:]))
+
+	restarted, err := NewLabManager(context.Background(), manager.cfg, manager.clock, &lockedMinimumRandom{}, repo)
+	require.NoError(t, err)
+	got, err := restarted.State(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, manager.snapshot.App, got.App)
+	require.Equal(t, manager.snapshot.Simulation.Portals, got.Simulation.Portals)
+	require.Len(t, repo.events, eventsBefore+2)
+
+	freshTargetID := *got.App.TutorialPortalID
+	require.NoError(t, restarted.SendObserver(context.Background(), freshTargetID, true))
+	require.Equal(t, domain.TutorialPhaseWaitResearch, restarted.snapshot.App.TutorialPhase)
+	require.Equal(t, int64(3), *restarted.snapshot.App.TutorialObserverID)
+	require.Equal(t, domain.ObserverOutbound, restarted.snapshot.Simulation.Observers[2].Status)
+}
+
 func TestTutorial_ReturnExploresPlaneOnlyAfterObserverReturned(t *testing.T) {
 	manager, _ := tutorialStep6ResearchManager(t)
 	require.NoError(t, manager.Tick(context.Background()))
