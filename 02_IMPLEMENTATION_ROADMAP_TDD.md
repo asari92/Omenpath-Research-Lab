@@ -256,45 +256,38 @@ DC-1–10 сохраняют checkpoint-level RED/GREEN evidence в Git; фин�
 DC-10 проверяет browser isolation, restart и cleanup через test-owned harness,
 а также сериализует initial/retry bootstrap для fresh direct Events/Details.
 
-## Block E — Quality & Delivery
+## Block E — Minimal Deployment
 
-**Status: PLANNED.** Corrective gate и повторный полный Block D boundary
-verification завершены. Block E нельзя начинать до пользовательской сверки
-Block D и утверждения следующего detailed plan.
+**Status: PLANNED.** Пользователь утвердил deployment-first scope в
+[`14_BLOCK_E_MINIMAL_DEPLOYMENT.md`](14_BLOCK_E_MINIMAL_DEPLOYMENT.md) и
+[`docs/superpowers/specs/2026-09-06-block-e-deployment-design.md`](docs/superpowers/specs/2026-09-06-block-e-deployment-design.md).
+Существующие VPS, host nginx, HTTPS/Certbot, DNS и системная инфраструктура
+находятся вне project scope.
 
-### Stage 22 — Full automated test pass
-Domain, integration, persistence, REST, WS, Tutorial, concurrency, race detector.
+### Stage 22 — Production HTTP surface
+Health endpoint и раздача compiled SPA тем же Go process, который обслуживает
+REST и `/ws/lab`.
 
-### Stage 23 — Balance simulation
-10k–100k simulated Portals. Measure collapse rates, observer loss, energy economy, 7/7 frequency, exploration rate. Tune config only.
+### Stage 23 — Container and persistence
+Один multi-stage application image, Compose binding
+`127.0.0.1:8080:8080`, SQLite bind mount `/opt/omenpath/data` и production env.
 
-### Stage 24 — README / DevEx
-README, `.env.example`, `.gitignore`, Makefile, Docker, run/test/build commands.
+### Stage 24 — Deployment handoff
+Точные команды первого запуска/обновления и минимальные `location` snippets для
+уже существующего host nginx.
 
-### Stage 25 — Deployment
-Public app, WebSocket, persistence, restart, health checks.
+### Stage 25 — Minimal launch gate
+Production image, resolved Compose config, container health, root SPA и
+loopback binding. Полный browser/manual gameplay QA в этот gate не входит.
 
-### Stage 26 — Final QA
-Pass the app as an external evaluator.
+### Deferred delivery backlog
 
-### Stage 27 — Consistency Audit
-Cross-check:
-- Final Spec
-- Requirement Catalog
-- Traceability Matrix
-- all Stage Plans
-- Domain Models
-- DB Schema
-- REST Contract
-- WebSocket Contract
-- Tutorial
-- Frontend
-- Tests
-- AI Worklog
-- README
-- Actual Implementation
-
-Look for stale constants, enum mismatches, outdated restrictions, UI actions without backend rules, tests for old mechanics and docs describing old architecture.
+- balance simulation на 10k–100k Portals;
+- внешний manual QA;
+- повторный exhaustive E2E/race matrix;
+- полный consistency audit Final Spec, requirements, traceability, stage plans,
+  domain, persistence, REST/WS, frontend, tests, Worklog, README и actual
+  implementation, включая stale constants, enum mismatches и outdated rules.
 
 ## Detailed-planning and verification rule
 

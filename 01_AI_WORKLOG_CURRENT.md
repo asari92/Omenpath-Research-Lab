@@ -2586,3 +2586,18 @@ session isolation desktop+phone (`--repeat-each=3`) — 36 PASS за 1.4m. По�
 bundle advisory и редкие dev-proxy EPIPE/ECONNRESET при browser disconnect/reload
 не являются failing checks. API-013 и SESSION-004 дополнены новым evidence.
 Block D GREEN; Block E / Stage 22 не начаты.
+
+### 2026-09-06 — Block E reduced to minimal deployment
+
+Пользователь отказался от повторной exhaustive проверки перед первым deploy и
+зафиксировал существующую VPS boundary: Docker/Compose, DuckDNS, host nginx,
+HTTPS/Certbot и каталоги `/opt/omenpath/{data,backups}` уже готовы. Project не
+должен устанавливать или перенастраивать эту инфраструктуру.
+
+Design commit `ac911ef` описывает один application container за существующим
+nginx. Detailed execution plan — `14_BLOCK_E_MINIMAL_DEPLOYMENT.md`. Он включает
+только production SPA/health surface, multi-stage Dockerfile, loopback-only
+Compose service, SQLite bind mount, production env, operator runbook и короткий
+launch smoke. Balance simulation, повторный exhaustive E2E/race matrix,
+external manual QA и полный consistency audit оставлены в delivery backlog и не
+будут ошибочно объявлены выполненными.
