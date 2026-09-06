@@ -27,7 +27,7 @@ Block, он реализуется stage-by-stage, затем проходит �
 | A — Specification & Domain Foundation | 0–2 | GREEN | `03_STAGE_00_01_TDD_FOUNDATION.md`, `04_STAGE_02_PORTAL_CORE_TDD.md` | завершён и проверен |
 | B — Observers & Simulation | 3–8 | GREEN | `05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` … `10_STAGE_08_SIMULATION_TDD.md` | завершён и проверен |
 | C — Persistence & Transport | 9–14 | GREEN | `11_BLOCK_C_STAGE_09_14_TDD.md` | завершён; итоговый audit APPROVED |
-| D — Frontend | 15–21 + corrective gate | PARTIAL | `12_BLOCK_D_STAGE_15_21_TDD.md`; original и corrective design specs | Stages 15–21 GREEN; новые утверждённые contracts ещё PLANNED |
+| D — Frontend | 15–21 + corrective gate | GREEN | `12_BLOCK_D_STAGE_15_21_TDD.md`, `13_BLOCK_D_CORRECTIVE_TDD.md`; original и corrective design specs | Stages 15–21 и DC-1–10 завершены; full backend/frontend/race/browser gate GREEN; ожидает пользовательскую сверку |
 | E — Quality & Delivery | 22–27 | PLANNED | создаётся только после повторной сверки Block D | начинать нельзя |
 
 ### Блоковый delivery-режим после Stage 8
@@ -199,17 +199,21 @@ Rationale:
 
 ## Block D — Frontend
 
-**Status: PARTIAL.** Исходная реализация Stages 15–21 завершена и прошла
-boundary verification, но пользовательская сверка выявила новый утверждённый
-corrective scope. Исходный execution document —
+**Status: GREEN.** Исходная реализация Stages 15–21 и последующий утверждённый
+corrective scope DC-1–10 завершены и прошли boundary verification.
+Исходный execution document —
 [`12_BLOCK_D_STAGE_15_21_TDD.md`](12_BLOCK_D_STAGE_15_21_TDD.md), первая
 визуальная и interaction-модель зафиксирована в
 [`docs/superpowers/specs/2026-09-05-block-d-frontend-design.md`](docs/superpowers/specs/2026-09-05-block-d-frontend-design.md).
 Новый согласованный дизайн и multi-lab extension находятся в
 [`docs/superpowers/specs/2026-09-06-ui-ux-corrective-design.md`](docs/superpowers/specs/2026-09-06-ui-ux-corrective-design.md)
-и уже перенесены в Final Spec. Они требуют отдельного detailed TDD corrective
-plan. До его реализации прежние GREEN evidence сохраняются как исторический
-baseline, а весь Block D считается PARTIAL. Block E не начат.
+и перенесены в Final Spec. Corrective implementation выполнена по
+[`13_BLOCK_D_CORRECTIVE_TDD.md`](13_BLOCK_D_CORRECTIVE_TDD.md).
+RED/GREEN commits и corrective reviews перечислены в текущем worklog.
+Full Go vet/build/test/race, frontend formatting/lint/typecheck/test/build,
+85/85 artwork audit/offline prepare и browser suite (39 PASS, 5 явных
+project-specific skips) завершены успешно. Block E не начат; следующий шаг —
+пользовательская сверка завершённого Block D.
 
 ### Stage 15 — Frontend foundation
 React + TypeScript + Vite, router, REST client, WebSocket client, shared state, error handling.
@@ -234,7 +238,7 @@ Analysis/architecture, backend, frontend, testing, debugging, deployment, final 
 
 ### Обязательный corrective gate после Stage 21
 
-Перед Block E требуется отдельный detailed plan и TDD implementation для:
+Завершён по `13_BLOCK_D_CORRECTIVE_TDD.md` перед пользовательской сверкой Block D:
 
 - изменения permanent roster 10 → 20;
 - anonymous 30-day sessions и multi-lab persistence/API/WebSocket isolation
@@ -248,13 +252,14 @@ Analysis/architecture, backend, frontend, testing, debugging, deployment, final 
   traceability/worklog.
 
 Corrective gate не меняет остальные доказанные gameplay semantics Stages 0–14.
-Его checkpoint/stage names и RED/GREEN commit strategy определяются следующим
-detailed execution plan после документационной сверки.
+DC-1–10 сохраняют checkpoint-level RED/GREEN evidence в Git; финальный
+DC-10 проверяет browser isolation, restart и cleanup через test-owned harness.
 
 ## Block E — Quality & Delivery
 
-**Status: PLANNED.** Block E нельзя начинать до реализации corrective gate,
-повторного полного Block D boundary verification и пользовательской сверки.
+**Status: PLANNED.** Corrective gate и повторный полный Block D boundary
+verification завершены. Block E нельзя начинать до пользовательской сверки
+Block D и утверждения следующего detailed plan.
 
 ### Stage 22 — Full automated test pass
 Domain, integration, persistence, REST, WS, Tutorial, concurrency, race detector.

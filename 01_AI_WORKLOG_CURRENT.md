@@ -1,5 +1,5 @@
 # AI Worklog — Current
-## Stage: Blocks A–D / Stages 0–21 implementation + approved Block D corrective gate
+## Stage: Blocks A–D / Stages 0–21 and Block D corrective gate GREEN; Block E PLANNED
 
 > Это честный журнал процесса. Его нужно дополнять по мере реализации. Не переписывать задним числом под «идеальную историю».
 
@@ -2450,3 +2450,82 @@ The existing Vite bundle-size advisory remains non-failing. Go verification
 initially encountered the sandbox's read-only default cache; it was rerun with
 the required execution permission. gofmt output empty; Go vet/build/full tests
 PASS. All 85 runtime images total 4,024,798 bytes; largest is 91,814 bytes.
+
+### Block D corrective DC-10 — integration and boundary closure
+
+RED `2886eab` воспроизвёл реальную ошибку прежнего E2E setup: reset через
+отдельный `request` успешно сбрасывал другую анонимную laboratory, а открытый
+browser оставался на Tutorial Step 1 вместо ожидаемого Step 0. GREEN `58fd89c`
+сначала дожидается browser `/api/state`, затем использует только `page.request`
+с общей cookie jar и same-origin URLs. Полностью mocked LIVE Dashboard tests
+больше не вызывают ненужный настоящий reset.
+
+Новый `session-isolation.spec.ts` проходит на desktop и phone: два свежих
+browser contexts получают различные opaque HttpOnly cookies; одинаковые Portal
+IDs имеют независимые состояния, команды, Events и реальные WebSocket frames.
+После действия A тест ждёт новый собственный tick B, поэтому отсутствие утечки
+не доказывается простым отсутствием сообщений. Reload сохраняет cookie и progress;
+очистка cookie создаёт новую игру, не затрагивая B. DTO/DOM не содержат token или
+`lab_id`, а `document.cookie` не раскрывает HttpOnly session.
+
+`internal/httpapi/session_closure_test.go` создаёт test-owned HTTP/WebSocket
+harness из настоящих Store, session Service, Registry и Router — тех же startup
+components, что использует server. Temporary-file SQLite переживает закрытие и
+повторное создание services: прежняя cookie возвращает тот же lab, точные state
+и Events, а WebSocket получает тот же snapshot. Отдельные fake-clock проверки
+показывают, что expired laboratory с connected WS не удаляется; после disconnect
+conditional cleanup удаляет её; renewal до получения idle gate защищает ранее
+выбранного candidate. Production test routes и новые dependencies не добавлены.
+
+Во время первого общего прогона cold Go race compilation выполнялась параллельно
+с browser/unit suites. Artwork decoding превысил прежний 5-second unit timeout;
+после завершения compile неизменённый focused test прошёл за 2.64s, а полный
+frontend suite — за 16.96s. Timeout не увеличивался. Шесть Dashboard failures
+оказались ошибкой переноса fixture: mocked LIVE snapshot не имеет Tutorial panel,
+которую ожидал helper. Trace показал точный failing setup; удаление ненужного reset
+сохранило все geometry assertions. Focused Dashboard/isolation — 8 PASS и 2
+project-specific skips за 23.8s; затем полный browser suite повторён успешно.
+
+Boundary verification после форматирования:
+
+| Проверка | Результат |
+|---|---|
+| `gofmt -w cmd internal`; `gofmt -l .` | PASS; список неотформатированных файлов пуст |
+| `go vet ./...`; `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS; 13 packages с тестами, `data` без test files; package durations 0.006–2.565s |
+| `go test -race -count=1 ./...` | PASS; те же 13 packages; package durations 1.022–17.126s; race reports отсутствуют |
+| `npm --prefix web run format`; `format:check`; `lint`; `typecheck` | PASS |
+| `npm --prefix web run test` | PASS; 36 files / 171 tests; 16.96s |
+| `npm --prefix web run build` | PASS; 341 modules; Vite build 954ms |
+| `node web/scripts/audit-plane-art.mjs` | PASS; 85/85 unique local reviewed artworks, zero fallbacks |
+| `npm --prefix web run assets:prepare -- --offline` | PASS; 85 local assets verified without downloads |
+| `npm --prefix web run test:e2e` | PASS; 39 passed, 5 explicit viewport/project skips, 3.0m; real Tutorial-to-Live 56.1s |
+| requirements/traceability ID parity и `git diff --check` | PASS; оба вывода пусты |
+
+Go verification использовал выделенный `/tmp/omenpath-dc10-go-cache`; localhost
+listeners потребовали разрешения sandbox. Прежний non-failing Vite advisory о
+bundle >500 kB и Node NO_COLOR/FORCE_COLOR warning остаются. Изменений production
+gameplay на DC-10 не потребовалось. Исторические PARTIAL/PLANNED domain rows не
+повышались без нового доказательства; UI-008 закрыт после завершения всех routes.
+API-013, WS-004, SESSION-002/004/005 дополнены точным integration evidence.
+
+Полная corrective Git-карта:
+
+| Checkpoint | RED | GREEN | Дополнительные corrective commits |
+|---|---|---|---|
+| DC-1 — 20 Observers | `c235c95` | `afb1e76` | усиленные literal-20 assertions включены в каноническую RED/GREEN пару |
+| DC-2 — tenant persistence | `b3be801` | `501d4ed` | — |
+| DC-3 — anonymous sessions | `5843e2a` | `bd2f9fe` | — |
+| DC-4 — runtime/REST/WS isolation | `960d6ca` | `a705348` | `56bb539` — session/persistence traceability |
+| DC-5 — transit/bootstrap | `decf710` | `8ce0483` | — |
+| DC-6 — unified Dashboard | `fbe6b44` | `387cc37` | `5af3201` — unhealthy command gate; `64f9ace` — Worklog scroll/bounded feedback |
+| DC-7 — Details/Events/Help | `4f2450b` | `2f16056` | `9c1785b` — guidance/Help; `1ade22f` — all Tutorial recap steps; `647e1cb` — compact facts height |
+| DC-8 — Tutorial/motion | `6a2c359` | `e44d4e0` | `794b8a0` — navigation/replay/ordinary exits; `b714892` — historical terminal artwork |
+| DC-9 — complete artwork | `7505f35` | `093ac38` | — |
+| DC-10 — browser integration | `2886eab` | `58fd89c` | эта documentation closure фиксирует gate evidence |
+
+Block D GREEN на согласованной границе. Работа остановлена перед пользовательской
+сверкой. Block E / Stage 22 остаются PLANNED и не начинались. Пользовательский
+untracked `omenpath.db` не изменялся; служебная untracked `web/node_modules`
+symlink не добавлена в Git. Старую DB application автоматически не удаляет:
+clean-start multi-lab deployment использует новую database.
