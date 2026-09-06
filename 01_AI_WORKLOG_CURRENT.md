@@ -2692,3 +2692,33 @@ Production image smoke на временном `127.0.0.1:18082` стал health
 `Content-Type: image/png` и ожидаемый local asset size. Первый deliberate запуск
 с `OMENPATH_COOKIE_SECURE=false` был отклонён существующим production guard;
 повтор с обязательным `true` прошёл. Временный container и `/tmp` data удалены.
+
+### 2026-09-06 — Dashboard readability, Tutorial Details and Override corrective
+
+Пользовательский review после deployment уточнил три presentation boundary без
+изменения gameplay: компактная Observer строка дублировала Observer Life,
+matching Tutorial Details signal преждевременно возвращал на Dashboard, а
+Override на тёмном фоне был недостаточно заметен. Design `5aef344` и execution
+plan `4bd2f16` закрепили исправление.
+
+Observer RED `e4e844c` потребовал 20 tri-state markers и surviving count.
+GREEN `359c16f` показывает AVAILABLE зелёным, LOST красным, остальных живых
+deployed Observers тёмным; отдельная строка counts удалена, compact typography
+увеличена, а полный состав остаётся в accessible label.
+
+Tutorial RED `5ca3869` доказал преждевременный route change и disabled Forward.
+GREEN `5ed1d5d` оставляет пользователя в Details после authoritative signal:
+существующий Forward сначала листает показанную history, а на актуальной card
+возвращает на Dashboard. Direct load и failed signal semantics сохранены.
+
+Override RED `79ff681` зафиксировал отсутствие отдельного energy layer и наличие
+лишнего floating deadline banner. GREEN `ba407fd` удалил banner и добавил
+pointer-transparent full-shell violet-white moving streaks под controls;
+`prefers-reduced-motion` сохраняет статическое свечение без движения.
+
+Verification: frontend format:check/lint/typecheck PASS; 37 files / 194 tests
+PASS; production Vite build PASS (342 modules, только прежний non-failing bundle
+size advisory). `gofmt -l .` clean; `go vet ./...`, `go build ./...` и
+`go test -count=1 ./...` PASS для всех packages. Первый baseline Go run внутри
+sandbox ожидаемо не смог открыть localhost httptest listeners; разрешённый
+повтор и финальный suite прошли. Backend/gameplay и Stage scope не менялись.

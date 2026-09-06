@@ -797,15 +797,17 @@ Summary:
 ```text
 Planes Explored       X / 85
 Laboratory Energy     X / 100
-Observers in Lab      X / 20
-Observers in Worlds   X
-Observers in Transit  X
-Observers Lost        X
+Observer Life         surviving / 20
 Active Omenpaths      X / 7
 Critical Portals      X
 Closed Portals        X
 Collapsed Portals     X
 ```
+
+Observer Life сохраняет 20 fixed markers: AVAILABLE — green, LOST — red,
+остальные живые Observer в Worlds/Transit — dark neutral. Полные Observer counts
+остаются authoritative state/API data, но не дублируются отдельной мелкой
+текстовой строкой Dashboard.
 
 Seven fixed Portal Slots.
 
@@ -836,8 +838,9 @@ Controls пустого Slot присутствуют для сохранени�
 настоящими disabled controls и не обрабатывают pointer/keyboard activation.
 
 UNSTABLE выделяет фон всей карточки заметным red danger treatment. Активный
-Leyline Override меняет оформление всего Dashboard, а не только локальный
-indicator.
+Leyline Override меняет оформление всего Dashboard и добавляет заметные
+движущиеся energy/lightning streaks, а не только локальный indicator. Отдельный
+floating Override banner не нужен; ACTIVE/INACTIVE остаётся в Lab Summary.
 
 ## 25. Portal Details
 
@@ -1110,17 +1113,18 @@ step. Если между UI renders сервер успел завершить 
 state.
 
 `Back` открывает уже показанные steps. `Forward` возвращает к текущему step;
-будущие невыполненные задания пропустить нельзя.
+будущие невыполненные задания пропустить нельзя. На актуальном step в Portal
+Details тот же `Forward` возвращает игрока на Dashboard.
 
 При пересоздании terminal Tutorial Portal backend semantics остаются
 немедленными, но UI показывает exit animation старого Portal и entrance нового
 с общей visual delay 2 sec.
 
 Frontend route choreography не меняет Tutorial state machine: после matching
-`PORTAL_DETAILS_OPENED` UI ждёт authoritative response и при переходе к
-следующему objective возвращает игрока на Dashboard. После `Start Live` UI также
-ждёт authoritative `mode: LIVE`, затем открывает Dashboard. Failed/obsolete
-requests не выполняют локальный переход.
+`PORTAL_DETAILS_OPENED` UI ждёт authoritative response и остаётся в Details;
+игрок возвращается на Dashboard существующей кнопкой `Forward`. После
+`Start Live` UI также ждёт authoritative `mode: LIVE`, затем открывает Dashboard.
+Failed/obsolete requests не выполняют локальный переход.
 
 ## 29. UI actions / errors
 
