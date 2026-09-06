@@ -222,6 +222,9 @@ Stage 20 отдельно завершил Tutorial UI; ниже он сохра
 - Favicon добавлен в 3ae1377.
 - Отвергнутое CSS-светошоу Override заменено branching canvas lightning
   в 27a9529.
+- Canvas lightning оптимизирован без смены визуального эффекта: renderer спит
+  между разрядами, ограничивает тяжёлую отрисовку до 30 FPS, снижает backing
+  resolution полноэкранного canvas и полностью останавливается в скрытой вкладке.
 
 ## Где AI ошибался
 
@@ -278,6 +281,8 @@ Stage 20 отдельно завершил Tutorial UI; ниже он сохра
 - Финальная сверка с исходным тестовым заданием: gofmt, Go vet/build/test/race,
   frontend format/lint/typecheck, 37 files / 194 tests, production build и полный
   Playwright suite — 47 PASS, 5 явных project-specific skips.
+- Оптимизация Canvas lightning: RED на постоянном RAF/DPR → GREEN; frontend
+  format/lint/typecheck, 38 files / 196 tests и production build.
 - Block E reduced gate: production build, loopback Compose config, healthy
   container, health, SPA, REST, WebSocket 101 и session persistence после recreate.
 - На VPS пользователь подтвердил запуск на 127.0.0.1:8080 и ответ

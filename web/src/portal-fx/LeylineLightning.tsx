@@ -18,8 +18,22 @@ interface Strike {
   paths: BoltPath[];
 }
 
+const initialStrikeDelay = 120;
+const strikeLifetime = 465;
+const drawInterval = 1000 / 30;
+const largeCanvasArea = 800_000;
+
 const randomBetween = (minimum: number, maximum: number) =>
   minimum + Math.random() * (maximum - minimum);
+
+export function lightningCanvasScale(
+  width: number,
+  height: number,
+  devicePixelRatio: number,
+): number {
+  const maximum = width * height >= largeCanvasArea ? 1 : 1.25;
+  return Math.min(Math.max(1, devicePixelRatio || 1), maximum);
+}
 
 function boltPath(
   start: Point,
@@ -199,8 +213,10 @@ export function LeylineLightning({
     let width = 1;
     let height = 1;
     let frame = 0;
+    let strikeTimer = 0;
     let strike: Strike | null = null;
-    let nextStrikeAt = performance.now() + 120;
+    let lastDrawAt = Number.NEGATIVE_INFINITY;
+    let stopped = false;
     const reducedMotion =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
@@ -208,9 +224,15 @@ export function LeylineLightning({
       const bounds = canvas.getBoundingClientRect();
       width = Math.max(1, bounds.width);
       height = Math.max(1, bounds.height);
-      const scale = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvas.width = Math.round(width * scale);
-      canvas.height = Math.round(height * scale);
+      const scale = lightningCanvasScale(
+        width,
+        height,
+        window.devicePixelRatio,
+      );
+      const backingWidth = Math.round(width * scale);
+      const backingHeight = Math.round(height * scale);
+      if (canvas.width !== backingWidth) canvas.width = backingWidth;
+      if (canvas.height !== backingHeight) canvas.height = backingHeight;
       context.setTransform(scale, 0, 0, scale, 0, 0);
     };
     const clear = () => {
@@ -230,24 +252,53 @@ export function LeylineLightning({
       return () => observer.disconnect();
     }
 
+    const cancelWork = () => {
+      if (frame !== 0) cancelAnimationFrame(frame);
+      if (strikeTimer !== 0) window.clearTimeout(strikeTimer);
+      frame = 0;
+      strikeTimer = 0;
+    };
+    const scheduleStrike = (delay: number) => {
+      if (stopped || document.hidden) return;
+      strikeTimer = window.setTimeout(() => {
+        strikeTimer = 0;
+        if (stopped || document.hidden) return;
+        strike = createStrike(width, height, performance.now());
+        lastDrawAt = Number.NEGATIVE_INFINITY;
+        frame = requestAnimationFrame(render);
+      }, delay);
+    };
     const render = (timestamp: number) => {
-      clear();
-      if (!document.hidden && timestamp >= nextStrikeAt) {
-        strike = createStrike(width, height, timestamp);
-        nextStrikeAt = timestamp + randomBetween(720, 1450);
+      frame = 0;
+      if (stopped || document.hidden || !strike) return;
+      const age = timestamp - strike.bornAt;
+      if (age > strikeLifetime) {
+        clear();
+        strike = null;
+        scheduleStrike(randomBetween(720, 1450) - strikeLifetime);
+        return;
       }
-      if (strike) {
-        const age = timestamp - strike.bornAt;
-        if (age <= 465) drawStrike(context, strike, strikeIntensity(age), age);
-        else strike = null;
+      if (timestamp - lastDrawAt >= drawInterval - 1) {
+        clear();
+        drawStrike(context, strike, strikeIntensity(age), age);
+        lastDrawAt = timestamp;
       }
       frame = requestAnimationFrame(render);
     };
-    frame = requestAnimationFrame(render);
+    const handleVisibility = () => {
+      cancelWork();
+      strike = null;
+      clear();
+      if (!document.hidden) scheduleStrike(initialStrikeDelay);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    scheduleStrike(initialStrikeDelay);
 
     return () => {
-      cancelAnimationFrame(frame);
+      stopped = true;
+      cancelWork();
       observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
       clear();
     };
   }, [active]);
