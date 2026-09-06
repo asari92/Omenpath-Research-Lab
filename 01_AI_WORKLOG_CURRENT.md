@@ -2640,3 +2640,55 @@ Essential verification: `gofmt -l .` clean; `go vet ./...`, `go build ./...`,
 extended consistency audit в этом deployment-first pass не запускались и
 остаются deferred. Block E завершён только в границах
 `14_BLOCK_E_MINIMAL_DEPLOYMENT.md`.
+
+### 2026-09-06 — Reference-faithful UI corrective after first deployment
+
+После первого VPS запуска пользователь отклонил прежнюю визуальную реализацию и
+утвердил приложенный 1280×720 mock как обязательную композиционную цель. Approved
+design записан в `84b17de`, execution plan — `6c56da2`. Gameplay, persistence,
+session isolation, REST/WS contracts и server Tutorial order не менялись.
+
+RED `bf9c03b` зафиксировал отсутствие whole-card Details navigation, keyboard
+activation, authoritative возврата на Dashboard после Details/Start Live,
+правильного Step 1 copy и page-header notification marker. GREEN `8de1ad4`
+реализовал эти переходы без локального advancement: frontend ждёт response,
+при ошибке остаётся на текущем route. Nested Portal commands остаются отдельными
+controls и не открывают Details.
+
+Structural RED `c20447f` потребовал явную arcane-laboratory shell boundary и Lab
+Energy gauge. GREEN `d649c56` добавил сгенерированную и проверенную text-free
+local plate `web/public/ui/lab-shell-background.png`, единые obsidian/gold/
+parchment tokens, Energy gauge, 20 Observer markers, Override и compact totals.
+Image generation использовала пользовательский reference только как style/
+composition input; asset не содержит text, controls, Portal cards или world art.
+
+Semantic Dashboard RED `79ad91d` и GREEN `425936f` закрепили distinct Energy,
+Time и Stability hooks, centered equal-size 4+3 board, large circular Plane art,
+one-row four-command controls и disabled equal-size empty Slots. Details RED
+`81be2d5` и GREEN `a9ec1fb` добавили semantic Energy/Time/Status/Stability и
+собрали one-viewport three-column Details с actions непосредственно под Portal
+и bounded collapsed History. `02caa9d` после реального render review закрепил
+top-centred parchment, command glyphs и compact viewport composition.
+
+Visual evidence: desktop Dashboard и Details вручную просмотрены при 1280×720;
+continuous background/frame, parchment, 4+3 board и three-column Details
+помещаются без page scroll. Phone Dashboard при 390×760 содержит ровно 7 Slots;
+`documentElement.scrollHeight == clientHeight == 760`. Portal Details History —
+единственный внутренне scrollable region. Bottom-right notices удалены; occupied
+unavailable reasons и normal messages используют один upper-right `ToastRegion`.
+
+Verification текущей corrective версии: frontend format/format:check/lint/
+typecheck PASS; 37 files / 192 tests PASS; production Vite build PASS (342
+modules, прежний non-failing >500 kB advisory); production `omenpath:local`
+Docker image собран, включая новый background. `gofmt` clean, `go vet ./...` и
+`go build ./...` PASS. Первый sandboxed `go test -count=1 ./...` был environment
+RED только из-за запрещённых local httptest listeners; повтор с localhost
+permission PASS для всех packages. Full Playwright suite и race повторно не
+запускались: backend не менялся, а corrective acceptance выполнен unit tests,
+production build и реальными desktop/phone screenshots.
+
+Production image smoke на временном `127.0.0.1:18082` стал healthy: `/health`
+вернул `{"status":"ok"}`, а `/ui/lab-shell-background.png` — `200`,
+`Content-Type: image/png` и ожидаемый local asset size. Первый deliberate запуск
+с `OMENPATH_COOKIE_SECURE=false` был отклонён существующим production guard;
+повтор с обязательным `true` прошёл. Временный container и `/tmp` data удалены.

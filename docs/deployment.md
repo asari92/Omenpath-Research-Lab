@@ -51,7 +51,11 @@ docker compose --env-file .env build
 docker compose --env-file .env up -d --remove-orphans
 docker compose ps
 curl -fsS http://127.0.0.1:8080/health
+curl -fsSI http://127.0.0.1:8080/ui/lab-shell-background.png
 ```
+
+The final request verifies that the reference-faithful local laboratory
+background is present in the rebuilt SPA image; it must return `200`.
 
 Back up `/opt/omenpath/data/omenpath.db` through the already prepared
 `/opt/omenpath/backups` workflow when required. Do not remove the data directory

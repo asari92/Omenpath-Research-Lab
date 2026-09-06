@@ -1066,7 +1066,7 @@ completion condition:
 | Step | Объяснение | Действие игрока | Действие системы | Completion |
 |---|---|---|---|---|
 | 0 | Лор лаборатории, цель 85/85, Dashboard/Lab Summary/Observers/7 Slots/Needs Attention/Details/Event Log | Нажать «Начать практику» | До сигнала 0 OPEN и paused Natural Generator; после сигнала создать безопасный target Portal | `TUTORIAL_INTRO_COMPLETED` |
-| 1 | Portal Energy отличается от Lab Energy; индивидуальный расход; Time не гарантирует запас Energy; Stability/Risk/Recommendation/History | Открыть target Portal Details | GET не мутирует state; explicit signal проверяет target ID | matching `PORTAL_DETAILS_OPENED` |
+| 1 | Portal Energy отличается от Lab Energy; индивидуальный расход; Time не гарантирует запас Energy; Stability/Risk/Recommendation/History | Выбрать подсвеченную target Portal card на Dashboard, чтобы открыть Details | GET не мутирует state; explicit signal проверяет target ID | matching `PORTAL_DETAILS_OPENED` |
 | 2 | Creatures блокируют corridor и выходят по одному каждые 2 sec | Ждать | Обычные ticks уменьшают derived Creatures; broken target пересоздаётся | `CreaturesInside == 0` |
 | 3 | SEND стоит 0; нужен AVAILABLE; transit 5–15 sec; первое использование фиксирует OUTBOUND | SEND через target | Обычная command выбирает Observer; система сохраняет Observer/Plane и создаёт отдельный Step 4 target | Observer стал OUTBOUND |
 | 4 | STABILIZE стоит 20; Lab Energy 0–100 и +1/sec; Portal Energy ≤85%; +15 Portal Energy; UNSTABLE → STABLE | STABILIZE target | Обычная debit/command/events; затем создать Step 5 CRITICAL target | STABLE и Risk HIGH/CRITICAL → MEDIUM/LOW |
@@ -1099,7 +1099,9 @@ Completed Portals продолжают обычный lifecycle. Бесплат�
 
 Tutorial отображается как floating overlay поверх Dashboard и не меняет layout
 остальной страницы. `More context` отсутствует: весь contextual text текущего
-step виден сразу.
+step виден сразу. Визуально Tutorial закреплён как parchment scroll сверху по
+центру; overlay прозрачен для pointer events вне собственных кнопок и не
+перекрывает command row Portal cards.
 
 Выполнение ожидаемого action немедленно показывает следующий authoritative
 step. Если между UI renders сервер успел завершить промежуточный step, UI
@@ -1113,6 +1115,12 @@ state.
 При пересоздании terminal Tutorial Portal backend semantics остаются
 немедленными, но UI показывает exit animation старого Portal и entrance нового
 с общей visual delay 2 sec.
+
+Frontend route choreography не меняет Tutorial state machine: после matching
+`PORTAL_DETAILS_OPENED` UI ждёт authoritative response и при переходе к
+следующему objective возвращает игрока на Dashboard. После `Start Live` UI также
+ждёт authoritative `mode: LIVE`, затем открывает Dashboard. Failed/obsolete
+requests не выполняют локальный переход.
 
 ## 29. UI actions / errors
 
@@ -1172,6 +1180,17 @@ vertical separator или самостоятельной application frame. Од
 frame окружает весь viewport; ley-line, stone, bronze, leather и glass motifs
 продолжаются через всю страницу. Branding и proprietary UI assets других игр
 не копируются.
+
+Локальная text-free decorative plate задаёт stone/filigree/rune/candle
+атмосферу и не содержит нарисованных controls, Portal cards или world art.
+Dashboard сохраняет ровно 7 равных Slots в centred `4 + 3` desktop composition;
+на phone все 7 Slots и их controls также остаются в одном viewport без page
+scroll. Occupied Portal card целиком является Details navigation affordance для
+pointer, Enter и Space; отдельной кнопки `Details` нет. Четыре command buttons
+остаются самостоятельными nested controls и не запускают card navigation.
+Portal Energy, Time, transit, Stability, Risk и Recommendation используют
+различимые semantic colours вместе с видимым text. Единственный normal-message
+region расположен справа в title row, напротив `Laboratory Overview`.
 
 Portal entrance/terminal transitions, UNSTABLE и Override имеют motion. При
 `prefers-reduced-motion` смысл состояния сохраняется через opacity, icon, text
