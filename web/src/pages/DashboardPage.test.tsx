@@ -338,16 +338,18 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("shows Override deadline and the seven-slot waiting state", () => {
+  it("keeps Override in the summary without a floating banner", () => {
     const snapshot = snapshotAt();
     snapshot.lab.leyline_override_active = true;
     snapshot.lab.leyline_override_until = "2026-09-05T10:00:20Z";
     renderDashboard(snapshot);
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /leyline override active/i,
-    );
-    expect(screen.getByRole("status")).toHaveTextContent(/10:00:20/i);
+    expect(
+      within(screen.getByLabelText("Laboratory summary")).getByText("ACTIVE"),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Leyline Override active until/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/waiting for an omenpath/i)).toBeInTheDocument();
     expect(screen.getAllByTestId("portal-slot")).toHaveLength(7);
     expect(

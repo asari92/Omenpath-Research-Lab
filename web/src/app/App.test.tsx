@@ -38,8 +38,14 @@ describe("application routes", () => {
     );
     expect(screen.getAllByTestId("observer-pip")).toHaveLength(20);
     expect(
-      screen.getByRole("img", { name: "17 of 20 Observers in Lab" }),
+      screen.getByRole("img", {
+        name: "Observer status: 5 available, 15 deployed, 0 lost",
+      }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("leyline-energy-layer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(screen.getByText("Leyline Override")).toBeInTheDocument();
     expect(screen.getByText(/0 \/ 85/)).toBeInTheDocument();
     expect(screen.getByText(/Active 0 \/ 7/)).toBeInTheDocument();
