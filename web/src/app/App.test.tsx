@@ -29,10 +29,20 @@ describe("application routes", () => {
       "data-override",
       "true",
     );
+    expect(screen.getByTestId("app-shell")).toHaveAttribute(
+      "data-visual-theme",
+      "arcane-laboratory",
+    );
+    expect(screen.getByTestId("lab-energy-gauge")).toHaveTextContent(
+      `${snapshot.lab.current_energy} / ${snapshot.lab.maximum_energy}`,
+    );
     expect(screen.getAllByTestId("observer-pip")).toHaveLength(20);
     expect(
       screen.getByRole("img", { name: "17 of 20 Observers in Lab" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Leyline Override")).toBeInTheDocument();
+    expect(screen.getByText(/0 \/ 85/)).toBeInTheDocument();
+    expect(screen.getByText(/Active 0 \/ 7/)).toBeInTheDocument();
     await act(async () => {});
     act(() => store.setConnection("reconnecting"));
     expect(
