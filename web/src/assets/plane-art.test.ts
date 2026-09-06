@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import audit from "../../../data/plane_art_audit.json";
 
@@ -11,9 +12,21 @@ import { planeArt, planeArtEntries } from "./plane-art";
 
 describe("local plane artwork", () => {
   it("passes the complete reviewed text-free artwork audit", () => {
-    expect(audit.map((entry) => entry.plane_id)).toEqual(seed.planes.map((plane)=>plane.id));
-    expect(audit.filter((entry)=>!entry.reviewed || !entry.text_free || !entry.frame_free).map((entry)=>entry.plane_id)).toEqual([]);
-    expect(manifest.entries.filter((entry)=>entry.fallback).map((entry)=>entry.plane_id)).toEqual([]);
+    expect(audit.map((entry) => entry.plane_id)).toEqual(
+      seed.planes.map((plane) => plane.id),
+    );
+    expect(
+      audit
+        .filter(
+          (entry) => !entry.reviewed || !entry.text_free || !entry.frame_free,
+        )
+        .map((entry) => entry.plane_id),
+    ).toEqual([]);
+    expect(
+      manifest.entries
+        .filter((entry) => entry.fallback)
+        .map((entry) => entry.plane_id),
+    ).toEqual([]);
   });
   it("maps every seed ID exactly once to a unique local file", () => {
     const seedIDs = seed.planes.map((plane) => plane.id).sort((a, b) => a - b);
@@ -46,8 +59,15 @@ describe("local plane artwork", () => {
       const file = await readFile(absolute);
       const metadata = await sharp(file).metadata();
       expect(metadata.format).toBe("webp");
-      expect(metadata.width).toBeLessThanOrEqual(512);
-      expect(metadata.height).toBeLessThanOrEqual(512);
+      expect(metadata.width).toBe(512);
+      expect(metadata.height).toBe(512);
+      expect(createHash("sha256").update(file).digest("hex")).toBe(
+        entry.sha256,
+      );
+      expect(entry.fallback).toBe(false);
+      await expect(sharp(file).raw().toBuffer()).resolves.toBeInstanceOf(
+        Buffer,
+      );
       expect(file.byteLength).toBeLessThanOrEqual(180 * 1024);
     }
   });

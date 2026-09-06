@@ -2410,3 +2410,43 @@ typecheck/lint/build/formatting PASS. Desktop/phone Details + Tutorial browser
 suite: 19 PASS, 1 desktop-only journey skip. Browser checks wait beyond 2200ms
 for both terminal statuses, assert full-size/opacity/transform/grayscale, and
 retain exact ghost timing plus the real same-cookie Tutorial-to-Live journey.
+
+### Block D corrective DC-9 — complete Plane artwork catalog
+
+RED `7505f35` added a truthful 85-row visual audit and file/source checks. The
+standalone audit and focused test rejected exactly 25 Planes: 21 named SVG
+placeholders and the known text-only images 14/21/32/75. The existing 60 clean
+artist-attributed crops were retained unchanged after contact-sheet review.
+
+Public lore/source research and the local catalog did not establish suitable
+distinct reusable replacement images. Built-in OpenAI image generation produced
+25 original square environment paintings, with one separate prompt per Plane
+and a coherent painterly treatment. Canonical place names come from the seed;
+published descriptions inform the prompts. For obscure worlds with unspecified
+geography, provenance explicitly calls the scenery an artistic interpretation,
+not new canonical lore. Nether Void deliberately depicts the recorded white
+void with faint supernatural entities rather than invented terrain.
+
+Each changed image was individually inspected. Skalla's first output contained
+pseudo-glyphs and Tavelia's contained an imitation signature; targeted built-in
+edits removed them and both were inspected again. The final all-85 contact sheet
+was visually reviewed. Installed Sharp normalized only the 25 replacements using
+the existing 512x512/WebP quality ladder; no dependencies were installed. Final
+assets live in `web/public/planes/`; prompts, source review, lore links and
+generation identifiers live in `data/plane_image_sources.json` and the public
+`web/public/plane-art-provenance.json` linked by Artwork Credits. Original tool
+PNGs remain in the tool's generated-images directory; runtime uses local WebP.
+
+The audit verifies exact seed ID coverage, unique safe local paths, file hashes,
+decoding, exact dimensions, 180KiB budget, zero seeded fallbacks, reviewed
+text/frame flags, matching source credits/policies and generated provenance.
+Known bad hashes are rejected. `assets:prepare -- --offline` now runs this audit
+as well as its existing hash check. UI-013 is GREEN; DC-10 and Stage 22 are not
+started by this checkpoint.
+
+Verification: audit 85/85 PASS; offline preparation PASS; focused artwork/credits
+5 tests PASS; full frontend 36 files / 171 tests PASS; typecheck/lint/build PASS.
+The existing Vite bundle-size advisory remains non-failing. Go verification
+initially encountered the sandbox's read-only default cache; it was rerun with
+the required execution permission. gofmt output empty; Go vet/build/full tests
+PASS. All 85 runtime images total 4,024,798 bytes; largest is 91,814 bytes.

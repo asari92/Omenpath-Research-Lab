@@ -29,23 +29,23 @@
       "plane_id": 3,
       "plane_name": "Alacria",
       "local_path": "/planes/03-alacria.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "5f460fbd0116e6d056d2f8d353e3b7fa698501d74b4e25da18c1e260c1f84b8d",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-70113068-7045-49ac-a771-6985c2415938",
+      "credit": "OpenAI image generation — original Alacria interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "8d3db170c97d17ac14cf5f3a9436d1c88ee78f0d8ed28e54c47753a568220889",
+      "fallback": false
     },
     {
       "plane_id": 4,
       "plane_name": "Alkabah",
       "local_path": "/planes/04-alkabah.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "54c54556c6bb96879206b3b9c42fa7c5a991584a82837e367fdbd963d74a80c9",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-1b37c327-86d8-49c1-b477-d5e387232d1e",
+      "credit": "OpenAI image generation — original Alkabah interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "fec048929d660ab489cc1f710c08a6a32e258173d5620fcb61c729b190f117ee",
+      "fallback": false
     },
     {
       "plane_id": 5,
@@ -73,12 +73,12 @@
       "plane_id": 7,
       "plane_name": "Aranzhur",
       "local_path": "/planes/07-aranzhur.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "a9415314bd2eb8ca97c3d000317e85d4fdb3bf27a31c316ba5496d1e3e1dabfa",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-6570a1a8-3483-49ad-b564-80fa0a27b65d",
+      "credit": "OpenAI image generation — original Aranzhur interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "8449e10ddbd31c9d38bc6f0b8195f89a560440fe736b62ac4a4ee4e1bcbe74be",
+      "fallback": false
     },
     {
       "plane_id": 8,
@@ -128,12 +128,12 @@
       "plane_id": 12,
       "plane_name": "Azoria",
       "local_path": "/planes/12-azoria.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "f357febb0df0e12e0955aac8c752666c6e7f14afe21ecd24633cacd5507945b4",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-288ede98-362f-4f59-98c2-75d2f9db8af9",
+      "credit": "OpenAI image generation — original Azoria interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "c6357192f56bf173bbf164c0507859eed68ce62e9afc009dc82cdaa554cf18dc",
+      "fallback": false
     },
     {
       "plane_id": 13,
@@ -150,23 +150,23 @@
       "plane_id": 14,
       "plane_name": "Bloomburrow",
       "local_path": "/planes/14-bloomburrow.webp",
-      "source_url": "https://scryfall.com/card/punk/PLA038/welcome-to-valley?utm_source=api",
-      "source_object_id": "3c94c2c8-46fc-49da-a37b-460e7464aa08",
-      "credit": " — Welcome to Valley",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "634109c01fa423126e576f7eb26413c7a7ccd17e2605e56e5a24a100ccf7a303",
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-ca086a97-41c3-4a10-8fa1-68f7cfdcc075",
+      "credit": "OpenAI image generation — original Bloomburrow interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "a32cca4b93adb7f2f87d0bc8be4ac12a48e30bc8b8afb0488edf4954c3bb010a",
       "fallback": false
     },
     {
       "plane_id": 15,
       "plane_name": "Cabralin",
       "local_path": "/planes/15-cabralin.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "e11fff4d288c88e268ef58cc82ce163277171cd72d031c937b96b5b2a9f6a648",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-8150d9d5-c261-4645-8820-757abda17537",
+      "credit": "OpenAI image generation — original Cabralin interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "69ac2674f46d31babab7406ff64b01dbf82587f93bcb980cd428ddd20ff104ea",
+      "fallback": false
     },
     {
       "plane_id": 16,
@@ -183,12 +183,12 @@
       "plane_id": 17,
       "plane_name": "Celesta",
       "local_path": "/planes/17-celesta.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "84cbd05f60a2392f2f95bdb5971471c6b56042f46223624123e5d2f3bd28dceb",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-1d7eb2fe-9dc6-4447-83b1-417e01ae765d",
+      "credit": "OpenAI image generation — original Celesta interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "48a7f60a7edf8e55a5f373ed7799e9c7de254b1c0dd9092fb5e94c7c3f6c31fc",
+      "fallback": false
     },
     {
       "plane_id": 18,
@@ -205,12 +205,12 @@
       "plane_id": 19,
       "plane_name": "Diraden",
       "local_path": "/planes/19-diraden.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "90b76c53175308d694c3c6ad05b37d7543d4d884925f24e6b18fb92a26e6e180",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-d7b8c6d1-4e2f-451d-a528-6d6b8307890a",
+      "credit": "OpenAI image generation — original Diraden interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "9a40ce836469ce1de0b50af853234f18c0ab2db797354f63ad0674225cce6987",
+      "fallback": false
     },
     {
       "plane_id": 20,
@@ -227,11 +227,11 @@
       "plane_id": 21,
       "plane_name": "Duskmourn",
       "local_path": "/planes/21-duskmourn.webp",
-      "source_url": "https://scryfall.com/card/punk/PLA031/no-way-out?utm_source=api",
-      "source_object_id": "44f6daf9-e3fa-474e-a6af-356c619f8d22",
-      "credit": " — No Way Out",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "8099f4d45f160c205950506c0eacd82a59fb3757ee522e5ea645cfca9a62a52d",
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-05240c51-8371-4bf5-ac73-f19ca39a61e5",
+      "credit": "OpenAI image generation — original Duskmourn interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "c6c84f8d3f79a404ddfb81666112a8fc8ddefecc202e7597d07c898cedff1f71",
       "fallback": false
     },
     {
@@ -249,12 +249,12 @@
       "plane_id": 23,
       "plane_name": "The Edge",
       "local_path": "/planes/23-the-edge.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "c6453f824ca9b50d1f90b2757c3a7edf7640c0a9232a1443ba2f3a748d951026",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-ee6b6e3d-cb26-4e26-b8d0-e0567bc29276",
+      "credit": "OpenAI image generation — original The Edge interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "5766f72d591db2a76047bc89567e70d4b6146444df225cc0b057aed064ec5409",
+      "fallback": false
     },
     {
       "plane_id": 24,
@@ -326,12 +326,12 @@
       "plane_id": 30,
       "plane_name": "Gastal",
       "local_path": "/planes/30-gastal.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "f46003c0a1806afcaa986cc86f36799d64ed1dc3dcda9f4231389ded7493d855",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-ab26cf48-d328-4f5f-873a-1aa53918626a",
+      "credit": "OpenAI image generation — original Gastal interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "fbb26dd0b3e9aef995a636056f4f32823c4e6d5e158835e6244f09717a9ca6ad",
+      "fallback": false
     },
     {
       "plane_id": 31,
@@ -348,11 +348,11 @@
       "plane_id": 32,
       "plane_name": "Hell",
       "local_path": "/planes/32-hell.webp",
-      "source_url": "https://scryfall.com/card/punk/PLA025/asmoranomardicadaistinaculdacars-kitchen?utm_source=api",
-      "source_object_id": "847b7b50-9262-4c35-be7a-00e9d2fb581e",
-      "credit": " — Asmoranomardicadaistinaculdacar's Kitchen",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "6de433ae14a27bfbfa7a862742e898a7b66718b3ba4b1adcf90c286a80df0326",
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-55f83bc4-92ef-4d80-b0be-0453a5d6b902",
+      "credit": "OpenAI image generation — original Hell interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "2be4c7fa602fd1183ba990e10c7d6f8a02792bf2cdb3d59063a136483ebeca11",
       "fallback": false
     },
     {
@@ -370,12 +370,12 @@
       "plane_id": 34,
       "plane_name": "Ilcae",
       "local_path": "/planes/34-ilcae.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "e009da7e5fac78ad2696b9313220973c75f3089fdf828b58258b5e378a99917c",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-37c3a302-f5b2-4748-8340-2852c5547c20",
+      "credit": "OpenAI image generation — original Ilcae interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "6d86e4df225411ba78f275466f63f72a28c72c9b19e871f58f9bbf6190e43af4",
+      "fallback": false
     },
     {
       "plane_id": 35,
@@ -480,12 +480,12 @@
       "plane_id": 44,
       "plane_name": "Kodisha",
       "local_path": "/planes/44-kodisha.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "a2f6be1d330342f84ea706ceb65e858057d58af3ab054d81db8f3a7b4547dee9",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-24cf1107-7f06-47b2-ad69-9568de56451d",
+      "credit": "OpenAI image generation — original Kodisha interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "85d0577443d694c23a07aaf3794bdbbdcf01ee1187e85f18fbb84d1e20a39c23",
+      "fallback": false
     },
     {
       "plane_id": 45,
@@ -568,23 +568,23 @@
       "plane_id": 52,
       "plane_name": "Metal Island",
       "local_path": "/planes/52-metal-island.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "cdcd8d45bbcf2616b7b8569052b0aaafd5be92bc7f72eb918dba70f15342d84b",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-8030682f-fdce-4d79-9252-986fe3b117cf",
+      "credit": "OpenAI image generation — original Metal Island interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "5694d874eb646f74df50aee3b10ee7c0039cafa138735f488c6ee8bc09749c03",
+      "fallback": false
     },
     {
       "plane_id": 53,
       "plane_name": "Mirrankkar",
       "local_path": "/planes/53-mirrankkar.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "caaea920e27be2ca5642549b06f88a685d11a528b34dae8cf55dff7dfdf86125",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-97e7fb06-0c18-4c1b-aef9-8c3be2fe1df7",
+      "credit": "OpenAI image generation — original Mirrankkar interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "898b57024ae69d60437a37809978ae092b369c180db7c7300eae84e69cc45de1",
+      "fallback": false
     },
     {
       "plane_id": 54,
@@ -623,12 +623,12 @@
       "plane_id": 57,
       "plane_name": "Nether Void",
       "local_path": "/planes/57-nether-void.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "32320870cfc8f252f47ad2260c7943bdb3f8657da389380e0d044bd3f0cb6bd7",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-1f2b9db8-0fc0-4769-88d2-7988c50b3dcd",
+      "credit": "OpenAI image generation — original Nether Void interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "84b351678db4ad192ee59ae5b96365b11022893735018f48da7ec500e13c9da8",
+      "fallback": false
     },
     {
       "plane_id": 58,
@@ -645,12 +645,12 @@
       "plane_id": 59,
       "plane_name": "Obsidias",
       "local_path": "/planes/59-obsidias.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "c80e3b748fc4b2fa98a4b606a3bfb6ab3b73fb95a6177701c0a5f362c5d5b94c",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-ffa73551-4e98-43d0-ae3e-9ffcf285996b",
+      "credit": "OpenAI image generation — original Obsidias interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "f9aba8bcf62f221942a943200b601298fdabd80c79f01ebdf6ede282693f6c76",
+      "fallback": false
     },
     {
       "plane_id": 60,
@@ -744,12 +744,12 @@
       "plane_id": 68,
       "plane_name": "Seven planes of Parnash",
       "local_path": "/planes/68-seven-planes-of-parnash.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "ec12cc02f53be9769637cc05e3fff50ff973f72c7f19a41a1f3e19bdd0f8dbe6",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-e52ea26a-9e2a-4cff-8741-15f25fb7b11b",
+      "credit": "OpenAI image generation — original Seven planes of Parnash interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "8660882fb245d771031d018836c44a80a3b042cd06d44a83d8ee3268f17e3678",
+      "fallback": false
     },
     {
       "plane_id": 69,
@@ -777,12 +777,12 @@
       "plane_id": 71,
       "plane_name": "Skalla",
       "local_path": "/planes/71-skalla.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "4e7cec05d2d42b4415d1a72489605256e5eeb574fccfa530cc6fc9cea4005366",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-48a6af7c-05c2-43aa-a07c-3342e854ebd6",
+      "credit": "OpenAI image generation — original Skalla interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "b5e3b13e1d81b179c4bcbf3a8aab01b4b8fb76dff65fe385b886ee4f15eb72fa",
+      "fallback": false
     },
     {
       "plane_id": 72,
@@ -799,12 +799,12 @@
       "plane_id": 73,
       "plane_name": "Tavelia",
       "local_path": "/planes/73-tavelia.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "25bea92cce6f9f30bc25d9c157e32c417cf3c68f826ff24d8a609436b322985f",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-d938c1fc-5b0d-4f56-b6db-d4f3907f5711",
+      "credit": "OpenAI image generation — original Tavelia interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "ee9916617002576db7b4ca43ca40e9e8c1b1efa99c8945d11ca5048c54dc7983",
+      "fallback": false
     },
     {
       "plane_id": 74,
@@ -821,34 +821,34 @@
       "plane_id": 75,
       "plane_name": "Thunder Junction",
       "local_path": "/planes/75-thunder-junction.webp",
-      "source_url": "https://scryfall.com/card/punk/PLA015/high-noon-at-thunder-junction?utm_source=api",
-      "source_object_id": "57e2826a-7d0f-4227-981f-161587a70830",
-      "credit": " — High Noon At Thunder Junction",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "878887e8bd371d73d174f691dc287ac5f18726e17f398ad33eba77884846a460",
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-66564ca6-0789-44f4-8935-6b525227ebbb",
+      "credit": "OpenAI image generation — original Thunder Junction interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "8d1b98847133f21b86c322a1eb7f79758a70cc5fa9e9db146da4e96e528dbf1f",
       "fallback": false
     },
     {
       "plane_id": 76,
       "plane_name": "Tolvada",
       "local_path": "/planes/76-tolvada.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "4adabed042d959df2e20331b66457ac0524cf47f0b8245b7cfcae03f522fbf09",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-cb34e19f-7fc0-4aa4-bcb2-6f39a4890da5",
+      "credit": "OpenAI image generation — original Tolvada interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "ee285ee84ce064f134b74b0c2ef8597cd1e377f179465141a3d6a1ec4f6cd975",
+      "fallback": false
     },
     {
       "plane_id": 77,
       "plane_name": "Torwynn",
       "local_path": "/planes/77-torwynn.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "d7a75d8bab907c5d623c4a9f50bc8f894a1d31b144c32fce44f41c1286e4c7b9",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-fc1ec76b-d11c-4e62-a624-502a4e88e3b1",
+      "credit": "OpenAI image generation — original Torwynn interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "f2301337f8574b3c9fb05c7badcee71a82b3e99f2bf45a4601d86570e515d3a3",
+      "fallback": false
     },
     {
       "plane_id": 78,
@@ -876,12 +876,12 @@
       "plane_id": 80,
       "plane_name": "Vatraquaz",
       "local_path": "/planes/80-vatraquaz.webp",
-      "source_url": "generated:omenpath-plane-fallback",
-      "source_object_id": null,
-      "credit": "Omenpath Research Lab generated fallback",
-      "policy_url": "https://company.wizards.com/en/legal/fancontentpolicy",
-      "sha256": "dfd028e7ffab6370e8c711ce3440f5b372d59c641bf15877de36b4322061e6c3",
-      "fallback": true
+      "source_url": "/plane-art-provenance.json",
+      "source_object_id": "openai-generated:exec-b3d6f1ab-ec69-4d54-b6ff-1f69ea7978a0",
+      "credit": "OpenAI image generation — original Vatraquaz interpretation",
+      "policy_url": "https://openai.com/policies/terms-of-use/",
+      "sha256": "6389227e3f1f6ac89c7e945e8314a4672991ab66b2d5d8360c0586c118bfa2ee",
+      "fallback": false
     },
     {
       "plane_id": 81,

@@ -18,17 +18,17 @@
   {
     "plane_id": 3,
     "local_path": "/planes/03-alacria.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
     "plane_id": 4,
     "local_path": "/planes/04-alkabah.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -50,9 +50,9 @@
   {
     "plane_id": 7,
     "local_path": "/planes/07-aranzhur.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -90,9 +90,9 @@
   {
     "plane_id": 12,
     "local_path": "/planes/12-azoria.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -106,17 +106,17 @@
   {
     "plane_id": 14,
     "local_path": "/planes/14-bloomburrow.webp",
-    "source_kind": "fan_content_art_crop",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
     "plane_id": 15,
     "local_path": "/planes/15-cabralin.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -130,9 +130,9 @@
   {
     "plane_id": 17,
     "local_path": "/planes/17-celesta.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -146,9 +146,9 @@
   {
     "plane_id": 19,
     "local_path": "/planes/19-diraden.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -162,9 +162,9 @@
   {
     "plane_id": 21,
     "local_path": "/planes/21-duskmourn.webp",
-    "source_kind": "fan_content_art_crop",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -178,9 +178,9 @@
   {
     "plane_id": 23,
     "local_path": "/planes/23-the-edge.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -234,9 +234,9 @@
   {
     "plane_id": 30,
     "local_path": "/planes/30-gastal.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -250,9 +250,9 @@
   {
     "plane_id": 32,
     "local_path": "/planes/32-hell.webp",
-    "source_kind": "fan_content_art_crop",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -266,9 +266,9 @@
   {
     "plane_id": 34,
     "local_path": "/planes/34-ilcae.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -346,9 +346,9 @@
   {
     "plane_id": 44,
     "local_path": "/planes/44-kodisha.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -410,17 +410,17 @@
   {
     "plane_id": 52,
     "local_path": "/planes/52-metal-island.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
     "plane_id": 53,
     "local_path": "/planes/53-mirrankkar.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -450,9 +450,9 @@
   {
     "plane_id": 57,
     "local_path": "/planes/57-nether-void.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -466,9 +466,9 @@
   {
     "plane_id": 59,
     "local_path": "/planes/59-obsidias.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -538,9 +538,9 @@
   {
     "plane_id": 68,
     "local_path": "/planes/68-seven-planes-of-parnash.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -562,9 +562,9 @@
   {
     "plane_id": 71,
     "local_path": "/planes/71-skalla.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -578,9 +578,9 @@
   {
     "plane_id": 73,
     "local_path": "/planes/73-tavelia.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -594,25 +594,25 @@
   {
     "plane_id": 75,
     "local_path": "/planes/75-thunder-junction.webp",
-    "source_kind": "fan_content_art_crop",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
     "plane_id": 76,
     "local_path": "/planes/76-tolvada.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
     "plane_id": 77,
     "local_path": "/planes/77-torwynn.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {
@@ -634,9 +634,9 @@
   {
     "plane_id": 80,
     "local_path": "/planes/80-vatraquaz.webp",
-    "source_kind": "placeholder",
-    "text_free": false,
-    "frame_free": false,
+    "source_kind": "generated_original",
+    "text_free": true,
+    "frame_free": true,
     "reviewed": true
   },
   {

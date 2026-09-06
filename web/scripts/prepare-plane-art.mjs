@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import sharp from "sharp";
+import { auditPlaneArt } from "./audit-plane-art.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(scriptDir, "..");
@@ -53,6 +54,8 @@ if (mode === "offline") {
     if (sha256(file) !== entry.sha256)
       throw new Error(`Hash mismatch for Plane ${entry.plane_id}`);
   }
+  const audit = await auditPlaneArt();
+  if (audit.errors.length) throw new Error(audit.errors.join("\n"));
   process.stdout.write(
     `Verified ${manifest.entries.length} local Plane assets offline.\n`,
   );
