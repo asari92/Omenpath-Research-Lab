@@ -257,7 +257,8 @@ describe("DashboardPage", () => {
     snapshot.lab.current_energy = 73;
     snapshot.exploration.explored = 11;
     snapshot.observers.available = 4;
-    snapshot.observers.in_worlds = 3;
+    snapshot.observers.in_lab = 4;
+    snapshot.observers.in_worlds = 13;
     snapshot.observers.in_transit = 2;
     snapshot.observers.lost = 1;
     snapshot.portals.active = 2;
@@ -265,14 +266,25 @@ describe("DashboardPage", () => {
     renderDashboard(snapshot);
 
     const summary = screen.getByLabelText("Laboratory summary");
-    expect(within(summary).getAllByTestId("observer-pip")).toHaveLength(20);
+    const pips = within(summary).getAllByTestId("observer-pip");
+    expect(pips).toHaveLength(20);
+    expect(pips.filter((pip) => pip.dataset.state === "available")).toHaveLength(
+      4,
+    );
+    expect(pips.filter((pip) => pip.dataset.state === "deployed")).toHaveLength(
+      15,
+    );
+    expect(pips.filter((pip) => pip.dataset.state === "lost")).toHaveLength(1);
+    expect(
+      screen.getByRole("img", {
+        name: /observer status: 4 available, 15 deployed, 1 lost/i,
+      }),
+    ).toBeVisible();
+    expect(summary).not.toHaveTextContent("Available 4");
     for (const text of [
       "73 / 100",
+      "19 / 20",
       "11 / 85",
-      "Available 4",
-      "In worlds 3",
-      "In transit 2",
-      "Lost 1",
       "Active 2 / 7",
       "Critical 1",
     ]) {
