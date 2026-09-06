@@ -335,3 +335,5 @@
 | RealRandom | `internal/random` tests | GREEN | bounds, degenerate range, panic, concurrency |
 | FakeRandom | `testutil` random tests | GREEN | queue order, passthrough, exhaustion panic |
 | PortalBuilder | `testutil` builders tests | GREEN | defaults + fluent overrides + unstable fixture |
+| Production HTTP surface | `TestProductionHandler_*`, `TestServerConfig_WebRootEnvironment` | GREEN | `/health`, static files, SPA fallback and unchanged REST/`/ws/lab` delegation |
+| Minimal container delivery | Docker build, resolved Compose config, local health/SPA/REST/WS and recreate smoke | GREEN | 38.2 MB non-root image; loopback-only production binding; SQLite and session survive container recreate through `/opt/omenpath/data:/var/lib/omenpath` |

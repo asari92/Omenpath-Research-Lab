@@ -27,8 +27,8 @@ Block, он реализуется stage-by-stage, затем проходит �
 | A — Specification & Domain Foundation | 0–2 | GREEN | `03_STAGE_00_01_TDD_FOUNDATION.md`, `04_STAGE_02_PORTAL_CORE_TDD.md` | завершён и проверен |
 | B — Observers & Simulation | 3–8 | GREEN | `05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md` … `10_STAGE_08_SIMULATION_TDD.md` | завершён и проверен |
 | C — Persistence & Transport | 9–14 | GREEN | `11_BLOCK_C_STAGE_09_14_TDD.md` | завершён; итоговый audit APPROVED |
-| D — Frontend | 15–21 + corrective gate | GREEN | `12_BLOCK_D_STAGE_15_21_TDD.md`, `13_BLOCK_D_CORRECTIVE_TDD.md`; original и corrective design specs | Stages 15–21 и DC-1–10 завершены; full backend/frontend/race/browser gate GREEN; ожидает пользовательскую сверку |
-| E — Quality & Delivery | 22–27 | PLANNED | создаётся только после повторной сверки Block D | начинать нельзя |
+| D — Frontend | 15–21 + corrective gate | GREEN | `12_BLOCK_D_STAGE_15_21_TDD.md`, `13_BLOCK_D_CORRECTIVE_TDD.md`; original и corrective design specs | Stages 15–21 и DC-1–10 завершены; full backend/frontend/race/browser gate GREEN |
+| E — Minimal Deployment | 22–25 | GREEN | `14_BLOCK_E_MINIMAL_DEPLOYMENT.md`, deployment design spec | production image, loopback Compose, persistence, runbook и local launch smoke завершены; extended QA отложена |
 
 ### Блоковый delivery-режим после Stage 8
 
@@ -37,7 +37,7 @@ Block, он реализуется stage-by-stage, затем проходит �
 ```text
 Block C = Stages 9–14
 Block D = Stages 15–21
-Block E = Stages 22–27
+Block E = Stages 22–25 (утверждённый deployment-first scope)
 ```
 
 На каждый блок создаётся один detailed plan с отдельными scope/DoD и
@@ -47,6 +47,11 @@ ordinary suite и обновлением traceability/worklog. На границ
 полный quality suite с race detector, выполняется сверка с Final Spec и работа
 останавливается для пользовательской «сверки часов». Следующий блок до этой
 сверки не начинается.
+
+Исключение для срочного первого deploy: пользователь отдельно сократил Block E
+до launch-essential gate из `14_BLOCK_E_MINIMAL_DEPLOYMENT.md`. Поэтому
+повторные race/E2E, balance simulation и extended audit не входят в завершённый
+deployment slice и перечислены в deferred backlog, а не считаются выполненными.
 
 Полное описание режима:
 [`docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md`](docs/superpowers/specs/2026-09-04-block-delivery-mode-design.md).
@@ -212,8 +217,8 @@ corrective scope DC-1–10 завершены и прошли boundary verificat
 RED/GREEN commits и corrective reviews перечислены в текущем worklog.
 Full Go vet/build/test/race, frontend formatting/lint/typecheck/test/build,
 85/85 artwork audit/offline prepare и browser suite (47 PASS, 5 явных
-project-specific skips) завершены успешно. Block E не начат; следующий шаг —
-пользовательская сверка завершённого Block D.
+project-specific skips) завершены успешно. Последующий сокращённый Block E
+также завершён; его отдельное evidence приведено ниже.
 
 ### Stage 15 — Frontend foundation
 React + TypeScript + Vite, router, REST client, WebSocket client, shared state, error handling.
@@ -258,7 +263,7 @@ DC-10 проверяет browser isolation, restart и cleanup через test-o
 
 ## Block E — Minimal Deployment
 
-**Status: PLANNED.** Пользователь утвердил deployment-first scope в
+**Status: GREEN в утверждённом deployment-first scope.** Реализация выполнена по
 [`14_BLOCK_E_MINIMAL_DEPLOYMENT.md`](14_BLOCK_E_MINIMAL_DEPLOYMENT.md) и
 [`docs/superpowers/specs/2026-09-06-block-e-deployment-design.md`](docs/superpowers/specs/2026-09-06-block-e-deployment-design.md).
 Существующие VPS, host nginx, HTTPS/Certbot, DNS и системная инфраструктура
@@ -266,19 +271,21 @@ DC-10 проверяет browser isolation, restart и cleanup через test-o
 
 ### Stage 22 — Production HTTP surface
 Health endpoint и раздача compiled SPA тем же Go process, который обслуживает
-REST и `/ws/lab`.
+REST и `/ws/lab`. **GREEN.**
 
 ### Stage 23 — Container and persistence
 Один multi-stage application image, Compose binding
 `127.0.0.1:8080:8080`, SQLite bind mount `/opt/omenpath/data` и production env.
+**GREEN.**
 
 ### Stage 24 — Deployment handoff
 Точные команды первого запуска/обновления и минимальные `location` snippets для
-уже существующего host nginx.
+уже существующего host nginx. **GREEN.**
 
 ### Stage 25 — Minimal launch gate
 Production image, resolved Compose config, container health, root SPA и
-loopback binding. Полный browser/manual gameplay QA в этот gate не входит.
+loopback binding. **GREEN.** Полный browser/manual gameplay QA в этот gate не
+входит.
 
 ### Deferred delivery backlog
 

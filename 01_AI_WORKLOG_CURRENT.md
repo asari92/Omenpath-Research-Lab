@@ -1,5 +1,5 @@
 # AI Worklog — Current
-## Stage: Blocks A–D / Stages 0–21 and Block D corrective gate GREEN; Block E PLANNED
+## Stage: Blocks A–D GREEN; Block E minimal deployment slice GREEN
 
 > Это честный журнал процесса. Его нужно дополнять по мере реализации. Не переписывать задним числом под «идеальную историю».
 
@@ -2601,3 +2601,42 @@ Compose service, SQLite bind mount, production env, operator runbook и коро
 launch smoke. Balance simulation, повторный exhaustive E2E/race matrix,
 external manual QA и полный consistency audit оставлены в delivery backlog и не
 будут ошибочно объявлены выполненными.
+
+### 2026-09-06 — Block E minimal deployment implemented
+
+Stage 22 добавил production HTTP wrapper: публичный `GET /health`, compiled SPA
+и history fallback обслуживаются тем же Go process, а `/api/*` и `/ws/lab`
+остаются на существующем router. RED был получен компиляцией focused tests:
+отсутствовали `NewProductionHandler` и `serverConfig.webRoot`; после минимальной
+реализации `go test -count=1 ./internal/httpapi ./cmd/server` стал GREEN. Commit:
+`dcd617a`.
+
+Stage 23 добавил трёхстадийный non-root image, secret-safe `.dockerignore`, один
+Compose application service и production env contract. Первый `docker build`
+был RED: runtime frontend import `data/plane_images_manifest.json` отсутствовал
+в web-build stage. Root cause исправлен единственным `COPY data ./data`; повторная
+сборка GREEN. Итоговый Alpine image — 38.2 MB. `docker compose config` подтвердил
+`127.0.0.1:8080:8080` и bind mount
+`/opt/omenpath/data:/var/lib/omenpath`. Commit: `31b03ca`.
+
+Stage 24 добавил `docs/deployment.md` с точными first-launch/update командами,
+production variables и двумя snippets для уже существующего host nginx. Проект
+не менял VPS, nginx, Certbot, DNS, firewall, SSH или CI/CD. Commit: `42b3086`.
+
+Stage 25 local image smoke запущен на временном `127.0.0.1:18081`, потому что на
+рабочей машине порт 8080 уже занят, а server-only `/opt/omenpath/data` отсутствует.
+Это не меняет production Compose contract: resolved config отдельно подтвердил
+точный loopback binding `127.0.0.1:8080`. Контейнер стал healthy; `/health`
+вернул `{"status":"ok"}`, `/` и `/api/state` — `200`, `/ws/lab` — handshake
+`101`. SQLite появился только в temporary bind mount. После container recreate
+запрос с прежней cookie вернул `200` без нового `Set-Cookie`, подтвердив
+persistent server-side session. Временный контейнер и данные удалены.
+
+Essential verification: `gofmt -l .` clean; `go vet ./...`, `go build ./...`,
+`go test -count=1 ./...`, frontend typecheck/build и Docker build PASS. Первый
+обычный full Go test был environment RED из-за запрещённого sandbox listener;
+тот же suite с localhost permission прошёл полностью. По прямому решению
+пользователя full Playwright E2E, race, balance simulation, external manual QA и
+extended consistency audit в этом deployment-first pass не запускались и
+остаются deferred. Block E завершён только в границах
+`14_BLOCK_E_MINIMAL_DEPLOYMENT.md`.
