@@ -92,31 +92,36 @@ export function PortalSlot({
           />
         )}
       </div>
-      <PortalActions
-        offline={!commandsEnabled(state)}
-        outcome={command.outcome}
-        busyKey={command.busyKey}
-        expectedCriticalSend={
-          snapshot ? isExpectedCriticalSend(snapshot.app, portal.id) : false
-        }
-        highlightedCommand={
-          target?.portalId === portal.id ? target.command : null
-        }
-        onCommand={command.run}
-        portalId={ghost ? null : portal.id}
-        quickActions={ghost ? null : portal.quick_actions}
-      />
-      {ghost ? (
-        <span>Portal ended</span>
-      ) : (
+      <div className={styles.commandLayer}>
+        <PortalActions
+          offline={!commandsEnabled(state)}
+          outcome={command.outcome}
+          busyKey={command.busyKey}
+          expectedCriticalSend={
+            snapshot ? isExpectedCriticalSend(snapshot.app, portal.id) : false
+          }
+          highlightedCommand={
+            target?.portalId === portal.id ? target.command : null
+          }
+          onCommand={command.run}
+          portalId={ghost ? null : portal.id}
+          quickActions={ghost ? null : portal.quick_actions}
+        />
+      </div>
+      {ghost ? <span>Portal ended</span> : (
         <Link
+          aria-label={`Inspect ${portal.name} on ${portal.destination_plane_name}`}
+          className={styles.cardLink}
           onClick={() =>
             recordNavigationIntent({ kind: "portal", id: portal.id })
           }
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.currentTarget.click();
+          }}
           to={`/portals/${portal.id}`}
-        >
-          Details
-        </Link>
+        />
       )}
     </article>
   );

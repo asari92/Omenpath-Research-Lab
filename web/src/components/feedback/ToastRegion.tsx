@@ -11,7 +11,12 @@ export function ToastRegion({
   onDismiss(): void;
 }) {
   return (
-    <div aria-label="Notifications" aria-live="polite" aria-atomic="true">
+    <div
+      aria-label="Notifications"
+      aria-live="polite"
+      aria-atomic="true"
+      data-placement="page-header"
+    >
       {messages.map((message) => (
         <p key={message.id} role="status">
           {message.message}

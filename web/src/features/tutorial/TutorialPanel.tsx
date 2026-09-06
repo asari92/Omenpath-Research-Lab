@@ -8,8 +8,10 @@ import styles from "./TutorialPanel.module.css";
 import { commandsEnabled } from "../../state/command-health";
 import { useTutorialPresentation } from "./useTutorialPresentation";
 import { tutorialSystem } from "./tutorial-copy";
+import { useNavigate } from "react-router-dom";
 
 export function TutorialPanel() {
+  const navigate = useNavigate();
   const { api, store } = useSnapshotContext();
   const state = useSnapshotState();
   const { commandKeys, snapshot } = state;
@@ -74,7 +76,9 @@ export function TutorialPanel() {
         guidance.cta === "START_LIVE" &&
         current.app.expected_action === "START_LIVE"
       ) {
-        store.acceptSnapshot(await api.startLive());
+        const next = await api.startLive();
+        store.acceptSnapshot(next);
+        if (next.app.mode === "LIVE") navigate("/");
       }
     } catch (error: unknown) {
       feedback.notify(

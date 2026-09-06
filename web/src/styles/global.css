@@ -51,8 +51,8 @@ h1 {
 [aria-label="Notifications"] {
   position: fixed;
   z-index: 60;
-  bottom: 3rem;
-  right: 1rem;
+  top: 1rem;
+  right: clamp(1rem, 3vw, 3rem);
   width: min(24rem, calc(100vw - 2rem));
   pointer-events: none;
 }

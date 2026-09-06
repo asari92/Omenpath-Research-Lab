@@ -87,7 +87,8 @@ export function tutorialGuidance(app: AppDTO): TutorialGuidance | null {
           "Portal Energy differs from Lab Energy and each Portal has individual energy loss. Time Remaining does not guarantee that Energy lasts as long.",
           "Portal Details explains Stability, Risk, Recommendation and History.",
         ],
-        instruction: "Open Details for the highlighted Portal.",
+        instruction:
+          "Select the highlighted Portal on the Dashboard to inspect it.",
         cta: null,
         waiting: false,
       };

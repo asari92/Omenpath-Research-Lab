@@ -76,10 +76,20 @@
   text-align: center;
   color: var(--accent);
 }
-.slot > a,
 .detailsPlaceholder {
   font-size: 0.7rem;
   line-height: 1.4;
+}
+.cardLink {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+}
+.commandLayer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
 }
 .emptyMark {
   width: 100%;
@@ -107,7 +117,6 @@
     font-size: 0.58rem;
   }
   .slot p,
-  .slot > a,
   .detailsPlaceholder {
     font-size: 0.5rem;
     line-height: 1.1;
