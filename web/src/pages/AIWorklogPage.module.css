@@ -4,7 +4,8 @@
   gap: 1rem;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  height: 100%;
+  overflow: hidden;
 }
 
 .toc {
@@ -16,7 +17,8 @@
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 0.5rem;
-  background: var(--surface-raised);
+  background: linear-gradient(130deg, #241a10e8, #0b0a08e8);
+  scrollbar-color: var(--line) transparent;
 }
 
 .toc ol {
@@ -37,8 +39,10 @@
   padding: clamp(0.75rem, 2vw, 1.5rem);
   border: 1px solid var(--line);
   border-radius: 0.5rem;
-  background: var(--surface);
+  overflow: auto;
+  background: linear-gradient(130deg, #18120cd4, #090908d4);
   line-height: 1.55;
+  scrollbar-color: var(--line) transparent;
 }
 
 .article :is(h1, h2, h3) {
@@ -49,7 +53,7 @@
   padding: 0.75rem;
   overflow: auto;
   border: 1px solid var(--line);
-  background: #090e14;
+  background: #080705;
 }
 
 .tableScroll {

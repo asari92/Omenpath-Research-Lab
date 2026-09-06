@@ -7,10 +7,16 @@
 }
 .page h1 {
   margin: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #9d713b88;
+  font-size: clamp(0.9rem, 1.45vw, 1.25rem);
 }
 .results {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 1px solid #6f4e2888;
+  background: #090907c7;
+  scrollbar-color: var(--line) transparent;
 }

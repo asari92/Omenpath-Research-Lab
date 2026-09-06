@@ -18,23 +18,23 @@ export function PortalFacts({ portal }: { portal: PortalViewDTO }) {
         )}
         <div>
           <dt>Status</dt>
-          <dd
-            style={portal.status !== "OPEN" ? { color: "#b7b7b7" } : undefined}
-          >
+          <dd data-status={portal.status}>
             {portal.status}
           </dd>
         </div>
         <div>
           <dt>Energy</dt>
-          <dd>{formatEnergy(portal.energy)}</dd>
+          <dd data-value-kind="energy">{formatEnergy(portal.energy)}</dd>
         </div>
         <div>
           <dt>Stability</dt>
-          <dd>{portal.stability}</dd>
+          <dd data-stability={portal.stability}>{portal.stability}</dd>
         </div>
         <div>
           <dt>Time Remaining</dt>
-          <dd>{formatRemaining(portal.time_remaining_seconds)}</dd>
+          <dd data-value-kind="time">
+            {formatRemaining(portal.time_remaining_seconds)}
+          </dd>
         </div>
         <div>
           <dt>Observer Flow</dt>

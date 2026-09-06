@@ -4,8 +4,9 @@
   flex-wrap: wrap;
   gap: 0.65rem;
   padding: 0.65rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid #74522b88;
+  background: linear-gradient(90deg, #1b140dc9, #0a0907bd);
+  color: var(--text);
 }
 .filters label {
   display: grid;
@@ -22,7 +23,7 @@
   position: absolute;
   z-index: 35;
   width: min(28rem, 75vw);
-  background: #211e19;
+  background: linear-gradient(110deg, #2a1d11f8, #100d09fa);
   padding: 0.6rem;
   border: 1px solid var(--line);
 }

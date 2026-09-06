@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { QuickActionsDTO } from "../../api/types";
+import { FeedbackProvider } from "../../components/feedback/FeedbackProvider";
 import { PortalActions } from "./PortalActions";
 
 const actions: QuickActionsDTO = {
@@ -28,11 +29,13 @@ describe("PortalActions", () => {
     const user = userEvent.setup();
     const onCommand = vi.fn();
     render(
-      <PortalActions
-        onCommand={onCommand}
-        portalId={42}
-        quickActions={actions}
-      />,
+      <FeedbackProvider>
+        <PortalActions
+          onCommand={onCommand}
+          portalId={42}
+          quickActions={actions}
+        />
+      </FeedbackProvider>,
     );
     await user.click(screen.getByRole("button", { name: "Stabilize" }));
     expect(onCommand).toHaveBeenCalledOnce();
@@ -43,11 +46,13 @@ describe("PortalActions", () => {
     const user = userEvent.setup();
     const onCommand = vi.fn();
     render(
-      <PortalActions
-        onCommand={onCommand}
-        portalId={42}
-        quickActions={actions}
-      />,
+      <FeedbackProvider>
+        <PortalActions
+          onCommand={onCommand}
+          portalId={42}
+          quickActions={actions}
+        />
+      </FeedbackProvider>,
     );
     const send = screen.getByRole("button", { name: "Send Observer" });
     expect(send).toHaveAttribute("aria-disabled", "true");

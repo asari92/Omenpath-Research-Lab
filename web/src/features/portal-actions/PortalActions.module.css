@@ -91,19 +91,6 @@
   box-shadow: 0 0 0.8rem color-mix(in srgb, var(--warning) 55%, transparent);
 }
 
-.wrapper p {
-  position: fixed;
-  inset: 1rem clamp(1rem, 3vw, 3rem) auto auto;
-  z-index: 45;
-  width: min(24rem, calc(100vw - 2rem));
-  margin: 0;
-  padding: 0.65rem;
-  border: 1px solid var(--line);
-  background: var(--surface-raised);
-  color: var(--text);
-  text-align: center;
-}
-
 @media (max-width: 600px) {
   .actions {
     gap: 0.1rem;

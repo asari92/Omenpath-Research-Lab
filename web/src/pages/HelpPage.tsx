@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import styles from "./HelpPage.module.css";
 
 const chapters = [
   [
@@ -57,9 +58,7 @@ const chapters = [
 
 export function HelpPage() {
   return (
-    <article
-      style={{ maxWidth: "65rem", padding: ".5rem 1rem", lineHeight: 1.65 }}
-    >
+    <article className={styles.page}>
       <h1>Help</h1>
       <p>The Omenpath Research Lab field guide</p>
       <nav aria-label="Field guide chapters">
@@ -67,7 +66,6 @@ export function HelpPage() {
           <a
             key={title}
             href={`#chapter-${index}`}
-            style={{ display: "inline-block", marginRight: "1rem" }}
           >
             {title}
           </a>

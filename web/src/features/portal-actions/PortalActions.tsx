@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import type { QuickActionsDTO } from "../../api/types";
+import { useFeedback } from "../../components/feedback/FeedbackProvider";
 import { unavailableActionCopy } from "./action-copy";
 import styles from "./PortalActions.module.css";
 
@@ -35,7 +34,7 @@ export function PortalActions({
   offline = false,
   outcome = null,
 }: PortalActionsProps) {
-  const [notice, setNotice] = useState<string | null>(null);
+  const feedback = useFeedback();
   const emptyReason = "No Portal occupies this Slot";
   const commands: CommandView[] = [
     {
@@ -91,23 +90,22 @@ export function PortalActions({
               key={item.command}
               onClick={() => {
                 if (offline) {
-                  setNotice(
+                  feedback.notify(
                     "Planar paths unstable. Wait for the link to recover.",
                   );
                   return;
                 }
                 if (!item.available || portalId === null) {
-                  setNotice(
+                  feedback.notify(
                     item.reason === emptyReason
                       ? emptyReason
                       : unavailableActionCopy(item.reason ?? "UNKNOWN"),
                   );
                   return;
                 }
-                setNotice(null);
                 void Promise.resolve(onCommand?.(item.command)).catch(
                   (error: unknown) => {
-                    setNotice(
+                    feedback.notify(
                       error instanceof Error ? error.message : "Command failed",
                     );
                   },
@@ -120,7 +118,6 @@ export function PortalActions({
           );
         })}
       </div>
-      {notice && <p role="status">{notice}</p>}
     </div>
   );
 }

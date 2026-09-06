@@ -1,0 +1,40 @@
+.page {
+  height: 100%;
+  max-width: 65rem;
+  padding: 0.55rem 1rem 1rem;
+  overflow: auto;
+  border: 1px solid #74522b88;
+  background: linear-gradient(130deg, #18120cd4, #090908d4);
+  line-height: 1.55;
+  scrollbar-color: var(--line) transparent;
+}
+
+.page > h1 {
+  margin-top: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #9d713b88;
+}
+
+.page > nav {
+  padding: 0.45rem;
+  border-block: 1px solid #65472277;
+  background: #21160ba8;
+}
+
+.page > nav a {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.page h2 {
+  color: var(--text-strong);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 0.35rem;
+    font-size: 0.72rem;
+  }
+}

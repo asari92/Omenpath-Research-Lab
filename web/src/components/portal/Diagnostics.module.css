@@ -1,17 +1,17 @@
 .diagnostics [data-risk="LOW"] {
-  color: #80d698;
+  color: var(--risk-low);
 }
 .diagnostics [data-risk="MEDIUM"] {
-  color: #e9d568;
+  color: var(--risk-medium);
 }
 .diagnostics [data-risk="HIGH"] {
-  color: #f5aa62;
+  color: var(--risk-high);
 }
 .diagnostics [data-risk="CRITICAL"] {
-  color: #ff7b7b;
+  color: var(--risk-critical);
 }
 .diagnostics [data-recommendation] {
-  color: #a7d4de;
+  color: var(--transit);
 }
 .diagnostics [data-recommendation="CLOSE"] {
   color: #ffaaa0;
@@ -27,13 +27,13 @@
   font-size: 0.9em;
 }
 .advice[data-advice-state="safe"] {
-  color: #80d698;
+  color: var(--risk-low);
 }
 .advice[data-advice-state="suggested"] {
-  color: #a7d4de;
+  color: var(--transit);
 }
 .advice[data-advice-state="urgent"] {
-  color: #f5aa62;
+  color: var(--risk-high);
 }
 .advice[data-advice-state="unavailable"] {
   color: #b7b7b7;
@@ -48,7 +48,7 @@
   right: 3%;
   bottom: 2rem;
   padding: 1rem;
-  background: #211e19;
+  background: linear-gradient(110deg, #2a1d11f5, #100d09f8);
   border: 1px solid var(--line);
   box-shadow: 0 5px 20px #000;
   font-size: 0.8rem;
