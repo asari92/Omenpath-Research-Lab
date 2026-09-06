@@ -16,6 +16,14 @@ function app(step: number, phase: TutorialPhase = ""): AppDTO {
 }
 
 describe("tutorialGuidance", () => {
+  it("tells the player to inspect the highlighted Portal card", () => {
+    const guidance = tutorialGuidance(app(1));
+    expect(guidance?.instruction).toBe(
+      "Select the highlighted Portal on the Dashboard to inspect it.",
+    );
+    expect(JSON.stringify(guidance)).not.toMatch(/Open Details|Details button/i);
+  });
+
   it("keeps Step 0 general and free of later prices/rules", () => {
     const guidance = tutorialGuidance(app(0));
     expect(guidance).toMatchObject({

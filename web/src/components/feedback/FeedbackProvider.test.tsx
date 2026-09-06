@@ -43,6 +43,7 @@ it("keeps newest feedback visible with a bounded accessible notification region"
     .click(screen.getByRole("button", { name: "Send notifications" }));
   const region = screen.getByLabelText("Notifications");
   expect(region).toHaveAttribute("aria-live", "polite");
+  expect(region).toHaveAttribute("data-placement", "page-header");
   expect(within(region).getAllByRole("status")).toHaveLength(1);
   expect(within(region).getByRole("status")).toBeVisible();
   expect(within(region).getByRole("status")).toHaveTextContent(

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
 
 import type { OmenpathApi } from "../../api/client";
 import { FeedbackProvider } from "../../components/feedback/FeedbackProvider";
@@ -15,6 +16,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
+
+function LocationProbe() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
 
 function setup(
   step: number,
@@ -45,13 +50,16 @@ function setup(
     sendObserver: vi.fn(),
   } as unknown as OmenpathApi;
   render(
-    <StrictMode>
-      <SnapshotProvider api={api} store={store}>
-        <FeedbackProvider>
-          <TutorialPanel />
-        </FeedbackProvider>
-      </SnapshotProvider>
-    </StrictMode>,
+    <MemoryRouter initialEntries={["/events"]}>
+      <StrictMode>
+        <SnapshotProvider api={api} store={store}>
+          <FeedbackProvider>
+            <TutorialPanel />
+            <LocationProbe />
+          </FeedbackProvider>
+        </SnapshotProvider>
+      </StrictMode>
+    </MemoryRouter>,
   );
   return { api, store };
 }
@@ -123,15 +131,27 @@ it("Reset confirms once and accepts the authoritative Step 0 snapshot", async ()
   ).toBeVisible();
 });
 
-it("START LIVE removes the panel only after an authoritative LIVE snapshot", async () => {
+it("START LIVE waits for authoritative LIVE and then returns to Dashboard", async () => {
   const { api } = setup(9, { expected_action: "START_LIVE" });
+  const live = snapshotAt("2026-09-05T10:00:02Z");
+  live.app.mode = "LIVE";
+  let resolveLive: ((value: typeof live) => void) | null = null;
+  vi.mocked(api.startLive).mockImplementation(
+    () => new Promise((resolve) => (resolveLive = resolve)),
+  );
   await userEvent
     .setup()
     .click(screen.getByRole("button", { name: "Start Live" }));
   expect(api.startLive).toHaveBeenCalledOnce();
+  expect(screen.getByTestId("location")).toHaveTextContent("/events");
+  expect(
+    screen.getByRole("complementary", { name: "Tutorial" }),
+  ).toBeInTheDocument();
+  await act(async () => resolveLive?.(live));
   expect(
     screen.queryByRole("complementary", { name: "Tutorial" }),
   ).not.toBeInTheDocument();
+  expect(screen.getByTestId("location")).toHaveTextContent("/");
 });
 
 it("shows all context, system action and completion without expandable copy", () => {

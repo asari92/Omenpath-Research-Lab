@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../api/client";
@@ -16,7 +16,14 @@ import {
 import { PortalDetailsPage } from "./PortalDetailsPage";
 
 beforeEach(() => vi.stubGlobal("WebSocket", undefined));
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  resetNavigationIntentForTests();
+  vi.unstubAllGlobals();
+});
+
+function LocationProbe() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
 
 function apiFor(
   result: PortalDetails | Error,
@@ -55,7 +62,9 @@ function renderDetails(
       <SnapshotProvider api={api} store={store}>
         <Routes>
           <Route path="/portals/:id" element={<PortalDetailsPage />} />
+          <Route path="/" element={<p>Dashboard route</p>} />
         </Routes>
+        <LocationProbe />
       </SnapshotProvider>
     </MemoryRouter>,
   );
@@ -231,19 +240,36 @@ describe("PortalDetailsPage", () => {
   });
 
   it("emits one matching signal from explicit intent and none on direct load", async () => {
-    resetNavigationIntentForTests();
     const snapshot = snapshotAt();
     snapshot.app.expected_action = "OPEN_PORTAL_DETAILS";
     snapshot.app.tutorial_portal_id = 42;
     const api = apiFor(portalDetails(), snapshot);
+    const next = snapshotAt("2026-09-05T10:00:01Z");
+    next.app.tutorial_step = 2;
+    next.app.expected_action = "WAIT_CORRIDOR";
+    vi.mocked(api.tutorialSignal).mockResolvedValue(next);
     recordNavigationIntent({ kind: "portal", id: 42 });
     renderDetails("/portals/42", api, snapshot);
-    await screen.findByRole("heading", { name: "Diagnostics" });
+    expect(await screen.findByText("Dashboard route")).toBeVisible();
     expect(api.tutorialSignal).toHaveBeenCalledOnce();
     expect(api.tutorialSignal).toHaveBeenCalledWith({
       signal: "PORTAL_DETAILS_OPENED",
       portal_id: 42,
     });
-    resetNavigationIntentForTests();
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
+  });
+
+  it("stays on Details when the matching Tutorial signal fails", async () => {
+    const snapshot = snapshotAt();
+    snapshot.app.expected_action = "OPEN_PORTAL_DETAILS";
+    snapshot.app.tutorial_portal_id = 42;
+    const api = apiFor(portalDetails(), snapshot);
+    vi.mocked(api.tutorialSignal).mockRejectedValue(new Error("signal failed"));
+    recordNavigationIntent({ kind: "portal", id: 42 });
+
+    renderDetails("/portals/42", api, snapshot);
+
+    expect(await screen.findByText("signal failed")).toBeVisible();
+    expect(screen.getByTestId("location")).toHaveTextContent("/portals/42");
   });
 });

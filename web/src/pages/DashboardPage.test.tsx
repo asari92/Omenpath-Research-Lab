@@ -1,5 +1,13 @@
-import { act, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import type { OmenpathApi } from "../api/client";
@@ -35,6 +43,10 @@ function portal(id: number, plane: string): SlotPortalDTO {
   };
 }
 
+function LocationProbe() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
+
 function renderDashboard(snapshot: StateSnapshot) {
   const store = createSnapshotStore();
   store.acceptSnapshot(snapshot);
@@ -43,7 +55,7 @@ function renderDashboard(snapshot: StateSnapshot) {
     state: async () => snapshot,
     portal: async (id) => portalDetails(id),
     events: async () => [],
-    stabilize: async () => snapshot,
+    stabilize: vi.fn(async () => snapshot),
     close: async () => snapshot,
     sendObserver: async () => snapshot,
     recallObserver: async () => snapshot,
@@ -58,13 +70,65 @@ function renderDashboard(snapshot: StateSnapshot) {
       <SnapshotProvider api={api} store={store}>
         <LabSummary snapshot={snapshot} />
         <DashboardPage />
+        <LocationProbe />
       </SnapshotProvider>
     </MemoryRouter>,
   );
-  return { ...view, store };
+  return { ...view, api, store };
 }
 
 describe("DashboardPage", () => {
+  it("uses the occupied card as the only pointer Details affordance", async () => {
+    const snapshot = snapshotAt();
+    snapshot.slots[0].portal = portal(1, "Alara");
+    renderDashboard(snapshot);
+
+    expect(screen.queryByRole("link", { name: "Details" })).toBeNull();
+    await userEvent.setup().click(
+      screen.getByRole("link", {
+        name: "Inspect Omenpath #0001 on Alara",
+      }),
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/portals/1");
+  });
+
+  it.each(["Enter", " "])(
+    "opens the occupied card with keyboard key %j",
+    (key) => {
+      const snapshot = snapshotAt();
+      snapshot.slots[0].portal = portal(1, "Alara");
+      renderDashboard(snapshot);
+      const card = screen.getByRole("link", {
+        name: "Inspect Omenpath #0001 on Alara",
+      });
+      card.focus();
+      fireEvent.keyDown(card, { key });
+      expect(screen.getByTestId("location")).toHaveTextContent("/portals/1");
+    },
+  );
+
+  it("runs a nested Portal command without opening Details", async () => {
+    const snapshot = snapshotAt();
+    snapshot.slots[0].portal = portal(1, "Alara");
+    const { api, store } = renderDashboard(snapshot);
+    const card = screen.getAllByTestId("portal-slot")[0];
+    await act(async () => {});
+    act(() => store.setBootstrap("ready"));
+    act(() => store.setConnection("connected"));
+    expect(store.getState()).toMatchObject({
+      bootstrap: "ready",
+      connection: "connected",
+      protocolError: null,
+    });
+
+    const stabilize = within(card).getByRole("button", { name: "Stabilize" });
+    expect(stabilize).toHaveAttribute("aria-disabled", "false");
+    fireEvent.click(stabilize);
+
+    await waitFor(() => expect(api.stabilize).toHaveBeenCalledOnce());
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
+  });
+
   it.each(["TUTORIAL", "LIVE"] as const)(
     "animates simultaneous ordinary %s endings into empty and replacement slots for two seconds",
     (mode) => {
