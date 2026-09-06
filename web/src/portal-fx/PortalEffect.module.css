@@ -5,6 +5,37 @@
   aspect-ratio: 1;
   isolation: isolate;
 }
+.portal[data-motion="entering"] {
+  animation: entrance 0.7s ease-out both;
+}
+.portal[data-motion="terminal"] {
+  animation: departure 2s ease-in both;
+}
+@keyframes entrance {
+  from {
+    transform: scale(0.12);
+    opacity: 0;
+    filter: brightness(2);
+  }
+  65% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes departure {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.15);
+    opacity: 0.18;
+  }
+}
 .portal[data-status="CLOSED"],
 .portal[data-status="COLLAPSED"] {
   filter: grayscale(1);
@@ -42,8 +73,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .portal[data-motion] {
+    animation: fade 0.12s ease-out both;
+  }
   .portal::before {
     box-shadow: 0 0 18px hsl(var(--portal-hue) 100% 60% / 0.65);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
   }
 }
 

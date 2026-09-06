@@ -4,9 +4,11 @@ import { PortalSlot } from "../components/dashboard/PortalSlot";
 import { sevenSlots } from "../state/selectors";
 import { useSnapshotState } from "../state/SnapshotProvider";
 import styles from "./DashboardPage.module.css";
+import { usePortalPresentation } from "../features/tutorial/usePortalPresentation";
 
 export function DashboardPage() {
   const { snapshot, bootstrap, protocolError } = useSnapshotState();
+  const presentation = usePortalPresentation(snapshot);
   if (!snapshot) {
     return (
       <section>
@@ -23,7 +25,10 @@ export function DashboardPage() {
 
   let slots;
   try {
-    slots = sevenSlots(snapshot);
+    slots = sevenSlots({
+      ...snapshot,
+      slots: presentation.slots ?? snapshot.slots,
+    });
   } catch (error) {
     return (
       <section>
@@ -53,6 +58,7 @@ export function DashboardPage() {
           slot.portal ? (
             <PortalSlot
               key={slot.slot_index}
+              ghost={presentation.ghost?.slot.slot_index === slot.slot_index}
               needsAttention={
                 snapshot.needs_attention_portal_id === slot.portal.id
               }

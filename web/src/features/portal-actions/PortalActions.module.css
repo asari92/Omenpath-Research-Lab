@@ -65,12 +65,20 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .actions button[aria-busy],
+  .actions button[aria-busy="true"],
   .wrapper[data-outcome] {
-    animation: none;
+    animation: feedbackFade 0.12s;
   }
   .actions button:active:not(:disabled) {
     transform: none;
+  }
+}
+@keyframes feedbackFade {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
   }
 }
 

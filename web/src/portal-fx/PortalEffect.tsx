@@ -1,4 +1,10 @@
-import { useEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 import { planeArt } from "../assets/plane-art";
 import type { PortalStatus } from "../api/types";
@@ -30,17 +36,32 @@ export function PortalEffect({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const art = planeArt(planeId);
   const hue = (portalId * 67 + 118) % 360;
+  const media = useMemo(
+    () => window.matchMedia?.("(prefers-reduced-motion: reduce)"),
+    [],
+  );
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      media?.addEventListener?.("change", notify);
+      return () => media?.removeEventListener?.("change", notify);
+    },
+    [media],
+  );
+  const reduced = useSyncExternalStore(
+    subscribe,
+    () => media?.matches ?? false,
+    () => false,
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (
       !canvas ||
       density === "static" ||
+      status !== "OPEN" ||
       typeof IntersectionObserver === "undefined"
     )
       return;
-    const reduced =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     if (reduced) return;
     const context = canvas.getContext("2d");
     if (!context) return;
@@ -104,12 +125,13 @@ export function PortalEffect({
       observer.disconnect();
       unregister();
     };
-  }, [density, hue]);
+  }, [density, hue, status, reduced]);
 
   return (
     <div
       className={styles.portal}
       data-status={status}
+      data-motion={status === "OPEN" ? "entering" : "terminal"}
       style={{ "--portal-hue": hue } as React.CSSProperties}
     >
       <img alt={planeName} className={styles.art} src={art.local_path} />

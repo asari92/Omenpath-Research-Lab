@@ -11,12 +11,14 @@ import styles from "./AppShell.module.css";
 import { LabSummary } from "../components/dashboard/LabSummary";
 import { useSnapshotState } from "../state/SnapshotProvider";
 import { commandsEnabled } from "../state/command-health";
+import { useTutorialPlacement } from "../features/tutorial/useTutorialPlacement";
 
 export function AppShell() {
   const { pathname } = useLocation();
   const longForm = /^\/(ai-worklog|help)\/?$/.test(pathname);
   const state = useSnapshotState();
   const { snapshot } = state;
+  const tutorialRef = useTutorialPlacement(pathname, snapshot?.app ?? null);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [extractionOpen, setExtractionOpen] = useState(false);
   return (
@@ -60,7 +62,7 @@ export function AppShell() {
           <NavLink to="/ai-worklog">AI Worklog</NavLink>
         </nav>
         <main className={`${styles.main} ${longForm ? styles.longForm : ""}`}>
-          <div className={styles.tutorial}>
+          <div className={styles.tutorial} ref={tutorialRef}>
             <TutorialPanel />
           </div>
           <Outlet />

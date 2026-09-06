@@ -1,21 +1,36 @@
 import { expect, test } from "@playwright/test";
 import { portalDetails, snapshotAt } from "../src/test/builders";
 
-test("presentation replays missed cards for 7s and terminal target for 2s", async ({ page }) => {
-  await page.clock.install();
+test("presentation replays missed cards for 7s and terminal target for 2s", async ({
+  page,
+}) => {
+  const clockStart = new Date("2026-09-06T10:00:00Z");
+  await page.clock.install({ time: clockStart });
+  await page.clock.pauseAt(clockStart);
   const initial = snapshotAt();
   initial.app.tutorial_step = 1;
   initial.app.tutorial_portal_id = 1;
   initial.portals.active = 1;
-  const portal = (id: number) => ({ ...portalDetails(id).portal, destination_plane_id: 1, destination_plane_name: "Agyrem", destination_explored: false });
+  const portal = (id: number) => ({
+    ...portalDetails(id).portal,
+    destination_plane_id: 1,
+    destination_plane_name: "Agyrem",
+    destination_explored: false,
+  });
   initial.slots[0].portal = portal(1);
-  await page.route("**/api/state", route => route.fulfill({json: initial}));
+  await page.route("**/api/state", (route) => route.fulfill({ json: initial }));
   let socket: import("@playwright/test").WebSocketRoute;
-  await page.routeWebSocket("**/ws/lab", ws => {socket = ws;});
+  await page.routeWebSocket("**/ws/lab", (ws) => {
+    socket = ws;
+  });
   await page.goto("/");
   await expect(page.getByLabel("Tutorial")).toContainText("Step 1");
   await expect(page.getByText("More context")).toHaveCount(0);
-  const next = {...initial, generated_at:"2026-09-05T10:00:01Z", app: {...initial.app, tutorial_step:3}};
+  const next = {
+    ...initial,
+    generated_at: "2026-09-05T10:00:01Z",
+    app: { ...initial.app, tutorial_step: 3 },
+  };
   socket!.send(JSON.stringify(next));
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
   await expect(page.getByLabel("Tutorial")).toContainText("Completed");
@@ -23,12 +38,21 @@ test("presentation replays missed cards for 7s and terminal target for 2s", asyn
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
   await page.clock.runFor(1);
   await expect(page.getByLabel("Tutorial")).toContainText("Step 3");
-  await page.getByRole("button", {name:"Back", exact:true}).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
-  await page.getByRole("button", {name:"Forward", exact:true}).click();
+  await page.getByRole("button", { name: "Forward", exact: true }).click();
   await expect(page.getByLabel("Tutorial")).toContainText("Step 3");
-  await expect(page.getByRole("button", {name:"Forward", exact:true})).toBeDisabled();
-  const replaced = {...next, generated_at:"2026-09-05T10:00:02Z", app:{...next.app, tutorial_portal_id:2}, slots:next.slots.map(s => s.slot_index===1 ? {...s,portal:portal(2)}:s)};
+  await expect(
+    page.getByRole("button", { name: "Forward", exact: true }),
+  ).toBeDisabled();
+  const replaced = {
+    ...next,
+    generated_at: "2026-09-05T10:00:02Z",
+    app: { ...next.app, tutorial_portal_id: 2 },
+    slots: next.slots.map((s) =>
+      s.slot_index === 1 ? { ...s, portal: portal(2) } : s,
+    ),
+  };
   socket!.send(JSON.stringify(replaced));
   await expect(page.getByTestId("portal-ghost")).toHaveCount(1);
   await page.clock.runFor(1999);
@@ -36,9 +60,30 @@ test("presentation replays missed cards for 7s and terminal target for 2s", asyn
   await page.clock.runFor(1);
   await expect(page.getByTestId("portal-ghost")).toHaveCount(0);
   const target = page.locator('[data-tutorial-target="true"]');
-  await expect(target.getByRole("button", {name:"Send Observer"})).toBeVisible();
-  await target.getByRole("button", {name:"Send Observer"}).click({trial:true});
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  await expect(
+    target.getByRole("button", { name: "Send Observer" }),
+  ).toBeVisible();
+  await target
+    .getByRole("button", { name: "Send Observer" })
+    .click({ trial: true });
+  const panelBox = await page.getByLabel("Tutorial").boundingBox();
+  const commandsBox = await target
+    .getByRole("group", { name: "Portal commands" })
+    .boundingBox();
+  expect(
+    panelBox!.y + panelBox!.height <= commandsBox!.y ||
+      panelBox!.y >= commandsBox!.y + commandsBox!.height,
+  ).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= innerHeight,
+    ),
+  ).toBe(true);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(target.locator('[data-motion="entering"]')).toHaveCSS(
+    "animation-duration",
+    "0.12s",
+  );
 });
 
 const apiState = async (

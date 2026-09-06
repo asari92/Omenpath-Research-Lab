@@ -24,11 +24,13 @@ export function PortalSlot({
   portal,
   needsAttention,
   tutorialTarget = false,
+  ghost = false,
 }: {
   slotIndex: number;
   portal: SlotPortalDTO;
   needsAttention: boolean;
   tutorialTarget?: boolean;
+  ghost?: boolean;
 }) {
   const state = useSnapshotState();
   const { snapshot } = state;
@@ -38,15 +40,24 @@ export function PortalSlot({
     <article
       className={styles.slot}
       data-testid="portal-slot"
+      data-ghost={ghost || undefined}
       data-stability={portal.stability}
-      data-tutorial-target={tutorialTarget || undefined}
+      data-tutorial-target={(!ghost && tutorialTarget) || undefined}
     >
       <header>
         <span>Slot {slotIndex}</span>
         <span>{portal.stability}</span>
       </header>
-      <div className={styles.visual}>
+      <div
+        className={styles.visual}
+        data-testid={ghost ? "portal-ghost" : undefined}
+      >
+        {ghost && (
+          <span className={styles.ghostName}>{portal.name} · Closing</span>
+        )}
         <PortalEffect
+          key={portal.id}
+          status={portal.status}
           density={needsAttention ? "high" : "low"}
           planeId={portal.destination_plane_id}
           planeName={portal.destination_plane_name}
@@ -91,17 +102,21 @@ export function PortalSlot({
           target?.portalId === portal.id ? target.command : null
         }
         onCommand={command.run}
-        portalId={portal.id}
-        quickActions={portal.quick_actions}
+        portalId={ghost ? null : portal.id}
+        quickActions={ghost ? null : portal.quick_actions}
       />
-      <Link
-        onClick={() =>
-          recordNavigationIntent({ kind: "portal", id: portal.id })
-        }
-        to={`/portals/${portal.id}`}
-      >
-        Details
-      </Link>
+      {ghost ? (
+        <span>Closing…</span>
+      ) : (
+        <Link
+          onClick={() =>
+            recordNavigationIntent({ kind: "portal", id: portal.id })
+          }
+          to={`/portals/${portal.id}`}
+        >
+          Details
+        </Link>
+      )}
     </article>
   );
 }

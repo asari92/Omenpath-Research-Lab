@@ -6,15 +6,25 @@ import { isExpectedCriticalSend } from "./tutorial-actions";
 import { tutorialGuidance } from "./tutorial-copy";
 import styles from "./TutorialPanel.module.css";
 import { commandsEnabled } from "../../state/command-health";
+import { useTutorialPresentation } from "./useTutorialPresentation";
+import { tutorialSystem } from "./tutorial-copy";
 
 export function TutorialPanel() {
   const { api, store } = useSnapshotContext();
   const state = useSnapshotState();
   const { commandKeys, snapshot } = state;
   const feedback = useFeedback();
-  if (!snapshot) return null;
-  const guidance = tutorialGuidance(snapshot.app);
+  const { presentation, back, forward } = useTutorialPresentation(
+    snapshot?.app ?? null,
+  );
+  const shown = presentation.shown;
+  if (!snapshot || !shown) return null;
+  const guidance = tutorialGuidance(shown);
   if (!guidance) return null;
+  const historical =
+    presentation.replaying ||
+    presentation.cursor < presentation.history.length - 1;
+  const system = tutorialSystem(shown);
   const ctaLabel =
     guidance.cta === "BEGIN_PRACTICE"
       ? "Begin Practice"
@@ -27,6 +37,7 @@ export function TutorialPanel() {
   const ctaBusy = ctaKey !== null && commandKeys.has(ctaKey);
 
   const runCTA = async () => {
+    if (historical) return;
     if (!commandsEnabled(store.getState())) return;
     if (!guidance.cta || !ctaKey || store.getState().commandKeys.has(ctaKey)) {
       return;
@@ -96,27 +107,47 @@ export function TutorialPanel() {
     }
   };
   return (
-    <aside aria-label="Tutorial" className={styles.panel}>
+    <aside
+      aria-label="Tutorial"
+      className={styles.panel}
+      data-completed={historical || undefined}
+    >
       <header>
-        <span>Step {snapshot.app.tutorial_step}</span>
+        <span>Step {shown.tutorial_step}</span>
         <strong>{guidance.title}</strong>
-        {guidance.waiting && <span>Waiting</span>}
+        {historical ? (
+          <span>Completed</span>
+        ) : (
+          guidance.waiting && <span>Waiting</span>
+        )}
       </header>
       <p className={styles.instruction}>{guidance.instruction}</p>
-      <p>{guidance.explanation[0]}</p>
-      <details>
-        <summary>More context</summary>
-        {guidance.explanation.slice(1).map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <p>
-          Targets: Portal {snapshot.app.tutorial_portal_id ?? "—"}, Plane{" "}
-          {snapshot.app.tutorial_plane_id ?? "—"}, Observer{" "}
-          {snapshot.app.tutorial_observer_id ?? "—"}
-        </p>
-      </details>
+      {guidance.explanation.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
+      <p>System: {system.action}</p>
+      <p>Complete when: {system.completion}</p>
       <div className={styles.actions}>
-        {ctaLabel && (
+        <button
+          type="button"
+          onClick={back}
+          disabled={presentation.cursor === 0}
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={forward}
+          disabled={presentation.cursor === presentation.history.length - 1}
+        >
+          Forward
+        </button>
+        <span>
+          {historical
+            ? `Current objective: Step ${snapshot.app.tutorial_step}`
+            : "Current objective"}
+        </span>
+        {ctaLabel && !historical && (
           <button
             disabled={ctaBusy || !commandsEnabled(state)}
             onClick={() => void runCTA()}

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -10,7 +11,10 @@ import { snapshotAt } from "../../test/builders";
 import { TutorialPanel } from "./TutorialPanel";
 
 beforeEach(() => vi.stubGlobal("WebSocket", undefined));
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 function setup(
   step: number,
@@ -41,11 +45,13 @@ function setup(
     sendObserver: vi.fn(),
   } as unknown as OmenpathApi;
   render(
-    <SnapshotProvider api={api} store={store}>
-      <FeedbackProvider>
-        <TutorialPanel />
-      </FeedbackProvider>
-    </SnapshotProvider>,
+    <StrictMode>
+      <SnapshotProvider api={api} store={store}>
+        <FeedbackProvider>
+          <TutorialPanel />
+        </FeedbackProvider>
+      </SnapshotProvider>
+    </StrictMode>,
   );
   return { api, store };
 }
@@ -141,13 +147,19 @@ it("replays a skipped Step 2 for exactly seven seconds without delaying the snap
   const { store, api } = setup(1);
   const next = snapshotAt("2026-09-05T10:00:02Z");
   next.app.tutorial_step = 3;
-  act(() => { store.acceptSnapshot(next); });
+  act(() => {
+    store.acceptSnapshot(next);
+  });
   expect(store.getState().snapshot?.app.tutorial_step).toBe(3);
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Completed");
-  act(() => { vi.advanceTimersByTime(6999); });
+  act(() => {
+    vi.advanceTimersByTime(6999);
+  });
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
-  act(() => { vi.advanceTimersByTime(1); });
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
   fireEvent.click(screen.getByRole("button", { name: "Back" }));
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
@@ -162,14 +174,56 @@ it("normal sequential progress is immediate and reset cancels replay timers and 
   const { store } = setup(2);
   const next = snapshotAt("2026-09-05T10:00:02Z");
   next.app.tutorial_step = 3;
-  act(() => { store.acceptSnapshot(next); });
+  act(() => {
+    store.acceptSnapshot(next);
+  });
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
   const jump = snapshotAt("2026-09-05T10:00:03Z");
   jump.app.tutorial_step = 6;
-  act(() => { store.acceptSnapshot(jump); });
+  act(() => {
+    store.acceptSnapshot(jump);
+  });
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 4");
-  act(() => { store.acceptSnapshot(snapshotAt("2026-09-05T10:00:04Z")); });
-  act(() => { vi.advanceTimersByTime(30000); });
+  act(() => {
+    store.acceptSnapshot(snapshotAt("2026-09-05T10:00:04Z"));
+  });
+  act(() => {
+    vi.advanceTimersByTime(30000);
+  });
   expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 0");
   expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+});
+
+it("does not restart a replay deadline on snapshots and gives each newly missed card its own seven seconds", () => {
+  vi.useFakeTimers();
+  const { store } = setup(1);
+  const at = (second: number, step: number) => {
+    const value = snapshotAt(`2026-09-05T10:00:0${second}Z`);
+    value.app.tutorial_step = step;
+    return value;
+  };
+  act(() => {
+    store.acceptSnapshot(at(1, 3));
+  });
+  act(() => {
+    vi.advanceTimersByTime(3000);
+    store.acceptSnapshot(at(2, 4));
+  });
+  act(() => {
+    vi.advanceTimersByTime(3999);
+  });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Completed");
+  act(() => {
+    vi.advanceTimersByTime(6999);
+  });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 4");
 });

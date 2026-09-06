@@ -76,18 +76,29 @@ describe("DashboardPage", () => {
       const next = snapshotAt("2026-09-05T10:00:01Z");
       next.app = { ...initial.app, tutorial_portal_id: 2 };
       next.slots[0].portal = portal(2, "Alara");
-      act(() => { store.acceptSnapshot(next); });
+      act(() => {
+        store.acceptSnapshot(next);
+      });
       expect(store.getState().snapshot?.slots[0].portal?.id).toBe(2);
-      const ghost = screen.getByTestId("portal-ghost");
+      const ghost = screen.getByTestId("portal-ghost").closest("article")!;
       expect(ghost).toHaveTextContent("Omenpath #0001");
       expect(within(ghost).queryByRole("link")).not.toBeInTheDocument();
-      for (const button of within(ghost).getAllByRole("button")) expect(button).toBeDisabled();
-      act(() => { vi.advanceTimersByTime(1999); });
+      for (const button of within(ghost).getAllByRole("button"))
+        expect(button).toBeDisabled();
+      act(() => {
+        vi.advanceTimersByTime(1999);
+      });
       expect(screen.getByTestId("portal-ghost")).toBeInTheDocument();
-      act(() => { vi.advanceTimersByTime(1); });
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
       expect(screen.queryByTestId("portal-ghost")).not.toBeInTheDocument();
-      expect(screen.getAllByTestId("portal-slot")[0]).toHaveTextContent("Omenpath #0002");
-    } finally { vi.useRealTimers(); }
+      expect(screen.getAllByTestId("portal-slot")[0]).toHaveTextContent(
+        "Omenpath #0002",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("shows the scoped transit and whole-card instability while empty commands are disabled", () => {
     const snapshot = snapshotAt();

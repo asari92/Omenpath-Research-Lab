@@ -118,3 +118,12 @@
     line-height: 1.05;
   }
 }
+.ghostName {
+  position: absolute;
+  font-size: 0.65rem;
+  align-self: end;
+  z-index: 1;
+}
+.slot[data-ghost] {
+  filter: grayscale(1);
+}

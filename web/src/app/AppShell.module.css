@@ -109,7 +109,7 @@
   scrollbar-color: var(--line) transparent;
 }
 .tutorial > * {
-  pointer-events: auto;
+  pointer-events: none;
 }
 .shell[data-override] {
   background:

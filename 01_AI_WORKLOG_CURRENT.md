@@ -2328,3 +2328,42 @@ Regression verifies guidance and How Risk Works end before the History footer,
 actually clicks the disclosure, checks all facts/actions in viewport and keeps
 main/document non-scrolling. Desktop, 390×760 and 360×640 browser cases: 8 PASS;
 focused unit 20 PASS; typecheck/lint PASS.
+
+#### DC-8 — tutorial presentation, target avoidance and portal motion
+
+RED `6a2c359`: observed five behavioral failures for hidden contextual copy,
+missing Step 2 replay, reset/history, missing terminal ghost and missing motion
+states. Browser RED also reproduced the old More context disclosure. The pure
+presentation reducer is now independent of accepted snapshots and commands.
+Sequential progress is immediate; a missed intermediate card is marked Completed
+and retained for exactly 7000ms before catching up. Each additionally missed
+card gets its own deadline. Back/Forward browse only shown cards; reset/Live
+clear presentation state, and LOST retry retains earlier lessons while removing
+future cards. StrictMode fake timers verify 6999/7000ms boundaries, additional
+snapshots do not extend deadlines, and stale generations cannot advance state.
+
+Terminal target replacement accepts the new snapshot immediately but retains a
+non-actionable old-identity ghost for exactly 2000ms before revealing the new
+Portal entrance. Ghost identity includes slot/old/new IDs; controls are native
+disabled and no Details link is present. All per-step explanation, objective,
+system action and completion text is visible in the floating grimoire. No More
+context disclosure remains. Responsive browser RED caught Forward intercepting
+the target Details link; measured placement now puts the grimoire opposite the
+current target and checks its bounds without moving the board.
+
+Portal motion now opens the ring with sparks, contracts/desaturates terminal
+Portals and retains pressed/pending/success/error command feedback. Reduced
+motion uses 120ms opacity transitions and never starts heavy canvas work.
+An additional observed RED caught an active renderer continuing after the user
+changed the motion preference; GREEN subscribes to the preference and unregisters
+the scheduler immediately.
+
+Verification: frontend 36 files / 163 tests PASS; typecheck/lint/build PASS.
+Tutorial, Dashboard and Details desktop/phone browser suite: 15 PASS, 3 explicit
+project-specific skips, including real same-cookie Tutorial-to-Live journey,
+6999/7000ms and 1999/2000ms boundaries, target pointer/geometry and reduced-motion
+checks. Existing compact Details 360×640 checks remain GREEN. gofmt output empty;
+Go vet/build and full ordinary tests PASS (integration listener permission was
+granted after sandbox rejection). Vite retains its existing bundle-size advisory;
+occasional dev-proxy ECONNRESET appears during browser teardown. No backend
+semantics, artwork or dependencies changed. DC-9 and Stage 22 not started here.
