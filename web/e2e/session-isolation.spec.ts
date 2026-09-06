@@ -71,14 +71,20 @@ test("browser laboratories isolate matching IDs, actions, events and WebSocket; 
       data: { confirm: true },
     });
     expect(closed.ok()).toBe(true);
+    const commandState: StateSnapshot = await closed.json();
+    const commandCutoff = Date.parse(commandState.generated_at);
+    expect(Number.isFinite(commandCutoff)).toBe(true);
     await expect.poll(() => framesA.at(-1)?.app.tutorial_portal_id).toBe(2);
-    // B must receive its own post-action periodic tick, not merely have no frames.
-    await expect.poll(() => framesB.length).toBeGreaterThan(beforeB);
-    expect(
-      framesB
-        .slice(beforeB)
-        .every((snapshot) => snapshot.app.tutorial_portal_id === 1),
-    ).toBe(true);
+    // A queued pre-command frame cannot satisfy the post-action tick evidence.
+    await expect
+      .poll(() =>
+        framesB
+          .slice(beforeB)
+          .some(
+            (snapshot) => Date.parse(snapshot.generated_at) > commandCutoff,
+          ),
+      )
+      .toBe(true);
     const detailA = await (await page.request.get("/api/portals/1")).json();
     const detailB = await (await second.request.get("/api/portals/1")).json();
     expect(detailA.portal.status).toBe("CLOSED");
@@ -119,6 +125,18 @@ test("browser laboratories isolate matching IDs, actions, events and WebSocket; 
     expect(await (await page.request.get("/api/events")).json()).toEqual([]);
     expect((await page.request.get("/api/portals/1")).status()).toBe(404);
     expect((await state(second)).app.tutorial_portal_id).toBe(1);
+    expect(
+      framesB
+        .slice(beforeB)
+        .every(
+          (snapshot) =>
+            snapshot.app.tutorial_portal_id === 1 &&
+            snapshot.slots[0].portal?.id === 1 &&
+            snapshot.slots[0].portal.status === "OPEN" &&
+            snapshot.portals.closed === 0 &&
+            snapshot.slots.every((slot) => slot.portal?.id !== 2),
+        ),
+    ).toBe(true);
   } finally {
     await other.close();
   }
