@@ -268,9 +268,9 @@ describe("DashboardPage", () => {
     const summary = screen.getByLabelText("Laboratory summary");
     const pips = within(summary).getAllByTestId("observer-pip");
     expect(pips).toHaveLength(20);
-    expect(pips.filter((pip) => pip.dataset.state === "available")).toHaveLength(
-      4,
-    );
+    expect(
+      pips.filter((pip) => pip.dataset.state === "available"),
+    ).toHaveLength(4);
     expect(pips.filter((pip) => pip.dataset.state === "deployed")).toHaveLength(
       15,
     );

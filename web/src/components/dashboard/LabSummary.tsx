@@ -23,8 +23,7 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
     0,
     Math.min(totalObservers - availableObservers, snapshot.observers.lost),
   );
-  const deployedObservers =
-    totalObservers - availableObservers - lostObservers;
+  const deployedObservers = totalObservers - availableObservers - lostObservers;
   const survivingObservers = totalObservers - lostObservers;
 
   return (
