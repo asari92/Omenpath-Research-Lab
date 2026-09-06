@@ -78,6 +78,11 @@ export function AppShell() {
           open={extractionOpen}
           onClose={() => setExtractionOpen(false)}
         />
+        <div
+          aria-hidden="true"
+          className={styles.overrideEnergy}
+          data-testid="leyline-energy-layer"
+        />
       </div>
     </FeedbackProvider>
   );

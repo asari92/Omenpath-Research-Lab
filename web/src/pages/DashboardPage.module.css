@@ -43,7 +43,6 @@
 .board > :nth-child(7) {
   grid-column: 6/8;
 }
-.override,
 .waiting {
   position: absolute;
   z-index: 5;
@@ -55,9 +54,6 @@
   background: #100c0bc9;
   font-size: 0.7rem;
   text-align: center;
-}
-.override {
-  color: #d0baff;
 }
 @media (max-width: 720px) {
   .dashboard {
@@ -82,7 +78,6 @@
   .board > :nth-child(7) {
     grid-column: 2/4;
   }
-  .override,
   .waiting {
     font-size: 0.58rem;
   }
