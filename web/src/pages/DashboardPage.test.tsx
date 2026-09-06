@@ -129,6 +129,28 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
+  it("exposes semantic Portal values and the complete four-command row", () => {
+    const snapshot = snapshotAt();
+    snapshot.slots[0].portal = portal(1, "Alara");
+    renderDashboard(snapshot);
+
+    const card = screen.getAllByTestId("portal-slot")[0];
+    expect(within(card).getByTestId("portal-energy")).toHaveAttribute(
+      "data-value-kind",
+      "energy",
+    );
+    expect(within(card).getByTestId("portal-time")).toHaveAttribute(
+      "data-value-kind",
+      "time",
+    );
+    expect(within(card).getByText("UNSTABLE")).toHaveAttribute(
+      "data-stability",
+      "UNSTABLE",
+    );
+    expect(within(card).getAllByRole("button")).toHaveLength(4);
+    expect(screen.queryByRole("link", { name: "Details" })).toBeNull();
+  });
+
   it.each(["TUTORIAL", "LIVE"] as const)(
     "animates simultaneous ordinary %s endings into empty and replacement slots for two seconds",
     (mode) => {
