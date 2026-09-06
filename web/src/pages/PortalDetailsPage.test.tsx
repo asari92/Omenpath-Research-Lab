@@ -152,6 +152,19 @@ describe("PortalDetailsPage", () => {
       "data-recommendation",
       "STABILIZE",
     );
+    expect(screen.getByText("64.3%")).toHaveAttribute(
+      "data-value-kind",
+      "energy",
+    );
+    expect(screen.getByText("02:05")).toHaveAttribute(
+      "data-value-kind",
+      "time",
+    );
+    expect(screen.getByText("OPEN")).toHaveAttribute("data-status", "OPEN");
+    expect(screen.getByText("STABLE")).toHaveAttribute(
+      "data-stability",
+      "STABLE",
+    );
     const creatures = screen.getByText("Creatures");
     expect(creatures.closest("section")).toContainElement(
       screen.getByRole("heading", { name: "Destination" }),
