@@ -5,7 +5,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { ApiError } from "../api/errors";
 import { createLiveResource } from "../api/live-resource";
@@ -36,7 +36,6 @@ function parsePortalID(value: string | undefined): number | null {
 }
 
 function PortalDetailsResource({ id }: { id: number }) {
-  const navigate = useNavigate();
   const { api, store, bootstrapReady } = useSnapshotContext();
   const snapshotState = useSnapshotState();
   const { snapshot } = snapshotState;
@@ -77,14 +76,13 @@ function PortalDetailsResource({ id }: { id: number }) {
       .tutorialSignal(request)
       .then((next) => {
         store.acceptSnapshot(next);
-        if (next.app.expected_action !== "OPEN_PORTAL_DETAILS") navigate("/");
       })
       .catch((error: unknown) => {
         setSignalError(
           error instanceof Error ? error.message : "Tutorial signal failed",
         );
       });
-  }, [api, id, navigate, snapshot?.app, store, enabled, bootstrapReady]);
+  }, [api, id, snapshot?.app, store, enabled, bootstrapReady]);
 
   if (details.error instanceof ApiError && details.error.status === 404) {
     return <p role="alert">Portal Not Found</p>;

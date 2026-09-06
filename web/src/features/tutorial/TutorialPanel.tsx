@@ -8,10 +8,11 @@ import styles from "./TutorialPanel.module.css";
 import { commandsEnabled } from "../../state/command-health";
 import { useTutorialPresentation } from "./useTutorialPresentation";
 import { tutorialSystem } from "./tutorial-copy";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export function TutorialPanel() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { api, store } = useSnapshotContext();
   const state = useSnapshotState();
   const { commandKeys, snapshot } = state;
@@ -37,6 +38,19 @@ export function TutorialPanel() {
           : null;
   const ctaKey = guidance.cta ? `TUTORIAL:${guidance.cta}` : null;
   const ctaBusy = ctaKey !== null && commandKeys.has(ctaKey);
+  const canAdvanceHistory =
+    presentation.cursor < presentation.history.length - 1;
+  const canReturnFromDetails =
+    /^\/portals\/[1-9]\d*\/?$/.test(pathname) &&
+    snapshot.app.tutorial_step >= 2;
+
+  const runForward = () => {
+    if (canAdvanceHistory) {
+      forward();
+      return;
+    }
+    if (canReturnFromDetails) navigate("/");
+  };
 
   const runCTA = async () => {
     if (historical) return;
@@ -141,8 +155,8 @@ export function TutorialPanel() {
         </button>
         <button
           type="button"
-          onClick={forward}
-          disabled={presentation.cursor === presentation.history.length - 1}
+          onClick={runForward}
+          disabled={!canAdvanceHistory && !canReturnFromDetails}
         >
           Forward
         </button>
