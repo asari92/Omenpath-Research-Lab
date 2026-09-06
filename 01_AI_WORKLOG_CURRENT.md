@@ -2522,10 +2522,24 @@ API-013, WS-004, SESSION-002/004/005 дополнены точным integration
 | DC-7 — Details/Events/Help | `4f2450b` | `2f16056` | `9c1785b` — guidance/Help; `1ade22f` — all Tutorial recap steps; `647e1cb` — compact facts height |
 | DC-8 — Tutorial/motion | `6a2c359` | `e44d4e0` | `794b8a0` — navigation/replay/ordinary exits; `b714892` — historical terminal artwork |
 | DC-9 — complete artwork | `7505f35` | `093ac38` | — |
-| DC-10 — browser integration | `2886eab` | `58fd89c` | эта documentation closure фиксирует gate evidence |
+| DC-10 — browser integration | `2886eab` | `58fd89c` | `e2fd804` — строгая temporal boundary для isolated WS tick; `00e6219` — первоначальная documentation closure |
 
 Block D GREEN на согласованной границе. Работа остановлена перед пользовательской
 сверкой. Block E / Stage 22 остаются PLANNED и не начинались. Пользовательский
 untracked `omenpath.db` не изменялся; служебная untracked `web/node_modules`
 symlink не добавлена в Git. Старую DB application автоматически не удаляет:
 clean-start multi-lab deployment использует новую database.
+
+#### DC-10 spec-review corrective — authoritative post-command tick
+
+Review выявил пробел в browser evidence: увеличение числа B frames могло быть
+вызвано уже queued сообщением, созданным до команды A. Test-only `e2fd804`
+берёт `generated_at` из authoritative response команды A и ждёт B frame со
+строго более поздним `generated_at`. В конце всего journey каждый B frame после
+baseline проверяется на собственный открытый Portal 1, отсутствие Portal 2 и
+нулевой closed count. Поэтому queued pre-command frame не удовлетворяет ожиданию,
+а проверка ownership охватывает также reload и создание новой игры в A.
+
+Verification: desktop и phone с `--repeat-each=3` — 12 PASS за 52.5s;
+typecheck, lint, format:check и diff hygiene PASS. Production code не менялся;
+Stage 22 не начат.
