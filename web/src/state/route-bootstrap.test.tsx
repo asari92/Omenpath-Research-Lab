@@ -117,7 +117,9 @@ describe.each(["/events", "/portals/42"])("fresh direct route %s", (path) => {
     const view = setup(false, true);
     const old = view.store.getState().snapshot;
     await act(async () => view.first.reject(new Error("offline")));
-    await userEvent.setup().click(screen.getByRole("button", { name: "Retry connection" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Retry connection" }));
     expect(view.store.getState().snapshot).toBe(old);
     expect(view.load).not.toHaveBeenCalled();
     expect(FakeWebSocket.instances).toHaveLength(0);

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { connectionHealth } from "../../state/command-health";
 
 import {
@@ -7,11 +6,10 @@ import {
 } from "../../state/SnapshotProvider";
 
 export function ConnectionState() {
-  const { api, store } = useSnapshotContext();
+  const { retryConnection } = useSnapshotContext();
   const state = useSnapshotState();
   const { bootstrap, protocolError } = state;
   const health = connectionHealth(state);
-  const [retrying, setRetrying] = useState(false);
   const failed = bootstrap === "failed" || protocolError !== null;
   return (
     <aside aria-label="Connection state" data-connection={health}>
@@ -27,21 +25,8 @@ export function ConnectionState() {
         <div role="alert">
           <span>{protocolError ?? "Unable to refresh Laboratory state"}</span>
           <button
-            disabled={retrying}
-            onClick={async () => {
-              setRetrying(true);
-              try {
-                store.acceptSnapshot(await api.state());
-              } catch (error: unknown) {
-                store.setProtocolError(
-                  error instanceof Error
-                    ? error.message
-                    : "Connection retry failed",
-                );
-              } finally {
-                setRetrying(false);
-              }
-            }}
+            disabled={bootstrap === "loading"}
+            onClick={retryConnection}
             type="button"
           >
             Retry connection

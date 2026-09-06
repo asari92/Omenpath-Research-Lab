@@ -36,10 +36,10 @@ function parsePortalID(value: string | undefined): number | null {
 }
 
 function PortalDetailsResource({ id }: { id: number }) {
-  const { api, store } = useSnapshotContext();
+  const { api, store, bootstrapReady } = useSnapshotContext();
   const snapshotState = useSnapshotState();
   const { snapshot } = snapshotState;
-  const enabled = commandsEnabled(snapshotState);
+  const enabled = bootstrapReady && commandsEnabled(snapshotState);
   const [signalError, setSignalError] = useState<string | null>(null);
   const lifecycle = useRef(0);
   const command = usePortalCommand(id);
@@ -53,7 +53,9 @@ function PortalDetailsResource({ id }: { id: number }) {
     resource.getSnapshot,
   );
 
-  useEffect(() => resource.refresh(), [resource, snapshot?.generated_at]);
+  useEffect(() => {
+    if (bootstrapReady) resource.refresh();
+  }, [bootstrapReady, resource, snapshot?.generated_at]);
   useEffect(() => {
     lifecycle.current += 1;
     const generation = lifecycle.current;
@@ -64,7 +66,7 @@ function PortalDetailsResource({ id }: { id: number }) {
     };
   }, [resource]);
   useEffect(() => {
-    if (!commandsEnabled(store.getState())) return;
+    if (!bootstrapReady || !commandsEnabled(store.getState())) return;
     const request = consumeNavigationSignal(snapshot?.app ?? null, {
       kind: "portal",
       id,
@@ -78,7 +80,7 @@ function PortalDetailsResource({ id }: { id: number }) {
           error instanceof Error ? error.message : "Tutorial signal failed",
         );
       });
-  }, [api, id, snapshot?.app, store, enabled]);
+  }, [api, id, snapshot?.app, store, enabled, bootstrapReady]);
 
   if (details.error instanceof ApiError && details.error.status === 404) {
     return <p role="alert">Portal Not Found</p>;
@@ -87,7 +89,12 @@ function PortalDetailsResource({ id }: { id: number }) {
     return (
       <div role="alert">
         <p>Unable to load Portal Details.</p>
-        <button onClick={() => resource.refresh()} type="button">
+        <button
+          onClick={() => {
+            if (bootstrapReady) resource.refresh();
+          }}
+          type="button"
+        >
           Retry
         </button>
       </div>
@@ -103,7 +110,12 @@ function PortalDetailsResource({ id }: { id: number }) {
       {details.error && (
         <p role="status">
           Updates unavailable.{" "}
-          <button type="button" onClick={() => resource.refresh()}>
+          <button
+            type="button"
+            onClick={() => {
+              if (bootstrapReady) resource.refresh();
+            }}
+          >
             Retry
           </button>
         </p>

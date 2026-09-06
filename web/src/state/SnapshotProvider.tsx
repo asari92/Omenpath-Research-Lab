@@ -4,6 +4,8 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useReducer,
+  useState,
   useSyncExternalStore,
 } from "react";
 
@@ -18,6 +20,8 @@ import {
 interface SnapshotContextValue {
   store: SnapshotStore;
   api: OmenpathApi;
+  bootstrapReady: boolean;
+  retryConnection(): void;
 }
 
 const SnapshotContext = createContext<SnapshotContextValue | null>(null);
@@ -40,6 +44,22 @@ export function SnapshotProvider({
     }),
     [suppliedApi, suppliedStore],
   );
+  const [attempt, retryConnection] = useReducer(
+    (current: number) => current + 1,
+    0,
+  );
+  const generation = useMemo(() => ({ value, attempt }), [value, attempt]);
+  // A supplied/stale snapshot is not proof that this provider established its
+  // cookie. Readiness belongs to this exact API/store bootstrap generation.
+  const [readyFor, setReadyFor] = useState<typeof generation | null>(null);
+  const context = useMemo(
+    () => ({
+      ...value,
+      bootstrapReady: readyFor === generation,
+      retryConnection,
+    }),
+    [readyFor, value, generation],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,6 +73,7 @@ export function SnapshotProvider({
           value.store.setBootstrap("failed");
           return;
         }
+        setReadyFor(generation);
         if (typeof WebSocket !== "undefined") {
           realtime = createRealtimeClient(value.store);
           realtime.start();
@@ -70,10 +91,10 @@ export function SnapshotProvider({
       controller.abort();
       realtime?.stop();
     };
-  }, [value]);
+  }, [value, generation]);
 
   return (
-    <SnapshotContext.Provider value={value}>
+    <SnapshotContext.Provider value={context}>
       {children}
     </SnapshotContext.Provider>
   );

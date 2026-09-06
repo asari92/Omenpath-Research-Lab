@@ -30,10 +30,10 @@ const emptyFilter: EventFilter = {
 };
 
 export function EventLogPage() {
-  const { api, store } = useSnapshotContext();
+  const { api, store, bootstrapReady } = useSnapshotContext();
   const snapshotState = useSnapshotState();
   const { snapshot } = snapshotState;
-  const enabled = commandsEnabled(snapshotState);
+  const enabled = bootstrapReady && commandsEnabled(snapshotState);
   const feedback = useFeedback();
   const [filter, setFilter] = useState<EventFilter>(emptyFilter);
   const lifecycle = useRef(0);
@@ -46,7 +46,9 @@ export function EventLogPage() {
     resource.getSnapshot,
     resource.getSnapshot,
   );
-  useEffect(() => resource.refresh(), [resource, snapshot?.generated_at]);
+  useEffect(() => {
+    if (bootstrapReady) resource.refresh();
+  }, [bootstrapReady, resource, snapshot?.generated_at]);
   useEffect(() => {
     lifecycle.current += 1;
     const generation = lifecycle.current;
@@ -56,7 +58,7 @@ export function EventLogPage() {
       });
   }, [resource]);
   useEffect(() => {
-    if (!commandsEnabled(store.getState())) return;
+    if (!bootstrapReady || !commandsEnabled(store.getState())) return;
     const request = consumeNavigationSignal(snapshot?.app ?? null, {
       kind: "events",
     });
@@ -69,7 +71,7 @@ export function EventLogPage() {
           error instanceof Error ? error.message : "Tutorial signal failed",
         ),
       );
-  }, [api, feedback, snapshot?.app, store, enabled]);
+  }, [api, feedback, snapshot?.app, store, enabled, bootstrapReady]);
 
   const visible = filterEvents(state.data ?? [], filter);
   return (
@@ -85,7 +87,12 @@ export function EventLogPage() {
         {state.error && !state.data ? (
           <div role="alert">
             <p>Unable to load Event Log.</p>
-            <button onClick={() => resource.refresh()} type="button">
+            <button
+              onClick={() => {
+                if (bootstrapReady) resource.refresh();
+              }}
+              type="button"
+            >
               Retry
             </button>
           </div>
