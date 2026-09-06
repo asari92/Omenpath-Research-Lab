@@ -42,7 +42,7 @@ async function prepareStepOne(page: import("@playwright/test").Page) {
   return response.json();
 }
 
-test("matching Details click emits one explicit Tutorial signal", async ({
+test("matching Portal card click emits one explicit Tutorial signal", async ({
   page,
 }) => {
   const request = page.request;
@@ -52,7 +52,7 @@ test("matching Details click emits one explicit Tutorial signal", async ({
   await page
     .getByTestId("portal-slot")
     .filter({ hasText: `#${String(portalID).padStart(4, "0")}` })
-    .getByRole("link", { name: "Details" })
+    .getByRole("link", { name: /^Inspect / })
     .click();
   await expect(page).toHaveURL(`/portals/${portalID}`);
   await expect(

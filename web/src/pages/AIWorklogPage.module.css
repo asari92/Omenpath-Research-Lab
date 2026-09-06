@@ -76,12 +76,17 @@
 
 @media (max-width: 760px) {
   .page {
-    display: block;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.35rem;
   }
 
   .toc {
     position: static;
-    max-height: 12rem;
-    margin-bottom: 0.75rem;
+    max-height: 7rem;
+  }
+
+  .article {
+    min-height: 0;
   }
 }

@@ -178,10 +178,10 @@ test("the visible Tutorial journey reaches Live without client-side progress", a
   await expect(page.getByLabel("Tutorial")).toContainText("Step 1");
   await page
     .locator('[data-tutorial-target="true"]')
-    .getByRole("link", { name: "Details" })
+    .getByRole("link", { name: /^Inspect / })
     .click();
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
-  await page.getByRole("link", { name: "Dashboard" }).click();
+  await page.getByRole("button", { name: "Forward", exact: true }).click();
 
   await expect(page.getByLabel("Tutorial")).toContainText("Step 3", {
     timeout: 45_000,

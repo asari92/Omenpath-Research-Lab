@@ -212,3 +212,19 @@
     max-height: calc(14dvh - 1rem);
   }
 }
+
+@media (max-width: 400px) and (max-height: 660px) {
+  .facts {
+    padding: 0.18rem;
+    font-size: 0.44rem;
+  }
+
+  .facts dl {
+    gap: 0.06rem;
+  }
+
+  .facts section + section {
+    margin-top: 0.12rem;
+    padding-top: 0.12rem;
+  }
+}

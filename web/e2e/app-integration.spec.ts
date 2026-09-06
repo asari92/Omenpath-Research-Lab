@@ -40,7 +40,7 @@ test("desktop shell keeps a stable sidebar and supports browser history", async 
   expect(consoleErrors).toEqual([]);
 });
 
-test("phone keeps primary navigation below every Slot control", async ({
+test("phone keeps primary navigation beside the Portal board", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "phone");
@@ -49,17 +49,13 @@ test("phone keeps primary navigation below every Slot control", async ({
   const navigation = page.getByRole("navigation", {
     name: "Primary navigation",
   });
-  const navBox = await navigation.boundingBox();
-  const lastControlBox = await page
-    .getByTestId("portal-slot")
-    .last()
-    .getByRole("button", { name: "Recall Observer" })
-    .boundingBox();
+  const [navBox, mainBox] = await Promise.all([
+    navigation.boundingBox(),
+    page.getByRole("main").boundingBox(),
+  ]);
   expect(navBox).not.toBeNull();
-  expect(lastControlBox).not.toBeNull();
-  expect(navBox!.y).toBeGreaterThanOrEqual(
-    lastControlBox!.y + lastControlBox!.height,
-  );
+  expect(mainBox).not.toBeNull();
+  expect(navBox!.x + navBox!.width).toBeLessThanOrEqual(mainBox!.x);
   expect(navBox!.y + navBox!.height).toBeLessThanOrEqual(760);
 });
 

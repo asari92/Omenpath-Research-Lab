@@ -7,7 +7,7 @@
 - Blocks A–D имеют статус GREEN, включая corrective gate блока D.
 - Block E имеет статус GREEN в отдельно согласованном минимальном deployment scope.
 - Приложение развёрнуто за существующим nginx/HTTPS.
-- Последние UI-коррекции реализованы до коммита 27a9529 включительно.
+- Последние UI-коррекции и submission audit включены в текущий HEAD.
 - Отложенные проверки и улучшения перечислены ниже и не выдаются за выполненные.
 
 Актуальные источники подробностей:
@@ -20,8 +20,8 @@
 
 ## Время разработки, токены и AI tools
 
-Активная разработка шла с 2026-09-01 по 2026-09-06. Точное число рабочих часов
-не фиксировалось, поэтому оценка не выдумывается.
+Календарное время разработки — около пяти дней, с 2026-09-01 по 2026-09-06.
+Точное число активных рабочих часов не фиксировалось, поэтому оно не выдумывается.
 
 Интерфейс не предоставил надёжную суммарную статистику токенов за весь проект.
 Token usage недоступен.
@@ -61,20 +61,16 @@ AI:
 Реализация была AI-assisted, но итоговые product decisions и acceptance оставались
 за разработчиком.
 
-## Ключевые запросы и повороты
+## Этапы процесса, вклад и ключевые промпты
 
-1. Восстановить контекст из репозитория до кодирования и считать Final Spec
-   единственным product/domain source of truth.
-2. Реализовать Stages 3–8 последовательно через test → RED → minimal GREEN →
-   verification → traceability → commit.
-3. Провести сверку Blocks A и B перед продолжением.
-4. Ускориться и реализовывать Blocks C, D и E целиком.
-5. Определить Recommendation и Tutorial semantics до их реализации.
-6. Уместить все семь Portal Slots на Dashboard без page scroll.
-7. Заменить первоначальный интерфейс единой тёмной магической лабораторией.
-8. Добавить anonymous persistent isolated laboratories вместо одной глобальной игры.
-9. Развернуть один application container за уже настроенным host nginx.
-10. После deploy исправить Tutorial navigation, visual hierarchy, favicon и Override.
+| Этап                   | Что делал разработчик                                                                          | Что делал AI                                                                          | Суть ключевого промпта                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Идея и ТЗ              | Выбрал тему, сеттинг и критерий EXPLORED; утверждал и исправлял механику                       | Сравнил варианты, собрал решения в Final Spec и requirements                          | «Восстанови контекст из репозитория; Final Spec — единственный product source of truth» |
+| Архитектура            | Выбрал Go, WebSocket, TDD и поэтапную работу                                                   | Разделил domain, simulation, persistence, API и UI; подготовил roadmap                | «Составь TDD-план стадии, не начинай следующую»                                         |
+| Domain и simulation    | Определял costs, lifecycle, Risk, Observer flow, Extraction и спорные edge cases               | Формализовал invariants, написал deterministic tests и реализацию Stages 1–14         | «Реализуй stage по аналогии: RED → GREEN → verification → commit»                       |
+| Persistence и sessions | Потребовал сохранение прогресса и отдельную игру для каждого browser profile                   | Реализовал SQLite с `lab_id`, anonymous sessions, REST/WS isolation и cleanup         | «Одна БД и `lab_id`, session живёт месяц; новая БД допустима»                           |
+| UI/UX                  | Дал референсы, отверг первые варианты, определил 4+3 Slots, whole-card Details и Tutorial flow | Реализовал React UI, artwork, animations, responsive layout и corrective passes       | «Сделай весь интерфейс единым в стиле магической лаборатории; все 7 Portals видны»      |
+| Проверка и deploy      | Проводил ручной browser review, подготовил VPS/nginx/HTTPS и подтвердил production smoke       | Запускал Go/frontend/browser suites, исправлял найденное, подготовил Docker и runbook | «Только минимальная containerization: nginx уже есть, app на 127.0.0.1:8080»            |
 
 ## Мои ключевые решения
 
@@ -144,8 +140,8 @@ requirement → test → RED → minimal implementation → GREEN → verificati
   живые вне Lab — dark.
 - Tutorial продвигается по authoritative events. Завершённый короткий step остаётся
   виден достаточно долго; существующий Forward управляет переходом из Details.
-- Обычные bottom-right notices удалены. Connection status виден только при
-  reconnect/error и использует тематический English copy.
+- Обычные bottom-right notices удалены. Connection status использует тематический
+  English copy для stable, reconnect и disconnected states.
 - Для всех 85 Planes используются локальные text-free artworks.
 - Production — один non-root multi-stage image. Один Go process обслуживает SPA,
   REST, WebSocket и health.
@@ -158,34 +154,34 @@ requirement → test → RED → minimal implementation → GREEN → verificati
 RED/GREEN пара; промежуточные commits сохранены в Git.
 Stage 20 отдельно завершил Tutorial UI; ниже он сохранён как самостоятельная строка.
 
-| Stage | Результат | Evidence | Status |
-|---|---|---|---|
-| 0 | executable requirements и traceability catalog | a7e80a7 | GREEN |
-| 1 | Go foundation, Clock/Random fakes, первый lifecycle | RED 0277adc → GREEN 1d77dcc | GREEN |
-| 2 | Portal lifecycle, Energy, stability, creatures, risk, Slots | RED 04c990c → GREEN 9b06e78; close 4b0274d | GREEN |
-| 3 | Observer lifecycle, Return, LOST, ordering | RED 71562a0 → GREEN 5e1391f; close 69c34a2 | GREEN |
-| 4 | SEND/RECALL, direction, restrictions, atomic flow | RED e67667b → GREEN f883f23; close 6b1728a | GREEN |
-| 5 | Lab Energy и transactional action costs | RED c79ee53 → GREEN 0c9e018; close a6167c0 | GREEN |
-| 6 | collapse orchestration и Leyline Override | RED d7340f8 → GREEN cb4a3ca; close a6b5643 | GREEN |
-| 7 | Extraction selection, sync и automatic Return | RED a566111 → GREEN c427b3d; close e6ea0e2 | GREEN |
-| 8 | scheduler, ticks, максимум 7 open Portals | RED 6c6f494 → GREEN 1e58efe; corrective 48bb89a | GREEN |
-| 9 | events, Portal history, deterministic event stream | RED d9ec172 → GREEN d2fe178; close 5131cbe | GREEN |
-| 10 | SQLite migrations, atomic persistence, restart recovery | RED 573716c → GREEN bf6d132; close bb2969f | GREEN |
-| 11 | LabManager ownership, locking, loop, cancellation | RED 0707336 → GREEN 38cf7f8; close cd651d7 | GREEN |
-| 12 | REST, errors и Recommendation Engine | RED 3574dc8 → GREEN e4d5144; close 5c3a97f | GREEN |
-| 13 | authoritative WebSocket snapshots и lifecycle | RED 3a2b07f → GREEN 99aa484; close 6adc8cf | GREEN |
-| 14 | deterministic Tutorial engine и Live handoff | RED 5a95e37 → GREEN a569eb6; audit e0d08d5 | GREEN |
-| 15 | React workspace, routes, clients, state, artwork | RED 7ed451f → GREEN f2dfb3e; close 6026f39 | GREEN |
-| 16 | responsive seven-slot Dashboard и quick actions | RED f7ded73 → GREEN ae7e872; close bcffd59 | GREEN |
-| 17 | Portal Details, diagnostics, actions, history | RED 393e9c7 → GREEN 9f75dfc; close ac7c835 | GREEN |
-| 18 | Extraction chooser, confirmations, errors | RED ca3ddb6 → GREEN 3b1b72b; close 97369a3 | GREEN |
-| 19 | realtime Event Log, filters, Tutorial signal | RED 78229d1 → GREEN ea87a2c; close 6d5dd1c | GREEN |
-| 20 | contextual Tutorial UI, retry, Live handoff | RED ff48bbd → GREEN e0e9e9a; close e069768 | GREEN |
-| 21 | single-source AI Worklog UI и integration | RED 8f92825 → GREEN 997b00b; close e94d1fa | GREEN |
-| 22 | production health endpoint и SPA serving | dcd617a | GREEN |
-| 23 | production image, Compose, env, persistent data | build RED → GREEN 31b03ca | GREEN |
-| 24 | existing-nginx deployment runbook | 42b3086 | GREEN |
-| 25 | container health, REST/WS и restart persistence smoke | 2fc78ee | GREEN в reduced scope |
+| Stage | Результат                                                   | Evidence                                        | Status                |
+| ----- | ----------------------------------------------------------- | ----------------------------------------------- | --------------------- |
+| 0     | executable requirements и traceability catalog              | a7e80a7                                         | GREEN                 |
+| 1     | Go foundation, Clock/Random fakes, первый lifecycle         | RED 0277adc → GREEN 1d77dcc                     | GREEN                 |
+| 2     | Portal lifecycle, Energy, stability, creatures, risk, Slots | RED 04c990c → GREEN 9b06e78; close 4b0274d      | GREEN                 |
+| 3     | Observer lifecycle, Return, LOST, ordering                  | RED 71562a0 → GREEN 5e1391f; close 69c34a2      | GREEN                 |
+| 4     | SEND/RECALL, direction, restrictions, atomic flow           | RED e67667b → GREEN f883f23; close 6b1728a      | GREEN                 |
+| 5     | Lab Energy и transactional action costs                     | RED c79ee53 → GREEN 0c9e018; close a6167c0      | GREEN                 |
+| 6     | collapse orchestration и Leyline Override                   | RED d7340f8 → GREEN cb4a3ca; close a6b5643      | GREEN                 |
+| 7     | Extraction selection, sync и automatic Return               | RED a566111 → GREEN c427b3d; close e6ea0e2      | GREEN                 |
+| 8     | scheduler, ticks, максимум 7 open Portals                   | RED 6c6f494 → GREEN 1e58efe; corrective 48bb89a | GREEN                 |
+| 9     | events, Portal history, deterministic event stream          | RED d9ec172 → GREEN d2fe178; close 5131cbe      | GREEN                 |
+| 10    | SQLite migrations, atomic persistence, restart recovery     | RED 573716c → GREEN bf6d132; close bb2969f      | GREEN                 |
+| 11    | LabManager ownership, locking, loop, cancellation           | RED 0707336 → GREEN 38cf7f8; close cd651d7      | GREEN                 |
+| 12    | REST, errors и Recommendation Engine                        | RED 3574dc8 → GREEN e4d5144; close 5c3a97f      | GREEN                 |
+| 13    | authoritative WebSocket snapshots и lifecycle               | RED 3a2b07f → GREEN 99aa484; close 6adc8cf      | GREEN                 |
+| 14    | deterministic Tutorial engine и Live handoff                | RED 5a95e37 → GREEN a569eb6; audit e0d08d5      | GREEN                 |
+| 15    | React workspace, routes, clients, state, artwork            | RED 7ed451f → GREEN f2dfb3e; close 6026f39      | GREEN                 |
+| 16    | responsive seven-slot Dashboard и quick actions             | RED f7ded73 → GREEN ae7e872; close bcffd59      | GREEN                 |
+| 17    | Portal Details, diagnostics, actions, history               | RED 393e9c7 → GREEN 9f75dfc; close ac7c835      | GREEN                 |
+| 18    | Extraction chooser, confirmations, errors                   | RED ca3ddb6 → GREEN 3b1b72b; close 97369a3      | GREEN                 |
+| 19    | realtime Event Log, filters, Tutorial signal                | RED 78229d1 → GREEN ea87a2c; close 6d5dd1c      | GREEN                 |
+| 20    | contextual Tutorial UI, retry, Live handoff                 | RED ff48bbd → GREEN e0e9e9a; close e069768      | GREEN                 |
+| 21    | single-source AI Worklog UI и integration                   | RED 8f92825 → GREEN 997b00b; close e94d1fa      | GREEN                 |
+| 22    | production health endpoint и SPA serving                    | dcd617a                                         | GREEN                 |
+| 23    | production image, Compose, env, persistent data             | build RED → GREEN 31b03ca                       | GREEN                 |
+| 24    | existing-nginx deployment runbook                           | 42b3086                                         | GREEN                 |
+| 25    | container health, REST/WS и restart persistence smoke       | 2fc78ee                                         | GREEN в reduced scope |
 
 ## Крупные corrective passes
 
@@ -250,7 +246,9 @@ Stage 20 отдельно завершил Tutorial UI; ниже он сохра
 
 ## Ручные правки и решения
 
-Главные developer reviews:
+Самостоятельного переписывания кода без AI не было. Мой ручной вклад состоял в
+проверке работающего приложения, постановке исправлений и принятии следующих
+решений:
 
 - frontend-only → полноценный realtime backend;
 - FastAPI → Go;
@@ -278,6 +276,9 @@ Stage 20 отдельно завершил Tutorial UI; ниже он сохра
   build, Go vet/build/test, desktop/phone render review и image smoke.
 - Dashboard/Tutorial corrective до 15c3710: frontend format/lint/typecheck,
   37 files / 194 tests, production build, gofmt и Go vet/build/test.
+- Финальная сверка с исходным тестовым заданием: gofmt, Go vet/build/test/race,
+  frontend format/lint/typecheck, 37 files / 194 tests, production build и полный
+  Playwright suite — 47 PASS, 5 явных project-specific skips.
 - Block E reduced gate: production build, loopback Compose config, healthy
   container, health, SPA, REST, WebSocket 101 и session persistence после recreate.
 - На VPS пользователь подтвердил запуск на 127.0.0.1:8080 и ответ
@@ -309,7 +310,6 @@ CI/CD, Kubernetes или monitoring.
 Не отмечены как GREEN:
 
 - balance simulation на 10 000–100 000 Portals;
-- новый exhaustive race/Playwright matrix после последних presentation-only changes;
 - расширенный external manual и cross-browser gameplay QA;
 - optional English/Russian language switch;
 - финальный whole-repository consistency audit после всех post-deployment corrections.
