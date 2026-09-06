@@ -211,7 +211,7 @@ corrective scope DC-1–10 завершены и прошли boundary verificat
 [`13_BLOCK_D_CORRECTIVE_TDD.md`](13_BLOCK_D_CORRECTIVE_TDD.md).
 RED/GREEN commits и corrective reviews перечислены в текущем worklog.
 Full Go vet/build/test/race, frontend formatting/lint/typecheck/test/build,
-85/85 artwork audit/offline prepare и browser suite (39 PASS, 5 явных
+85/85 artwork audit/offline prepare и browser suite (47 PASS, 5 явных
 project-specific skips) завершены успешно. Block E не начат; следующий шаг —
 пользовательская сверка завершённого Block D.
 
@@ -253,7 +253,8 @@ Analysis/architecture, backend, frontend, testing, debugging, deployment, final 
 
 Corrective gate не меняет остальные доказанные gameplay semantics Stages 0–14.
 DC-1–10 сохраняют checkpoint-level RED/GREEN evidence в Git; финальный
-DC-10 проверяет browser isolation, restart и cleanup через test-owned harness.
+DC-10 проверяет browser isolation, restart и cleanup через test-owned harness,
+а также сериализует initial/retry bootstrap для fresh direct Events/Details.
 
 ## Block E — Quality & Delivery
 

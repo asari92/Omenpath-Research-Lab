@@ -2522,7 +2522,7 @@ API-013, WS-004, SESSION-002/004/005 дополнены точным integration
 | DC-7 — Details/Events/Help | `4f2450b` | `2f16056` | `9c1785b` — guidance/Help; `1ade22f` — all Tutorial recap steps; `647e1cb` — compact facts height |
 | DC-8 — Tutorial/motion | `6a2c359` | `e44d4e0` | `794b8a0` — navigation/replay/ordinary exits; `b714892` — historical terminal artwork |
 | DC-9 — complete artwork | `7505f35` | `093ac38` | — |
-| DC-10 — browser integration | `2886eab` | `58fd89c` | `e2fd804` — строгая temporal boundary для isolated WS tick; `00e6219` — первоначальная documentation closure |
+| DC-10 — browser integration | `2886eab` | `58fd89c` | `e2fd804` — isolated WS tick cutoff; `00e6219`, `b752182` — evidence; `ee7ffd6`, `eef79c4` → `8ac74fc` — fresh deep-link bootstrap/retry |
 
 Block D GREEN на согласованной границе. Работа остановлена перед пользовательской
 сверкой. Block E / Stage 22 остаются PLANNED и не начинались. Пользовательский
@@ -2543,3 +2543,46 @@ baseline проверяется на собственный открытый Por
 Verification: desktop и phone с `--repeat-each=3` — 12 PASS за 52.5s;
 typecheck, lint, format:check и diff hygiene PASS. Production code не менялся;
 Stage 22 не начат.
+
+#### DC-10 quality corrective — fresh deep links share one bootstrap session
+
+Review нашёл настоящую integration race: при первом прямом открытии `/events`
+или `/portals/:id` route начинал собственный REST read одновременно с начальным
+`/api/state`. Пока cookie отсутствовала, запросы могли создать разные laboratories,
+а поздний ответ route расходился с уже запущенным WebSocket.
+
+RED `ee7ffd6`: 12 unit failures покрыли оба routes, свежий/preloaded store,
+failure/invalid/abort и obsolete StrictMode response. Два browser RED cases
+удерживали `/api/state` и зафиксировали по два преждевременных resource requests
+вместо нуля. GREEN `8ac74fc` добавляет общий `bootstrapReady` в provider context:
+готовность привязана к точной API/store/attempt generation и появляется только
+после успешно принятого REST snapshot. Старый snapshot сам по себе не открывает
+gate. Route refresh/retry и navigation signals ожидают готовности; существующие
+offline guards, request coalescing, direct-load semantics и stale-data rendering
+сохранены.
+
+Self-review отдельно выявил обход provider через старый Retry connection.
+RED `eef79c4` показал, что успешный retry оставляет route load count равным нулю.
+Теперь Retry connection запускает новый provider bootstrap attempt, сохраняет
+последний snapshot, отменяет obsolete request и использует тот же WS lifecycle.
+Browser retry fixture сначала ошибочно подменял только первый запрос: StrictMode
+мог отменить его, после чего второй запрос успешно скрывал Retry. Trace это
+подтвердил; fixture теперь удерживает failure до явного пользовательского Retry.
+Production timeout или retry policy не ослаблялись.
+
+Реальные desktop/phone проверки удерживают state response, требуют отсутствия
+ранних route requests/WS/cookies, затем фиксируют единственную cookie выдачу.
+Route requests используют эту cookie; последующее действие отражается и в route
+data, и в WS snapshot. Также проверяется восстановление обоих deep links после
+initial failure. Unit tests сохраняют прежний snapshot во время retry и не
+запускают route requests/WS после abort или rejected bootstrap.
+
+Verification текущей corrective версии: full frontend — 37 files / 185 tests
+PASS за 17.27s; typecheck/lint/build/format:check PASS. Repeated deep-link/retry/
+session isolation desktop+phone (`--repeat-each=3`) — 36 PASS за 1.4m. Повторный
+полный browser suite — 47 PASS, 5 explicit project-specific skips за 3.2m;
+настоящий Tutorial-to-Live journey — 57.9s. Backend, JSON contracts и assets не
+менялись; прежнее Go/race и 85-artwork evidence остаётся применимым. Обычные Vite
+bundle advisory и редкие dev-proxy EPIPE/ECONNRESET при browser disconnect/reload
+не являются failing checks. API-013 и SESSION-004 дополнены новым evidence.
+Block D GREEN; Block E / Stage 22 не начаты.
