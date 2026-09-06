@@ -1,6 +1,38 @@
 import { expect, test } from "@playwright/test";
 import { portalDetails, snapshotAt } from "../src/test/builders";
 
+for (const status of ["CLOSED", "COLLAPSED"] as const)
+  test(`historical ${status} Details remains full-size opaque grayscale after terminal animation duration`, async ({
+    page,
+  }) => {
+    const snapshot = snapshotAt();
+    snapshot.app.mode = "LIVE";
+    const details = portalDetails();
+    details.portal.status = status;
+    details.risk_level = null;
+    details.recommendation = null;
+    await page.route("**/api/state", (route) =>
+      route.fulfill({ json: snapshot }),
+    );
+    await page.route("**/api/portals/42", (route) =>
+      route.fulfill({ json: details }),
+    );
+    await page.routeWebSocket("**/ws/lab", () => {});
+    await page.goto("/portals/42");
+    const art = page.getByRole("img", { name: "Agyrem" });
+    await expect(art).toBeVisible();
+    await page.waitForTimeout(2300);
+    const visual = art.locator("..");
+    const size = await visual.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      layoutWidth: (node as HTMLElement).offsetWidth,
+    }));
+    expect(size.width).toBeGreaterThanOrEqual(size.layoutWidth * 0.95);
+    await expect(visual).toHaveCSS("opacity", "1");
+    await expect(visual).toHaveCSS("transform", "none");
+    await expect(visual).toHaveCSS("filter", "grayscale(1)");
+  });
+
 async function prepareStepOne(
   request: import("@playwright/test").APIRequestContext,
 ) {

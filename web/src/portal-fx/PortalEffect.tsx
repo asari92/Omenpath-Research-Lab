@@ -24,6 +24,7 @@ export interface PortalEffectProps {
   planeName: string;
   density: PortalEffectDensity;
   status?: PortalStatus;
+  exiting?: boolean;
 }
 
 export function PortalEffect({
@@ -32,6 +33,7 @@ export function PortalEffect({
   planeName,
   density,
   status = "OPEN",
+  exiting = false,
 }: PortalEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const art = planeArt(planeId);
@@ -59,6 +61,7 @@ export function PortalEffect({
       !canvas ||
       density === "static" ||
       status !== "OPEN" ||
+      exiting ||
       typeof IntersectionObserver === "undefined"
     )
       return;
@@ -125,13 +128,15 @@ export function PortalEffect({
       observer.disconnect();
       unregister();
     };
-  }, [density, hue, status, reduced]);
+  }, [density, hue, status, reduced, exiting]);
 
   return (
     <div
       className={styles.portal}
       data-status={status}
-      data-motion={status === "OPEN" ? "entering" : "terminal"}
+      data-motion={
+        exiting ? "terminal" : status === "OPEN" ? "entering" : "static"
+      }
       style={{ "--portal-hue": hue } as React.CSSProperties}
     >
       <img alt={planeName} className={styles.art} src={art.local_path} />

@@ -58,6 +58,7 @@ export function PortalSlot({
         <PortalEffect
           key={portal.id}
           status={portal.status}
+          exiting={ghost}
           density={needsAttention ? "high" : "low"}
           planeId={portal.destination_plane_id}
           planeName={portal.destination_plane_name}

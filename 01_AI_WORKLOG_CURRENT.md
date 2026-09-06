@@ -2394,3 +2394,19 @@ exit browser tests: 6 PASS. Complete Tutorial/Dashboard/Details regression: 19
 PASS, 3 project-specific skips, including the real same-cookie Live journey and
 compact Details. No backend or artwork changes; existing Vite bundle advisory
 and occasional dev-proxy teardown ECONNRESET remain non-failing diagnostics.
+
+#### DC-8 quality corrective — retain historical terminal artwork
+
+Review found that terminal status alone triggered the two-second departure,
+leaving historical Details at 15% scale and 18% opacity. Two unit RED cases and
+two browser RED cases reproduced CLOSED/COLLAPSED art at 34.6px instead of its
+230px layout width after 2.3 seconds. `PortalEffect` now requires explicit
+`exiting` presentation intent, supplied only by Dashboard ghosts. Historical
+terminal Details remains full-size, opaque and static grayscale; reduced-motion
+behavior and two-second ghost removal are preserved.
+
+Verification: 29 focused tests and full frontend 36 files / 170 tests PASS;
+typecheck/lint/build/formatting PASS. Desktop/phone Details + Tutorial browser
+suite: 19 PASS, 1 desktop-only journey skip. Browser checks wait beyond 2200ms
+for both terminal statuses, assert full-size/opacity/transform/grayscale, and
+retain exact ghost timing plus the real same-cookie Tutorial-to-Live journey.

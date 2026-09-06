@@ -5,6 +5,28 @@ import { PortalEffect } from "./PortalEffect";
 import { portalScheduler } from "./scheduler";
 
 describe("PortalEffect", () => {
+  it.each(["CLOSED", "COLLAPSED"] as const)(
+    "keeps historical %s artwork static unless an exit is explicitly requested",
+    (status) => {
+      render(
+        <PortalEffect
+          portalId={8}
+          planeId={1}
+          planeName="Agyrem"
+          density="static"
+          status={status}
+        />,
+      );
+      expect(screen.getByRole("img").parentElement).toHaveAttribute(
+        "data-motion",
+        "static",
+      );
+      expect(screen.getByRole("img").parentElement).toHaveAttribute(
+        "data-status",
+        status,
+      );
+    },
+  );
   it("unregisters heavy animation immediately when the motion preference changes", () => {
     const callbacks = new Set<() => void>();
     const media = {
@@ -98,6 +120,7 @@ describe("PortalEffect", () => {
         planeName="Agyrem"
         density="static"
         status="CLOSED"
+        exiting
       />,
     );
     expect(screen.getByRole("img").parentElement).toHaveAttribute(
