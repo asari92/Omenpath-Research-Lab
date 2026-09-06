@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import audit from "../../../data/plane_art_audit.json";
 
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,11 @@ import manifest from "../../../data/plane_images_manifest.json";
 import { planeArt, planeArtEntries } from "./plane-art";
 
 describe("local plane artwork", () => {
+  it("passes the complete reviewed text-free artwork audit", () => {
+    expect(audit.map((entry) => entry.plane_id)).toEqual(seed.planes.map((plane)=>plane.id));
+    expect(audit.filter((entry)=>!entry.reviewed || !entry.text_free || !entry.frame_free).map((entry)=>entry.plane_id)).toEqual([]);
+    expect(manifest.entries.filter((entry)=>entry.fallback).map((entry)=>entry.plane_id)).toEqual([]);
+  });
   it("maps every seed ID exactly once to a unique local file", () => {
     const seedIDs = seed.planes.map((plane) => plane.id).sort((a, b) => a - b);
     const entries = planeArtEntries();

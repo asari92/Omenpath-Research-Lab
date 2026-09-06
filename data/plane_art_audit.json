@@ -1,0 +1,682 @@
+[
+  {
+    "plane_id": 1,
+    "local_path": "/planes/01-the-abyss.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 2,
+    "local_path": "/planes/02-alara.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 3,
+    "local_path": "/planes/03-alacria.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 4,
+    "local_path": "/planes/04-alkabah.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 5,
+    "local_path": "/planes/05-amonkhet.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 6,
+    "local_path": "/planes/06-antausia.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 7,
+    "local_path": "/planes/07-aranzhur.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 8,
+    "local_path": "/planes/08-arcavios.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 9,
+    "local_path": "/planes/09-arkhos.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 10,
+    "local_path": "/planes/10-avishkar.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 11,
+    "local_path": "/planes/11-azgol.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 12,
+    "local_path": "/planes/12-azoria.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 13,
+    "local_path": "/planes/13-belenon.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 14,
+    "local_path": "/planes/14-bloomburrow.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 15,
+    "local_path": "/planes/15-cabralin.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 16,
+    "local_path": "/planes/16-capenna.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 17,
+    "local_path": "/planes/17-celesta.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 18,
+    "local_path": "/planes/18-cridhe.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 19,
+    "local_path": "/planes/19-diraden.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 20,
+    "local_path": "/planes/20-dominaria.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 21,
+    "local_path": "/planes/21-duskmourn.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 22,
+    "local_path": "/planes/22-echoir.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 23,
+    "local_path": "/planes/23-the-edge.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 24,
+    "local_path": "/planes/24-eldraine.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 25,
+    "local_path": "/planes/25-equilor.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 26,
+    "local_path": "/planes/26-ergamon.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 27,
+    "local_path": "/planes/27-fabacin.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 28,
+    "local_path": "/planes/28-fiora.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 29,
+    "local_path": "/planes/29-gargantikar.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 30,
+    "local_path": "/planes/30-gastal.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 31,
+    "local_path": "/planes/31-gobakhan.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 32,
+    "local_path": "/planes/32-hell.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 33,
+    "local_path": "/planes/33-ikoria.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 34,
+    "local_path": "/planes/34-ilcae.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 35,
+    "local_path": "/planes/35-innistrad.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 36,
+    "local_path": "/planes/36-iquatana.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 37,
+    "local_path": "/planes/37-ir.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 38,
+    "local_path": "/planes/38-ixalan.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 39,
+    "local_path": "/planes/39-kaldheim.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 40,
+    "local_path": "/planes/40-kamigawa.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 41,
+    "local_path": "/planes/41-karsus.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 42,
+    "local_path": "/planes/42-kephalai.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 43,
+    "local_path": "/planes/43-kinshala.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 44,
+    "local_path": "/planes/44-kodisha.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 45,
+    "local_path": "/planes/45-kolbahan.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 46,
+    "local_path": "/planes/46-kylem.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 47,
+    "local_path": "/planes/47-kyneth.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 48,
+    "local_path": "/planes/48-lorwyn-shadowmoor.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 49,
+    "local_path": "/planes/49-luvion.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 50,
+    "local_path": "/planes/50-meditation-plane.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 51,
+    "local_path": "/planes/51-mercadia.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 52,
+    "local_path": "/planes/52-metal-island.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 53,
+    "local_path": "/planes/53-mirrankkar.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 54,
+    "local_path": "/planes/54-moag.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 55,
+    "local_path": "/planes/55-mongseng.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 56,
+    "local_path": "/planes/56-muraganda.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 57,
+    "local_path": "/planes/57-nether-void.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 58,
+    "local_path": "/planes/58-new-phyrexia.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 59,
+    "local_path": "/planes/59-obsidias.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 60,
+    "local_path": "/planes/60-phyrexia.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 61,
+    "local_path": "/planes/61-pyrulea.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 62,
+    "local_path": "/planes/62-rabiah.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 63,
+    "local_path": "/planes/63-rath.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 64,
+    "local_path": "/planes/64-ravnica.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 65,
+    "local_path": "/planes/65-regatha.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 66,
+    "local_path": "/planes/66-segovia.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 67,
+    "local_path": "/planes/67-serras-realm.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 68,
+    "local_path": "/planes/68-seven-planes-of-parnash.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 69,
+    "local_path": "/planes/69-shandalar.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 70,
+    "local_path": "/planes/70-shenmeng.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 71,
+    "local_path": "/planes/71-skalla.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 72,
+    "local_path": "/planes/72-tarkir.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 73,
+    "local_path": "/planes/73-tavelia.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 74,
+    "local_path": "/planes/74-theros.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 75,
+    "local_path": "/planes/75-thunder-junction.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 76,
+    "local_path": "/planes/76-tolvada.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 77,
+    "local_path": "/planes/77-torwynn.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 78,
+    "local_path": "/planes/78-ulgrotha.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 79,
+    "local_path": "/planes/79-valla.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 80,
+    "local_path": "/planes/80-vatraquaz.webp",
+    "source_kind": "placeholder",
+    "text_free": false,
+    "frame_free": false,
+    "reviewed": true
+  },
+  {
+    "plane_id": 81,
+    "local_path": "/planes/81-vryn.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 82,
+    "local_path": "/planes/82-wildfire.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 83,
+    "local_path": "/planes/83-xerex.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 84,
+    "local_path": "/planes/84-zendikar.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  },
+  {
+    "plane_id": 85,
+    "local_path": "/planes/85-zhalfir.webp",
+    "source_kind": "fan_content_art_crop",
+    "text_free": true,
+    "frame_free": true,
+    "reviewed": true
+  }
+]
