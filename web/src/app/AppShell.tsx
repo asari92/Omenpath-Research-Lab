@@ -12,12 +12,14 @@ import { LabSummary } from "../components/dashboard/LabSummary";
 import { useSnapshotState } from "../state/SnapshotProvider";
 import { commandsEnabled } from "../state/command-health";
 import { useTutorialPlacement } from "../features/tutorial/useTutorialPlacement";
+import { LeylineLightning } from "../portal-fx/LeylineLightning";
 
 export function AppShell() {
   const { pathname } = useLocation();
   const longForm = /^\/(ai-worklog|help)\/?$/.test(pathname);
   const state = useSnapshotState();
   const { snapshot } = state;
+  const overrideActive = snapshot?.lab.leyline_override_active ?? false;
   const tutorialRef = useTutorialPlacement(pathname, snapshot?.app ?? null);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [extractionOpen, setExtractionOpen] = useState(false);
@@ -27,7 +29,7 @@ export function AppShell() {
         className={styles.shell}
         data-testid="app-shell"
         data-visual-theme="arcane-laboratory"
-        data-override={snapshot?.lab.leyline_override_active || undefined}
+        data-override={overrideActive || undefined}
       >
         <header className={styles.header}>
           <NavLink className={styles.brand} to="/">
@@ -78,10 +80,9 @@ export function AppShell() {
           open={extractionOpen}
           onClose={() => setExtractionOpen(false)}
         />
-        <div
-          aria-hidden="true"
+        <LeylineLightning
+          active={overrideActive}
           className={styles.overrideEnergy}
-          data-testid="leyline-energy-layer"
         />
       </div>
     </FeedbackProvider>
