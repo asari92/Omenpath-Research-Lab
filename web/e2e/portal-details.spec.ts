@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { portalDetails, snapshotAt } from "../src/test/builders";
+import { resetLaboratory } from "./helpers/laboratory";
 
 for (const status of ["CLOSED", "COLLAPSED"] as const)
   test(`historical ${status} Details remains full-size opaque grayscale after terminal animation duration`, async ({
@@ -33,16 +34,11 @@ for (const status of ["CLOSED", "COLLAPSED"] as const)
     await expect(visual).toHaveCSS("filter", "grayscale(1)");
   });
 
-async function prepareStepOne(
-  request: import("@playwright/test").APIRequestContext,
-) {
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
-  const response = await request.post(
-    "http://127.0.0.1:18080/api/tutorial/signal",
-    {
-      data: { signal: "TUTORIAL_INTRO_COMPLETED" },
-    },
-  );
+async function prepareStepOne(page: import("@playwright/test").Page) {
+  await resetLaboratory(page);
+  const response = await page.request.post("/api/tutorial/signal", {
+    data: { signal: "TUTORIAL_INTRO_COMPLETED" },
+  });
   return response.json();
 }
 
@@ -50,7 +46,7 @@ test("matching Details click emits one explicit Tutorial signal", async ({
   page,
 }) => {
   const request = page.request;
-  const snapshot = await prepareStepOne(request);
+  const snapshot = await prepareStepOne(page);
   const portalID = snapshot.app.tutorial_portal_id;
   await page.goto("/");
   await page
@@ -65,8 +61,7 @@ test("matching Details click emits one explicit Tutorial signal", async ({
   await expect
     .poll(
       async () =>
-        (await (await request.get("http://127.0.0.1:18080/api/state")).json())
-          .app.tutorial_step,
+        (await (await request.get("/api/state")).json()).app.tutorial_step,
     )
     .toBe(2);
 });
@@ -75,15 +70,13 @@ test("direct Details load performs GET without advancing Tutorial", async ({
   page,
 }) => {
   const request = page.request;
-  const snapshot = await prepareStepOne(request);
+  const snapshot = await prepareStepOne(page);
   const portalID = snapshot.app.tutorial_portal_id;
   await page.goto(`/portals/${portalID}`);
   await expect(
     page.getByRole("heading", { name: "Diagnostics" }),
   ).toBeVisible();
-  const state = await (
-    await request.get("http://127.0.0.1:18080/api/state")
-  ).json();
+  const state = await (await request.get("/api/state")).json();
   expect(state.app.expected_action).toBe("OPEN_PORTAL_DETAILS");
 });
 

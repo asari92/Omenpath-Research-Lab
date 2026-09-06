@@ -67,10 +67,6 @@ test("all slots have equal visible geometry and commands", async ({
   await page.screenshot({ path: info.outputPath("dashboard.png") });
 });
 
-test.beforeEach(async ({ request }) => {
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
-});
-
 test("desktop keeps seven stable slots in a 4 + 3 board", async ({
   page,
 }, testInfo) => {

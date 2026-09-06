@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { snapshotAt } from "../src/test/builders";
+import { resetLaboratory } from "./helpers/laboratory";
 
 test.beforeEach(async ({ page }) => {
   const request = page.request;
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
-  await request.post("http://127.0.0.1:18080/api/tutorial/signal", {
+  await resetLaboratory(page);
+  await request.post("/api/tutorial/signal", {
     data: { signal: "EVENT_LOG_OPENED" },
   });
 });
@@ -20,9 +21,7 @@ test("global Event Log renders safe shared rows and wrong-step navigation does n
   await expect(
     page.getByTestId("event-row").getByText("Action rejected", { exact: true }),
   ).toBeVisible();
-  const state = await (
-    await request.get("http://127.0.0.1:18080/api/state")
-  ).json();
+  const state = await (await request.get("/api/state")).json();
   expect(state.app.tutorial_step).toBe(0);
 });
 

@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { resetLaboratory } from "./helpers/laboratory";
 
-test.beforeEach(async ({ request }) => {
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
+test.beforeEach(async ({ page }) => {
+  await resetLaboratory(page);
 });
 
 test("Extraction chooser exposes all local Plane choices and preserves rejected selection", async ({

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { resetLaboratory } from "./helpers/laboratory";
 import { portalDetails, snapshotAt } from "../src/test/builders";
 
 test("presentation replays missed cards for 7s and terminal target for 2s", async ({
@@ -161,7 +162,7 @@ for (const mode of ["TUTORIAL", "LIVE"] as const)
 
 const apiState = async (
   request: import("@playwright/test").APIRequestContext,
-) => (await request.get("http://127.0.0.1:18080/api/state")).json();
+) => (await request.get("/api/state")).json();
 
 test("the visible Tutorial journey reaches Live without client-side progress", async ({
   page,
@@ -169,7 +170,7 @@ test("the visible Tutorial journey reaches Live without client-side progress", a
   const request = page.request;
   test.skip(testInfo.project.name !== "desktop");
   test.setTimeout(240_000);
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
+  await resetLaboratory(page);
   await page.goto("/");
 
   await expect(page.getByLabel("Tutorial")).toContainText("Step 0");
@@ -213,16 +214,12 @@ test("the visible Tutorial journey reaches Live without client-side progress", a
   await page.getByRole("link", { name: "Event Log" }).click();
   await expect(page.getByLabel("Tutorial")).toContainText("Step 9");
   const beforeLive = await apiState(request);
-  const eventsBefore = await (
-    await request.get("http://127.0.0.1:18080/api/events")
-  ).json();
+  const eventsBefore = await (await request.get("/api/events")).json();
   await page.getByRole("button", { name: "Start Live" }).click();
   await expect(page.getByLabel("Tutorial")).toHaveCount(0);
 
   const live = await apiState(request);
-  const eventsAfter = await (
-    await request.get("http://127.0.0.1:18080/api/events")
-  ).json();
+  const eventsAfter = await (await request.get("/api/events")).json();
   expect(live.app.mode).toBe("LIVE");
   expect(live.portals.active).toBe(0);
   expect(live.lab.current_energy).toBeGreaterThanOrEqual(

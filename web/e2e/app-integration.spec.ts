@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { resetLaboratory } from "./helpers/laboratory";
 
-test.beforeEach(async ({ request }) => {
-  await request.post("http://127.0.0.1:18080/api/tutorial/reset", { data: {} });
+test.beforeEach(async ({ page }) => {
+  await resetLaboratory(page);
 });
 
 test("desktop shell keeps a stable sidebar and supports browser history", async ({
