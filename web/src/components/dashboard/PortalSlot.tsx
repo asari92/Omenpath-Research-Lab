@@ -118,7 +118,9 @@ export function PortalSlot({
           quickActions={ghost ? null : portal.quick_actions}
         />
       </div>
-      {ghost ? <span>Portal ended</span> : (
+      {ghost ? (
+        <span>Portal ended</span>
+      ) : (
         <Link
           aria-label={`Inspect ${portal.name} on ${portal.destination_plane_name}`}
           className={styles.cardLink}

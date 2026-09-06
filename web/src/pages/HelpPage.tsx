@@ -63,10 +63,7 @@ export function HelpPage() {
       <p>The Omenpath Research Lab field guide</p>
       <nav aria-label="Field guide chapters">
         {chapters.map(([title], index) => (
-          <a
-            key={title}
-            href={`#chapter-${index}`}
-          >
+          <a key={title} href={`#chapter-${index}`}>
             {title}
           </a>
         ))}

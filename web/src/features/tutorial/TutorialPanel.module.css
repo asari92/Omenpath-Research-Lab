@@ -5,8 +5,12 @@
   padding: 0.7rem 2.25rem 0.62rem;
   border: 1px solid #69451e;
   border-radius: 0.3rem;
-  background:
-    radial-gradient(ellipse at center, #dec28d 0, #c29a61 68%, #8c6336 100%);
+  background: radial-gradient(
+    ellipse at center,
+    #dec28d 0,
+    #c29a61 68%,
+    #8c6336 100%
+  );
   box-shadow:
     0 0.45rem 1.2rem #000b,
     inset 0 0 0 2px #eed4a369,

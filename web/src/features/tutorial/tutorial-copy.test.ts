@@ -21,7 +21,9 @@ describe("tutorialGuidance", () => {
     expect(guidance?.instruction).toBe(
       "Select the highlighted Portal on the Dashboard to inspect it.",
     );
-    expect(JSON.stringify(guidance)).not.toMatch(/Open Details|Details button/i);
+    expect(JSON.stringify(guidance)).not.toMatch(
+      /Open Details|Details button/i,
+    );
   });
 
   it("keeps Step 0 general and free of later prices/rules", () => {

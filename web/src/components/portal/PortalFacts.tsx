@@ -18,9 +18,7 @@ export function PortalFacts({ portal }: { portal: PortalViewDTO }) {
         )}
         <div>
           <dt>Status</dt>
-          <dd data-status={portal.status}>
-            {portal.status}
-          </dd>
+          <dd data-status={portal.status}>{portal.status}</dd>
         </div>
         <div>
           <dt>Energy</dt>
