@@ -1,0 +1,12 @@
+.git
+.worktrees
+.env
+omenpath.db
+omenpath.db-*
+web/node_modules
+web/dist
+web/coverage
+web/playwright-report
+web/test-results
+coverage.*
+*.out
