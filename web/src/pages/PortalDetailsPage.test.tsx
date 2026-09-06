@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -252,7 +252,7 @@ describe("PortalDetailsPage", () => {
     ).toHaveLength(4);
   });
 
-  it("emits one matching signal from explicit intent and none on direct load", async () => {
+  it("accepts one matching signal and stays on Details until the user continues", async () => {
     const snapshot = snapshotAt();
     snapshot.app.expected_action = "OPEN_PORTAL_DETAILS";
     snapshot.app.tutorial_portal_id = 42;
@@ -263,13 +263,14 @@ describe("PortalDetailsPage", () => {
     vi.mocked(api.tutorialSignal).mockResolvedValue(next);
     recordNavigationIntent({ kind: "portal", id: 42 });
     renderDetails("/portals/42", api, snapshot);
-    expect(await screen.findByText("Dashboard route")).toBeVisible();
+    await waitFor(() => expect(api.tutorialSignal).toHaveBeenCalledOnce());
     expect(api.tutorialSignal).toHaveBeenCalledOnce();
     expect(api.tutorialSignal).toHaveBeenCalledWith({
       signal: "PORTAL_DETAILS_OPENED",
       portal_id: 42,
     });
-    expect(screen.getByTestId("location")).toHaveTextContent("/");
+    expect(screen.getByTestId("location")).toHaveTextContent("/portals/42");
+    expect(screen.queryByText("Dashboard route")).not.toBeInTheDocument();
   });
 
   it("stays on Details when the matching Tutorial signal fails", async () => {

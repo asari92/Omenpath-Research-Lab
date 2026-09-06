@@ -24,6 +24,7 @@ function LocationProbe() {
 function setup(
   step: number,
   overrides: Partial<ReturnType<typeof snapshotAt>["app"]> = {},
+  path = "/events",
 ) {
   const snapshot = snapshotAt();
   snapshot.app.tutorial_step = step;
@@ -50,7 +51,7 @@ function setup(
     sendObserver: vi.fn(),
   } as unknown as OmenpathApi;
   render(
-    <MemoryRouter initialEntries={["/events"]}>
+    <MemoryRouter initialEntries={[path]}>
       <StrictMode>
         <SnapshotProvider api={api} store={store}>
           <FeedbackProvider>
@@ -63,6 +64,38 @@ function setup(
   );
   return { api, store };
 }
+
+it("reuses Forward to leave current Portal Details for Dashboard", async () => {
+  setup(
+    2,
+    { expected_action: "WAIT_CORRIDOR", tutorial_portal_id: 42 },
+    "/portals/42",
+  );
+
+  const forward = screen.getByRole("button", { name: "Forward" });
+  expect(forward).toBeEnabled();
+  await userEvent.setup().click(forward);
+  expect(screen.getByTestId("location")).toHaveTextContent("/");
+});
+
+it("uses Forward for card history before leaving Portal Details", () => {
+  const { store } = setup(
+    1,
+    { expected_action: "OPEN_PORTAL_DETAILS", tutorial_portal_id: 42 },
+    "/portals/42",
+  );
+  const next = snapshotAt("2026-09-05T10:00:02Z");
+  next.app.tutorial_step = 2;
+  next.app.expected_action = "WAIT_CORRIDOR";
+  next.app.tutorial_portal_id = 42;
+  act(() => store.acceptSnapshot(next));
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+
+  expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+  expect(screen.getByTestId("location")).toHaveTextContent("/portals/42");
+});
 
 it("renders authoritative step, targets, instruction and Step 0 CTA", () => {
   setup(0);
