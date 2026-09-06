@@ -12,6 +12,8 @@ body,
 body {
   background: var(--background);
   color: var(--text);
+  overflow: hidden;
+  text-rendering: optimizeLegibility;
 }
 button,
 input,
@@ -26,7 +28,8 @@ a {
 }
 h1 {
   color: var(--text-strong);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -51,14 +54,15 @@ h1 {
 [aria-label="Notifications"] {
   position: fixed;
   z-index: 60;
-  top: 1rem;
+  top: 1.15rem;
   right: clamp(1rem, 3vw, 3rem);
   width: min(24rem, calc(100vw - 2rem));
   pointer-events: none;
 }
 [aria-label="Notifications"] p {
-  border: 1px solid var(--line);
-  background: var(--surface-raised);
+  border: 1px solid var(--line-bright);
+  background: linear-gradient(110deg, #2b1d10f2, #120f0bea);
+  color: var(--text-strong);
   padding: 0.7rem 2rem 0.7rem 0.7rem;
   margin: 0.3rem 0;
   box-shadow: 0 3px 15px #0008;

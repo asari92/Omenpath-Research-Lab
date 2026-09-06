@@ -26,6 +26,7 @@ export function AppShell() {
       <div
         className={styles.shell}
         data-testid="app-shell"
+        data-visual-theme="arcane-laboratory"
         data-override={snapshot?.lab.leyline_override_active || undefined}
       >
         <header className={styles.header}>

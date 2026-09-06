@@ -1,14 +1,25 @@
 :root {
   color-scheme: dark;
-  --background: #100f0e;
-  --surface: #1b1916;
-  --surface-raised: #30281f;
-  --line: #685038;
-  --text: #e2d5bb;
-  --text-strong: #fff0cc;
-  --text-muted: #b8aa92;
-  --accent: #dbc08a;
-  --danger: #ff8580;
+  --background: #080807;
+  --surface: #15130fda;
+  --surface-raised: #241c12f2;
+  --panel-glass: #0b0b09c7;
+  --line: #806033;
+  --line-bright: #c4974d;
+  --text: #e5d4ad;
+  --text-strong: #f7d68d;
+  --text-muted: #aa8956;
+  --accent: #d8a955;
+  --parchment: #c49a5e;
+  --energy: #f4b447;
+  --time: #c8e7ee;
+  --transit: #6bd8cf;
+  --success: #75d89a;
+  --risk-low: #77d390;
+  --risk-medium: #efd465;
+  --risk-high: #f39a46;
+  --risk-critical: #ff5f4f;
+  --danger: #ff675c;
   --warning: #e7ba69;
   font-family: Georgia, "Times New Roman", serif;
 }

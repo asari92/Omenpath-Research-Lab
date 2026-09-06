@@ -1,36 +1,38 @@
+import type { CSSProperties } from "react";
+
 import type { StateSnapshot } from "../../api/types";
 import styles from "./LabSummary.module.css";
 
 export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
-  const items = [
-    [
-      "Laboratory Energy",
-      `${snapshot.lab.current_energy} / ${snapshot.lab.maximum_energy}`,
-    ],
-    [
-      "Exploration",
-      `${snapshot.exploration.explored} / ${snapshot.exploration.total}`,
-    ],
-    ["Observers", `Available ${snapshot.observers.available}`],
-    ["Observers", `In worlds ${snapshot.observers.in_worlds}`],
-    ["Observers", `In transit ${snapshot.observers.in_transit}`],
-    ["Observers", `Lost ${snapshot.observers.lost}`],
-    [
-      "Portals",
-      `Active ${snapshot.portals.active} / ${snapshot.portals.maximum}`,
-    ],
-    ["Portals", `Critical ${snapshot.portals.critical}`],
-    [
-      "Portals",
-      `Closed ${snapshot.portals.closed} · Collapsed ${snapshot.portals.collapsed}`,
-    ],
-  ] as const;
+  const energyPercent = Math.max(
+    0,
+    Math.min(
+      100,
+      (snapshot.lab.current_energy / snapshot.lab.maximum_energy) * 100,
+    ),
+  );
+  const gaugeStyle = {
+    "--energy-level": `${energyPercent}%`,
+  } as CSSProperties;
 
   return (
     <dl aria-label="Laboratory summary" className={styles.summary}>
+      <div
+        className={styles.energy}
+        data-testid="lab-energy-gauge"
+        style={gaugeStyle}
+      >
+        <dt>Lab Energy</dt>
+        <dd>
+          <strong>{snapshot.lab.current_energy}</strong>
+          <span> / {snapshot.lab.maximum_energy}</span>
+        </dd>
+      </div>
       <div className={styles.roster}>
-        <dt>Observers in Lab</dt>
-        <dd>{snapshot.observers.in_lab} / 20</dd>
+        <dt>Observer Life</dt>
+        <dd>
+          {snapshot.observers.in_lab} <span>/ 20</span>
+        </dd>
         <div
           className={styles.pips}
           role="img"
@@ -45,12 +47,45 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
           ))}
         </div>
       </div>
-      {items.map(([label, value], index) => (
-        <div className={styles.item} key={`${label}-${index}`}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
+      <div className={styles.override}>
+        <dt>Leyline Override</dt>
+        <dd data-active={snapshot.lab.leyline_override_active}>
+          {snapshot.lab.leyline_override_active ? "ACTIVE" : "INACTIVE"}
+        </dd>
+      </div>
+      <div className={styles.compact}>
+        <div>
+          <dt>Exploration</dt>
+          <dd>
+            {snapshot.exploration.explored} / {snapshot.exploration.total}
+          </dd>
         </div>
-      ))}
+        <div>
+          <dt>Portals</dt>
+          <dd>
+            Active {snapshot.portals.active} / {snapshot.portals.maximum}
+          </dd>
+        </div>
+        <div>
+          <dt>Critical </dt>
+          <dd>{snapshot.portals.critical}</dd>
+        </div>
+        <div>
+          <dt>Observers</dt>
+          <dd>
+            Available {snapshot.observers.available} · In worlds{" "}
+            {snapshot.observers.in_worlds} · In transit{" "}
+            {snapshot.observers.in_transit} · Lost {snapshot.observers.lost}
+          </dd>
+        </div>
+        <div>
+          <dt>Terminal Portals</dt>
+          <dd>
+            Closed {snapshot.portals.closed} · Collapsed{" "}
+            {snapshot.portals.collapsed}
+          </dd>
+        </div>
+      </div>
     </dl>
   );
 }
