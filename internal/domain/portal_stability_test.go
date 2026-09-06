@@ -1,8 +1,7 @@
 package domain_test
 
-// Stage 2, substages 2.5–2.6 (04_STAGE_02_PORTAL_CORE_TDD.md):
-// stability semantics, hidden instability collapse and the Stabilize
-// primitive. No Lab Energy coupling here (stage boundary, plan §3).
+// Final Spec §§10–11: stability semantics, hidden instability collapse and
+// the Stabilize primitive. Lab Energy coupling is tested separately.
 
 import (
 	"testing"

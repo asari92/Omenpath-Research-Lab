@@ -1,15 +1,12 @@
 package domain_test
 
-// First RED cycle of the project (03_STAGE_00_01_TDD_FOUNDATION.md).
-//
-// These three tests are written BEFORE the portal lifecycle implementation:
+// The first RED cycle of the project established these lifecycle rules:
 //
 //	PORTAL-005  expired TTL → CLOSED + NATURAL_CLOSE
 //	ENERGY-005  energy reaches 0 → COLLAPSED + ENERGY_DEPLETED
 //	PORTAL-009  terminal portal can never return OPEN
 //
-// Full Portal Core (energy derivation, stability, creatures, risk, slots)
-// is Stage 2 scope — see 04_STAGE_02_PORTAL_CORE_TDD.md.
+// Energy derivation, stability, creatures, risk and slots have focused tests.
 
 import (
 	"testing"

@@ -1,7 +1,6 @@
 package domain_test
 
-// Stage 2, substage 2.10 (04_STAGE_02_PORTAL_CORE_TDD.md): portal slots
-// as pure domain logic (Final Spec §5).
+// Final Spec §5: Portal Slots as pure domain logic.
 
 import (
 	"testing"

@@ -1,7 +1,7 @@
 package domain_test
 
-// Stage 2, substages 2.2–2.4 (04_STAGE_02_PORTAL_CORE_TDD.md):
-// portal energy derivation, depletion timestamp, natural/energy ordering.
+// Final Spec §9: Portal Energy derivation, depletion timestamp and
+// natural/energy ordering.
 
 import (
 	"testing"

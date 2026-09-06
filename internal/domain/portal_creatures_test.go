@@ -1,6 +1,5 @@
 package domain_test
 
-// Stage 2, substage 2.7 (04_STAGE_02_PORTAL_CORE_TDD.md): creatures.
 // Final Spec §12: 2 sec per creature, 2 sec clearance margin, derived count.
 
 import (

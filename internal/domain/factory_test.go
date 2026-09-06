@@ -1,8 +1,8 @@
 package domain_test
 
-// Stage 2, §20 (04_STAGE_02_PORTAL_CORE_TDD.md): the natural portal
-// factory. It only creates a valid NATURAL portal; choosing plane/slot,
-// lab mutation, persistence, events and broadcasting are later stages.
+// Final Spec §§4–12: the factory creates a valid NATURAL portal. Aggregate
+// plane/slot selection, persistence, events and broadcasting are tested at
+// their owning boundaries.
 
 import (
 	"testing"

@@ -1,8 +1,7 @@
 package domain_test
 
-// Stage 2, substage 2.9 + §17–18 (04_STAGE_02_PORTAL_CORE_TDD.md):
-// risk lifetimes, formula boundaries, instability penalty and the
-// "terminal portals have no current risk" rule (Final Spec §13).
+// Final Spec §13: risk lifetimes, formula boundaries, instability penalty and
+// the "terminal portals have no current risk" rule.
 
 import (
 	"testing"

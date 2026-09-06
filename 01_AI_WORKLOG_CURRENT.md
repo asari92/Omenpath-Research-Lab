@@ -13,10 +13,9 @@
 Актуальные источники подробностей:
 
 - product semantics — 00_FINAL_SPEC_v5.md;
-- порядок стадий и границы блоков — 02_IMPLEMENTATION_ROADMAP_TDD.md;
 - покрытие требований — docs/traceability.md;
 - запуск на сервере — docs/deployment.md;
-- полная RED/GREEN история — Git log и соответствующие stage/block plans.
+- полная RED/GREEN история — Git log.
 
 ## Время разработки, токены и AI tools
 

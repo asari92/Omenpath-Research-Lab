@@ -1,8 +1,8 @@
 package domain_test
 
-// Stage 2, substage 2.8 (04_STAGE_02_PORTAL_CORE_TDD.md): manual close
-// primitive. Final Spec §21: cost and observer-in-transit confirmation are
-// orchestrated later; here only state transition + creature confirmation.
+// Final Spec §21: manual close primitive. Cost and Observer-in-transit
+// confirmation are tested at orchestration boundaries; this file covers the
+// state transition and creature confirmation.
 
 import (
 	"testing"

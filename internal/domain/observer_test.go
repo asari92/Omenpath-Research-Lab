@@ -1,7 +1,6 @@
 package domain_test
 
-// Stage 3, checkpoint A (05_STAGE_03_OBSERVER_LIFECYCLE_TDD.md):
-// Observer construction, the configured roster size, and canonical
+// Final Spec §15: Observer construction, configured roster size, and canonical
 // AVAILABLE/LOST state representation.
 
 import (

@@ -1,8 +1,7 @@
 // Package clock abstracts time for the whole codebase.
 //
-// Stage 1 rule (03_STAGE_00_01_TDD_FOUNDATION.md): production domain code
-// must never call time.Now() directly — it receives a Clock. Tests use
-// testutil.FakeClock and Advance instead of sleeping.
+// Production domain code does not call time.Now() directly: it receives a
+// Clock. Tests use testutil.FakeClock and Advance instead of sleeping.
 package clock
 
 import "time"
