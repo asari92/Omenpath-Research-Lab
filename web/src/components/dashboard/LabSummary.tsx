@@ -14,6 +14,18 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
   const gaugeStyle = {
     "--energy-level": `${energyPercent}%`,
   } as CSSProperties;
+  const totalObservers = 20;
+  const availableObservers = Math.max(
+    0,
+    Math.min(totalObservers, snapshot.observers.available),
+  );
+  const lostObservers = Math.max(
+    0,
+    Math.min(totalObservers - availableObservers, snapshot.observers.lost),
+  );
+  const deployedObservers =
+    totalObservers - availableObservers - lostObservers;
+  const survivingObservers = totalObservers - lostObservers;
 
   return (
     <dl aria-label="Laboratory summary" className={styles.summary}>
@@ -31,18 +43,24 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
       <div className={styles.roster}>
         <dt>Observer Life</dt>
         <dd>
-          {snapshot.observers.in_lab} <span>/ 20</span>
+          {survivingObservers} <span>/ {totalObservers}</span>
         </dd>
         <div
           className={styles.pips}
           role="img"
-          aria-label={`${snapshot.observers.in_lab} of 20 Observers in Lab`}
+          aria-label={`Observer status: ${availableObservers} available, ${deployedObservers} deployed, ${lostObservers} lost`}
         >
-          {Array.from({ length: 20 }, (_, index) => (
+          {Array.from({ length: totalObservers }, (_, index) => (
             <i
               key={index}
               data-testid="observer-pip"
-              data-available={index < snapshot.observers.in_lab}
+              data-state={
+                index < availableObservers
+                  ? "available"
+                  : index >= totalObservers - lostObservers
+                    ? "lost"
+                    : "deployed"
+              }
             />
           ))}
         </div>
@@ -69,14 +87,6 @@ export function LabSummary({ snapshot }: { snapshot: StateSnapshot }) {
         <div>
           <dt>Critical </dt>
           <dd>{snapshot.portals.critical}</dd>
-        </div>
-        <div>
-          <dt>Observers</dt>
-          <dd>
-            Available {snapshot.observers.available} · In worlds{" "}
-            {snapshot.observers.in_worlds} · In transit{" "}
-            {snapshot.observers.in_transit} · Lost {snapshot.observers.lost}
-          </dd>
         </div>
         <div>
           <dt>Terminal Portals</dt>
