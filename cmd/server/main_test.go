@@ -48,10 +48,16 @@ func TestServerConfigFromEnv_UsesSafeDefaultsAndOverrides(t *testing.T) {
 	defaults := serverConfigFromEnv(func(string) string { return "" })
 	require.Equal(t, "./omenpath.db", defaults.databasePath)
 	require.Equal(t, ":8080", defaults.address)
-	overrides := map[string]string{"OMENPATH_DB_PATH": "/tmp/lab.sqlite", "OMENPATH_ADDR": "127.0.0.1:9090"}
+	require.Empty(t, defaults.webRoot)
+	overrides := map[string]string{
+		"OMENPATH_DB_PATH":  "/tmp/lab.sqlite",
+		"OMENPATH_ADDR":     "127.0.0.1:9090",
+		"OMENPATH_WEB_ROOT": "/app/web",
+	}
 	got := serverConfigFromEnv(func(key string) string { return overrides[key] })
 	require.Equal(t, "/tmp/lab.sqlite", got.databasePath)
 	require.Equal(t, "127.0.0.1:9090", got.address)
+	require.Equal(t, "/app/web", got.webRoot)
 }
 
 func TestCompositionSmoke_SQLiteRESTAndWebSocketInitialSnapshot(t *testing.T) {

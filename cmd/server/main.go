@@ -21,6 +21,7 @@ import (
 type serverConfig struct {
 	databasePath string
 	address      string
+	webRoot      string
 	cookieSecure bool
 	configError  error
 }
@@ -33,6 +34,7 @@ func serverConfigFromEnv(getenv func(string) string) serverConfig {
 	if value := getenv("OMENPATH_ADDR"); value != "" {
 		result.address = value
 	}
+	result.webRoot = getenv("OMENPATH_WEB_ROOT")
 	result.cookieSecure, result.configError = config.CookieSecure(getenv("OMENPATH_COOKIE_SECURE"), getenv("OMENPATH_ENV") == "production")
 	return result
 }
@@ -76,12 +78,19 @@ func run(ctx context.Context, serverCfg serverConfig) error {
 	if err != nil {
 		return err
 	}
+	handler := http.Handler(router)
+	if serverCfg.webRoot != "" {
+		handler, err = httpapi.NewProductionHandler(router, serverCfg.webRoot)
+		if err != nil {
+			return err
+		}
+	}
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	cleanupTicker := time.NewTicker(cfg.SessionCleanupInterval)
 	defer cleanupTicker.Stop()
-	server := &http.Server{Addr: serverCfg.address, Handler: router, ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Addr: serverCfg.address, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
 	storeOwnedByServices = true
 	return runServices(
 		ctx,
