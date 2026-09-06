@@ -58,7 +58,9 @@ export function DashboardPage() {
           slot.portal ? (
             <PortalSlot
               key={slot.slot_index}
-              ghost={presentation.ghost?.slot.slot_index === slot.slot_index}
+              ghost={presentation.ghosts.some(
+                (ghost) => ghost.slot.slot_index === slot.slot_index,
+              )}
               needsAttention={
                 snapshot.needs_attention_portal_id === slot.portal.id
               }

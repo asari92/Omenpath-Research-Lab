@@ -2367,3 +2367,30 @@ Go vet/build and full ordinary tests PASS (integration listener permission was
 granted after sandbox rejection). Vite retains its existing bundle-size advisory;
 occasional dev-proxy ECONNRESET appears during browser teardown. No backend
 semantics, artwork or dependencies changed. DC-9 and Stage 22 not started here.
+
+#### DC-8 spec-review corrective — complete navigation and ordinary exits
+
+Review identified missing ordinary Portal exit animations, incremental Forward
+navigation, and replay time elapsing while Back showed an older lesson. Five
+observed unit RED failures and two browser RED failures reproduced these gaps.
+Every removed Portal now has an independent two-second disabled terminal ghost,
+in Tutorial and Live, including multiple endings in one snapshot. Existing
+deadlines survive subsequent ticks and replacements. The latest authoritative
+snapshot/counters apply immediately; after 1999/2000ms, each slot reveals its
+empty or newest replacement state. Ghost copy says ENDED, since slot snapshots
+do not distinguish the individual closure cause after removal.
+
+One Forward now jumps directly to the current objective across all browsed
+history. While mandatory replay is active, its card remains the presentation
+objective: Back pauses its remaining visibility budget, and Forward resumes that
+card before returning to authoritative current. With no replay, Forward returns
+directly to the authoritative step. Timer tokens and reducer guards reject stale
+callbacks; no navigation emits a server signal. Fake timers cover both immediate
+Back and Back after 3000ms, 30 seconds browsing, then exact remaining-time expiry.
+
+Verification: focused 44 tests and full frontend 36 files / 168 tests PASS;
+typecheck/lint/build/formatting PASS. Focused desktop/phone timing and simultaneous
+exit browser tests: 6 PASS. Complete Tutorial/Dashboard/Details regression: 19
+PASS, 3 project-specific skips, including the real same-cookie Live journey and
+compact Details. No backend or artwork changes; existing Vite bundle advisory
+and occasional dev-proxy teardown ECONNRESET remain non-failing diagnostics.

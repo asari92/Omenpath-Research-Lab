@@ -194,6 +194,39 @@ it("normal sequential progress is immediate and reset cancels replay timers and 
   expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
 });
 
+it.each([0, 3000])(
+  "pauses the required replay after %ims while Back browses history, then Forward resumes its remaining visible time",
+  (elapsed) => {
+    vi.useFakeTimers();
+    const { store, api } = setup(1);
+    const next = snapshotAt("2026-09-05T10:00:02Z");
+    next.app.tutorial_step = 3;
+    act(() => {
+      store.acceptSnapshot(next);
+    });
+    act(() => {
+      vi.advanceTimersByTime(elapsed);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 1");
+    act(() => {
+      vi.advanceTimersByTime(30000);
+    });
+    expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 1");
+    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+    expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+    act(() => {
+      vi.advanceTimersByTime(6999 - elapsed);
+    });
+    expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 2");
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByLabelText("Tutorial")).toHaveTextContent("Step 3");
+    expect(api.tutorialSignal).not.toHaveBeenCalled();
+  },
+);
+
 it("does not restart a replay deadline on snapshots and gives each newly missed card its own seven seconds", () => {
   vi.useFakeTimers();
   const { store } = setup(1);

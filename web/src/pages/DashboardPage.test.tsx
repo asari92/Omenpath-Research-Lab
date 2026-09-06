@@ -65,6 +65,59 @@ function renderDashboard(snapshot: StateSnapshot) {
 }
 
 describe("DashboardPage", () => {
+  it.each(["TUTORIAL", "LIVE"] as const)(
+    "animates simultaneous ordinary %s endings into empty and replacement slots for two seconds",
+    (mode) => {
+      vi.useFakeTimers();
+      try {
+        const initial = snapshotAt();
+        initial.app.mode = mode;
+        initial.app.tutorial_step = 8;
+        initial.slots[0].portal = portal(11, "Alara");
+        initial.slots[1].portal = portal(12, "Amonkhet");
+        const { store } = renderDashboard(initial);
+        const next = snapshotAt("2026-09-05T10:00:01Z");
+        next.app = { ...initial.app };
+        next.slots[1].portal = portal(13, "Amonkhet");
+        act(() => {
+          store.acceptSnapshot(next);
+        });
+        expect(store.getState().snapshot?.slots[0].portal).toBeNull();
+        expect(store.getState().snapshot?.slots[1].portal?.id).toBe(13);
+        expect(screen.getAllByTestId("portal-ghost")).toHaveLength(2);
+        for (const ghost of screen.getAllByTestId("portal-ghost")) {
+          const card = ghost.closest("article")!;
+          expect(within(card).queryByRole("link")).toBeNull();
+          for (const button of within(card).getAllByRole("button"))
+            expect(button).toBeDisabled();
+          expect(
+            ghost.querySelector('[data-motion="terminal"]'),
+          ).not.toBeNull();
+        }
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        const tick = { ...next, generated_at: "2026-09-05T10:00:02Z" };
+        act(() => {
+          store.acceptSnapshot(tick);
+          vi.advanceTimersByTime(999);
+        });
+        expect(screen.getAllByTestId("portal-ghost")).toHaveLength(2);
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(screen.queryByTestId("portal-ghost")).toBeNull();
+        expect(screen.getAllByTestId("portal-slot")[0]).toHaveTextContent(
+          "Awaiting Portal",
+        );
+        expect(screen.getAllByTestId("portal-slot")[1]).toHaveTextContent(
+          "Omenpath #0013",
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
   it("keeps a replaced tutorial target as a disabled ghost for exactly 2000ms", () => {
     vi.useFakeTimers();
     try {

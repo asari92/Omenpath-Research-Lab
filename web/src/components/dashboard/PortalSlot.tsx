@@ -53,7 +53,7 @@ export function PortalSlot({
         data-testid={ghost ? "portal-ghost" : undefined}
       >
         {ghost && (
-          <span className={styles.ghostName}>{portal.name} · Closing</span>
+          <span className={styles.ghostName}>{portal.name} · Ended</span>
         )}
         <PortalEffect
           key={portal.id}
@@ -68,7 +68,7 @@ export function PortalSlot({
       <p>
         {portal.destination_plane_name} ·{" "}
         {portal.destination_explored ? "EXPLORED" : "UNEXPLORED"} ·{" "}
-        {portal.status}
+        {ghost ? "ENDED" : portal.status}
       </p>
       <dl className={styles.metrics}>
         <div>
@@ -106,7 +106,7 @@ export function PortalSlot({
         quickActions={ghost ? null : portal.quick_actions}
       />
       {ghost ? (
-        <span>Closing…</span>
+        <span>Portal ended</span>
       ) : (
         <Link
           onClick={() =>

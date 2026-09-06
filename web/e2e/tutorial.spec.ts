@@ -34,7 +34,12 @@ test("presentation replays missed cards for 7s and terminal target for 2s", asyn
   socket!.send(JSON.stringify(next));
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
   await expect(page.getByLabel("Tutorial")).toContainText("Completed");
-  await page.clock.runFor(6999);
+  await page.clock.runFor(3000);
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.clock.runFor(30000);
+  await expect(page.getByLabel("Tutorial")).toContainText("Step 1");
+  await page.getByRole("button", { name: "Forward", exact: true }).click();
+  await page.clock.runFor(3999);
   await expect(page.getByLabel("Tutorial")).toContainText("Step 2");
   await page.clock.runFor(1);
   await expect(page.getByLabel("Tutorial")).toContainText("Step 3");
@@ -85,6 +90,74 @@ test("presentation replays missed cards for 7s and terminal target for 2s", asyn
     "0.12s",
   );
 });
+
+for (const mode of ["TUTORIAL", "LIVE"] as const)
+  test(`${mode} simultaneous CLOSE and COLLAPSE snapshots retain separate disabled exits then empty/replacement`, async ({
+    page,
+  }) => {
+    const time = new Date("2026-09-06T10:00:00Z");
+    await page.clock.install({ time });
+    await page.clock.pauseAt(time);
+    const initial = snapshotAt();
+    initial.app.mode = mode;
+    initial.app.tutorial_step = 8;
+    initial.portals.active = 2;
+    const portal = (id: number) => ({
+      ...portalDetails(id).portal,
+      destination_plane_id: 1,
+      destination_plane_name: "Agyrem",
+      destination_explored: false,
+    });
+    initial.slots[0].portal = portal(11);
+    initial.slots[1].portal = portal(12);
+    await page.route("**/api/state", (route) =>
+      route.fulfill({ json: initial }),
+    );
+    let socket: import("@playwright/test").WebSocketRoute;
+    await page.routeWebSocket("**/ws/lab", (ws) => {
+      socket = ws;
+    });
+    await page.goto("/");
+    await expect(page.getByTestId("portal-slot")).toHaveCount(7);
+    const next = {
+      ...initial,
+      generated_at: "2026-09-05T10:00:01Z",
+      portals: { ...initial.portals, active: 1, closed: 1, collapsed: 1 },
+      slots: initial.slots.map((s) =>
+        s.slot_index === 1
+          ? { ...s, portal: null }
+          : s.slot_index === 2
+            ? { ...s, portal: portal(13) }
+            : s,
+      ),
+    };
+    socket!.send(JSON.stringify(next));
+    await expect(page.getByTestId("portal-ghost")).toHaveCount(2);
+    await expect(page.getByLabel("Laboratory summary")).toContainText(
+      "Closed 1 · Collapsed 1",
+    );
+    const ghosts = page.locator('[data-ghost="true"]');
+    await expect(ghosts.getByRole("link")).toHaveCount(0);
+    for (const button of await ghosts.getByRole("button").all())
+      await expect(button).toBeDisabled();
+    await expect(ghosts.locator('[data-motion="terminal"]')).toHaveCount(2);
+    await page.clock.runFor(1999);
+    await expect(page.getByTestId("portal-ghost")).toHaveCount(2);
+    await page.clock.runFor(1);
+    await expect(page.getByTestId("portal-ghost")).toHaveCount(0);
+    await expect(page.getByTestId("portal-slot").nth(0)).toContainText(
+      "Awaiting Portal",
+    );
+    await expect(page.getByTestId("portal-slot").nth(1)).toContainText(
+      "Portal 13",
+    );
+    await expect(
+      page
+        .getByTestId("portal-slot")
+        .nth(1)
+        .locator('[data-motion="entering"]'),
+    ).toHaveCount(1);
+  });
 
 const apiState = async (
   request: import("@playwright/test").APIRequestContext,

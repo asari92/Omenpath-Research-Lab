@@ -7,6 +7,18 @@ import {
 
 const app = (step: number) => ({ ...snapshotAt().app, tutorial_step: step });
 describe("tutorial presentation reducer", () => {
+  it("one Forward jumps across all browsed history directly to current", () => {
+    let state = initialPresentation(app(1));
+    for (let step = 2; step <= 4; step++)
+      state = tutorialPresentation(state, { type: "snapshot", app: app(step) });
+    state = tutorialPresentation(state, { type: "back" });
+    state = tutorialPresentation(state, { type: "back" });
+    state = tutorialPresentation(state, { type: "back" });
+    expect(state.shown?.tutorial_step).toBe(1);
+    expect(
+      tutorialPresentation(state, { type: "forward" }).shown?.tutorial_step,
+    ).toBe(4);
+  });
   it("keeps earlier shown lessons available when LOST repeats Step 6, without exposing future Step 7", () => {
     let state = initialPresentation(app(1));
     for (let step = 2; step <= 7; step++)

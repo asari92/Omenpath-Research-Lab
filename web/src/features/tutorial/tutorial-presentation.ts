@@ -58,7 +58,7 @@ export function tutorialPresentation(
       0,
       Math.min(
         state.history.length - 1,
-        state.cursor + (action.type === "back" ? -1 : 1),
+        action.type === "back" ? state.cursor - 1 : state.history.length - 1,
       ),
     );
     return cursor === state.cursor
@@ -66,7 +66,11 @@ export function tutorialPresentation(
       : { ...state, cursor, shown: state.history[cursor] ?? null };
   }
   if (action.type === "elapsed") {
-    if (action.generation !== state.generation || !state.replaying)
+    if (
+      action.generation !== state.generation ||
+      !state.replaying ||
+      state.cursor !== state.history.length - 1
+    )
       return state;
     return show(state, state.queue[0], state.queue.slice(1));
   }
