@@ -9,6 +9,7 @@ export type PortalCommand = "STABILIZE" | "CLOSE" | "SEND" | "RECALL";
 interface CommandView {
   command: PortalCommand;
   label: string;
+  shortLabel: string;
   available: boolean;
   reason: string | null;
 }
@@ -40,30 +41,34 @@ export function PortalActions({
     {
       command: "STABILIZE",
       label: "Stabilize",
+      shortLabel: "Stabilize",
       available: quickActions?.can_stabilize ?? false,
       reason: quickActions?.stabilize_unavailable_reason ?? emptyReason,
     },
     {
-      command: "CLOSE",
-      label: "Close",
-      available: quickActions?.can_close ?? false,
-      reason: quickActions?.close_unavailable_reason ?? emptyReason,
-    },
-    {
       command: "SEND",
       label: "Send Observer",
+      shortLabel: "Send",
       available: quickActions?.can_send_observer ?? false,
       reason: quickActions?.send_observer_unavailable_reason ?? emptyReason,
     },
     {
       command: "RECALL",
       label: "Recall Observer",
+      shortLabel: "Recall",
       available: quickActions?.can_recall_observer ?? false,
       reason: quickActions?.recall_observer_unavailable_reason ?? emptyReason,
     },
+    {
+      command: "CLOSE",
+      label: "Close",
+      shortLabel: "Close",
+      available: quickActions?.can_close ?? false,
+      reason: quickActions?.close_unavailable_reason ?? emptyReason,
+    },
   ];
-  if (expectedCriticalSend && commands[2].reason === "PORTAL_CRITICAL_RISK") {
-    commands[2] = { ...commands[2], available: true };
+  if (expectedCriticalSend && commands[1].reason === "PORTAL_CRITICAL_RISK") {
+    commands[1] = { ...commands[1], available: true };
   }
 
   return (
@@ -78,6 +83,7 @@ export function PortalActions({
               aria-disabled={!item.available || offline}
               aria-busy={busy}
               className={item.available ? styles.available : styles.unavailable}
+              data-command={item.command}
               data-tutorial-command={
                 highlightedCommand === item.command || undefined
               }
@@ -109,7 +115,7 @@ export function PortalActions({
               }}
               type="button"
             >
-              {busy ? "Working…" : item.label}
+              {busy ? "Working…" : item.shortLabel}
             </button>
           );
         })}

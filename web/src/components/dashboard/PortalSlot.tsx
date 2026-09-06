@@ -45,9 +45,17 @@ export function PortalSlot({
       data-tutorial-target={(!ghost && tutorialTarget) || undefined}
     >
       <header>
-        <span>Slot {slotIndex}</span>
-        <span>{portal.stability}</span>
+        <span className={styles.slotNumber}>Slot {slotIndex}</span>
+        <strong>{portal.destination_plane_name}</strong>
+        <span
+          aria-label={`Stability ${portal.stability}`}
+          className={styles.stability}
+          data-stability={portal.stability}
+        >
+          {portal.stability}
+        </span>
       </header>
+      <span className={styles.identity}>{portal.name}</span>
       <div
         className={styles.visual}
         data-testid={ghost ? "portal-ghost" : undefined}
@@ -65,20 +73,22 @@ export function PortalSlot({
           portalId={portal.id}
         />
       </div>
-      <h2>{portal.name}</h2>
-      <p>
-        {portal.destination_plane_name} ·{" "}
+      <p className={styles.portalState}>
         {portal.destination_explored ? "EXPLORED" : "UNEXPLORED"} ·{" "}
         {ghost ? "ENDED" : portal.status}
       </p>
       <dl className={styles.metrics}>
         <div>
           <dt>Energy</dt>
-          <dd>{formatEnergy(portal.energy)}</dd>
+          <dd data-testid="portal-energy" data-value-kind="energy">
+            <span aria-hidden="true">⚡</span> {formatEnergy(portal.energy)}
+          </dd>
         </div>
         <div>
           <dt>Time</dt>
-          <dd>{formatRemaining(portal.time_remaining_seconds)}</dd>
+          <dd data-testid="portal-time" data-value-kind="time">
+            {formatRemaining(portal.time_remaining_seconds)}
+          </dd>
         </div>
         <div>
           <dt>Creatures</dt>

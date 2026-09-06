@@ -4,11 +4,21 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.2rem;
+  overflow: hidden;
 }
-.dashboard > h1 {
-  margin: 0.3rem 0;
-  font-size: clamp(1rem, 1.6vw, 1.5rem);
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.25rem;
+  gap: 1rem;
+  border-bottom: 1px solid #9d713b88;
+}
+.titleRow h1 {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.45vw, 1.25rem);
+  text-shadow: 0 0 1rem #d29b3e44;
 }
 .board {
   flex: 1;
@@ -17,7 +27,8 @@
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.3rem, 0.8vw, 0.8rem);
+  gap: clamp(0.35rem, 0.65vw, 0.65rem);
+  padding: 0.45rem 0.15rem 0.1rem;
   overflow: hidden;
 }
 .board > * {
@@ -34,7 +45,14 @@
 }
 .override,
 .waiting {
+  position: absolute;
+  z-index: 5;
+  top: 2.45rem;
+  left: 50%;
+  transform: translateX(-50%);
   margin: 0;
+  padding: 0.15rem 0.55rem;
+  background: #100c0bc9;
   font-size: 0.7rem;
   text-align: center;
 }
@@ -52,7 +70,8 @@
   .board {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: repeat(4, minmax(0, 1fr));
-    gap: 0.25rem;
+    gap: 0.18rem;
+    padding: 0.15rem 0 0;
   }
   .board > :nth-child(5) {
     grid-column: 1/3;

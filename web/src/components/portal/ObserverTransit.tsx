@@ -8,7 +8,7 @@ export function ObserverTransit({
 }) {
   if (!transit) return null;
   return (
-    <p aria-label="Observer transit">
+    <p aria-label="Observer transit" data-direction={transit.direction}>
       Observer #{transit.observer_id} ·{" "}
       {transit.direction === "OUTBOUND" ? "Outbound" : "Returning"} ·{" "}
       {formatRemaining(transit.remaining_seconds)}

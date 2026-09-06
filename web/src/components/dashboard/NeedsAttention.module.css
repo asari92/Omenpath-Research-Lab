@@ -1,11 +1,11 @@
 .alert,
 .nominal {
-  min-height: 2rem;
+  min-height: 0;
   margin: 0;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--line);
-  border-radius: 0.45rem;
-  background: var(--surface);
+  padding: 0.25rem 0.55rem;
+  border-left: 1px solid var(--line);
+  background: #100d09aa;
+  font-size: 0.68rem;
 }
 
 .alert {

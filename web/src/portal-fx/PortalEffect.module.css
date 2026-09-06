@@ -91,6 +91,6 @@
 
 @media (max-width: 600px) {
   .portal {
-    width: min(42%, 3.8rem);
+    width: min(100%, 5.2rem);
   }
 }

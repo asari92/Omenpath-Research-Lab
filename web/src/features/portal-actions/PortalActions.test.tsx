@@ -21,7 +21,7 @@ describe("PortalActions", () => {
     render(<PortalActions portalId={42} quickActions={actions} />);
     expect(
       screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["Stabilize", "Close", "Send Observer", "Recall Observer"]);
+    ).toEqual(["Stabilize", "Send", "Recall", "Close"]);
   });
 
   it("available action invokes only its exact command", async () => {

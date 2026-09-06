@@ -42,14 +42,16 @@ export function DashboardPage() {
 
   return (
     <section className={styles.dashboard}>
-      <h1>Laboratory Overview</h1>
+      <header className={styles.titleRow}>
+        <h1>Laboratory Overview</h1>
+        <NeedsAttention snapshot={snapshot} />
+      </header>
       {snapshot.lab.leyline_override_active && (
         <p className={styles.override} role="status">
           Leyline Override active until{" "}
           {snapshot.lab.leyline_override_until?.slice(11, 19)} UTC
         </p>
       )}
-      <NeedsAttention snapshot={snapshot} />
       {snapshot.portals.active === 0 && (
         <p className={styles.waiting}>Waiting for an Omenpath…</p>
       )}
